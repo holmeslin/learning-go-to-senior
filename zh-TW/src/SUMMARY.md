@@ -14,7 +14,9 @@
     - [循環相依與依賴方向](chapter1/07_import_cycle.md)
     - [棄用（deprecation）與相容性](chapter1/08_deprecation_and_compatibility.md)
 - [錯誤設計]()
+    - [包裝錯誤：`%w` 該不該暴露給呼叫端](chapter2/02_wrap_or_expose.md)
     - [在哪一層處理、哪一層只回傳](chapter2/03_handle_at_boundary.md)
+    - [多個錯誤要合併回傳，還是只回第一個](chapter2/05_join_or_first_error.md)
 - [抽象的取捨]()
 - [資料存取的設計]()
 
