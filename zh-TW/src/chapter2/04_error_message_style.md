@@ -74,7 +74,7 @@
 {{#include ../../../examples/chapter2/04_error_message_style/after/server/example_test.go:user}}
 ```
 
-在哪一層做這件事，本章〈[在哪一層處理、哪一層只回傳](03_handle_at_boundary.md)〉談過。給使用者的訊息不受「英文、小寫」的慣例限制，可以用中文，也可以用完整句子和標點，因為它是最後一句，不是別人的前綴。
+在哪一層做這件事，本章〈[在哪一層處理、哪一層只回傳](03_handle_at_boundary.md)〉談過。這裡的 `main` 和 `server` 在同一個 module，直接判斷 `fs.ErrNotExist` 可以接受；`server` 若是給別人用的套件，就該翻譯成自己的錯誤，見本章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](02_wrap_or_expose.md)〉。給使用者的訊息不受「英文、小寫」的慣例限制，可以用中文，也可以用完整句子和標點，因為它是最後一句，不是別人的前綴。
 
 before 的寫法也不是處處都錯：
 
