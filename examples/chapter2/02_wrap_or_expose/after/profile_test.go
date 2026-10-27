@@ -21,9 +21,8 @@ func TestLoadHidesUnderlyingError(t *testing.T) {
 	if errors.Is(err, fs.ErrNotExist) {
 		t.Error("errors.Is(err, fs.ErrNotExist) = true; the cause should not leak")
 	}
-	var pathErr *fs.PathError
-	if errors.As(err, &pathErr) {
-		t.Errorf("errors.As found *fs.PathError %v; the cause should not leak", pathErr)
+	if pathErr, ok := errors.AsType[*fs.PathError](err); ok {
+		t.Errorf("errors.AsType found *fs.PathError %v; the cause should not leak", pathErr)
 	}
 }
 

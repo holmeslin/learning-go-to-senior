@@ -1,7 +1,7 @@
 // Package store 提供使用者查詢。
 //
 // 錯誤契約：Find 回傳的錯誤見它的文件註解。呼叫端請用 errors.Is 與
-// errors.As 判斷，不要比對錯誤訊息；訊息可能隨版本調整，不屬於契約。
+// errors.AsType 判斷，不要比對錯誤訊息；訊息可能隨版本調整，不屬於契約。
 package store
 
 import (
@@ -19,6 +19,7 @@ type InvalidIDError struct {
 	ID int // 呼叫端傳入的 id
 }
 
+// Error 實作 error。
 func (e *InvalidIDError) Error() string {
 	return fmt.Sprintf("invalid user id %d", e.ID)
 }

@@ -64,7 +64,7 @@
 {{#include ../../../examples/chapter2/04_error_message_style/after/server/example_test.go:example}}
 ```
 
-after 的測試另外確認，錯誤鏈沒有因為改寫而斷掉：`errors.Is(err, fs.ErrNotExist)` 仍然是 `true`。完整程式碼在 `examples/chapter2/04_error_message_style/after/`。
+完整程式碼在 `examples/chapter2/04_error_message_style/after/`。
 
 ## 取捨
 
@@ -74,7 +74,7 @@ after 的測試另外確認，錯誤鏈沒有因為改寫而斷掉：`errors.Is(
 {{#include ../../../examples/chapter2/04_error_message_style/after/server/example_test.go:user}}
 ```
 
-在哪一層做這件事，本章〈在哪一層處理、哪一層只回傳〉會談。給使用者的訊息不受「英文、小寫」的慣例限制，可以用中文，也可以用完整句子和標點，因為它是最後一句，不是別人的前綴。
+在哪一層做這件事，本章〈[在哪一層處理、哪一層只回傳](03_handle_at_boundary.md)〉談過。給使用者的訊息不受「英文、小寫」的慣例限制，可以用中文，也可以用完整句子和標點，因為它是最後一句，不是別人的前綴。
 
 before 的寫法也不是處處都錯：
 

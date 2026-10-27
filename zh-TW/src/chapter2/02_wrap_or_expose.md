@@ -8,7 +8,7 @@
 
 你維護一個 `profile` 套件，負責讀出使用者的個人設定。設定檔現在放在檔案系統上，用 `io/fs` 的 `fs.FS` 讀取。找不到設定檔是常態：新使用者本來就沒有，呼叫端要能分辨這種情況，改用預設值。
 
-`%w` 怎麼包裝、`errors.Is` 與 `errors.As` 怎麼往錯誤鏈裡找，前作〈[`fmt.Errorf` 與 `%w`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/04_errorf_wrap.html)〉、〈[`errors.Is`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/06_errors_is.html)〉與〈[`errors.As` 與 `errors.AsType`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/08_errors_as.html)〉已經講過。這集只談要不要讓底層錯誤透出去。
+`%w` 怎麼包裝、`errors.Is` 與 `errors.AsType` 怎麼往錯誤鏈裡找，前作〈[`fmt.Errorf` 與 `%w`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/04_errorf_wrap.html)〉、〈[`errors.Is`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/06_errors_is.html)〉與〈[`errors.As` 與 `errors.AsType`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/08_errors_as.html)〉已經講過。這集只談要不要讓底層錯誤透出去。
 
 ## 常見寫法
 
@@ -22,7 +22,7 @@
 
 ## 問題在哪
 
-`%w` 的效果是：被包住的錯誤，呼叫端用 `errors.Is` 與 `errors.As` 都找得到。呼叫端不需要你同意，自然就會開始用。底下是一個呼叫端會寫的程式，找不到設定檔時用預設值：
+`%w` 的效果是：被包住的錯誤，呼叫端用 `errors.Is` 與 `errors.AsType` 都找得到。呼叫端不需要你同意，自然就會開始用。底下是一個呼叫端會寫的程式，找不到設定檔時用預設值：
 
 ```go,ignore
 {{#include ../../../examples/chapter2/02_wrap_or_expose/before/example_test.go:caller}}
@@ -31,7 +31,7 @@
 `// Output:` 由 `go test` 逐字驗證。`Load` 沒有宣告過任何錯誤，呼叫端卻已經能做兩件事：
 
 - 用 `errors.Is(err, fs.ErrNotExist)` 判斷「找不到」。
-- 用 `errors.As` 取出 `*fs.PathError`，讀到 `Op` 與 `Path`，也就是檔名 `alice.json`。
+- 用 `errors.AsType` 取出 `*fs.PathError`，讀到 `Op` 與 `Path`，也就是檔名 `alice.json`。
 
 這兩件事你都沒有答應過，但現在它們是 `Load` 實際的行為。呼叫端一旦寫成 `errors.Is(err, fs.ErrNotExist)`，`profile` 就必須永遠從 `fs.FS` 讀、而且永遠回傳這個錯誤，否則他們的判斷會失效。底層錯誤成了你的 API，而且沒有人在文件裡寫下它。改了之後呼叫端會怎麼壞，本章〈錯誤是 API 契約的一部分〉會談。
 
@@ -68,7 +68,7 @@
 
 - 每個要讓呼叫端分辨的情況，都要多一個你自己的錯誤，並自己維護對應。上面的 `Load` 把權限不足也收進同一種「其他錯誤」，呼叫端想分辨它就辦不到，要等有人真的需要，再加一個 `ErrPermission`。
 - `%v` 切斷之後，`errors.Is(err, context.Canceled)` 這類呼叫端通常真的需要的判斷也一併消失。底層錯誤如果值得讓呼叫端依賴，就刻意用 `%w`，並在文件註解寫明（文件與測試怎麼鎖住這個承諾，本章〈錯誤是 API 契約的一部分〉會談）。重點是「刻意」，而不是順手一包。
-- 本章〈哨兵錯誤、自訂型別、不透明錯誤的選擇〉會談 `ErrNotFound` 該是哨兵、型別還是不透明錯誤；這集不處理。
+- `ErrNotFound` 該是哨兵、型別還是不透明錯誤，本章〈[哨兵錯誤、自訂型別、不透明錯誤的選擇](01_sentinel_custom_opaque.md)〉談過；這集不處理。
 
 `%w` 直接透出在這些情況下是對的：
 
@@ -80,7 +80,7 @@
 
 ## 重點整理
 
-- `%w` 讓被包住的錯誤可以被 `errors.Is` 與 `errors.As` 找到，也就是把它變成你 API 的一部分，不論你有沒有打算這麼做。
+- `%w` 讓被包住的錯誤可以被 `errors.Is` 與 `errors.AsType` 找到，也就是把它變成你 API 的一部分，不論你有沒有打算這麼做。
 - 跨出自己的邊界時，把呼叫端需要判斷的情況翻譯成自己的錯誤，其餘用 `%v` 保留訊息、切斷錯誤鏈。
 - 翻譯後要用外部測試驗證兩件事：自己的錯誤成立，底層的錯誤不再成立。
 - 底層錯誤如果值得讓呼叫端依賴，就刻意用 `%w` 並寫進文件。

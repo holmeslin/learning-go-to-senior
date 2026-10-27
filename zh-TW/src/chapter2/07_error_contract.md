@@ -8,7 +8,7 @@
 
 你維護一個內部共用的 `store` 套件，`Find(id)` 找不到使用者時回傳哨兵錯誤 `ErrNotFound`，三個服務都用 `errors.Is(err, store.ErrNotFound)` 把它對應成 404。現在要發 v1.1，想讓錯誤訊息好查一點：把 id 放進訊息裡。
 
-`errors.Is` 與 `%w` 的機制，前作〈[`errors.Is`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/06_errors_is.html)〉與〈[`fmt.Errorf` 與 `%w`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/04_errorf_wrap.html)〉已經講過。本章〈哨兵錯誤、自訂型別、不透明錯誤的選擇〉談過該公開哪一種錯誤，本章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](02_wrap_or_expose.md)〉談過 `%w` 會公開被包住的錯誤；這集談的是公開之後的事：它已經是契約，要像函式簽名一樣維護。
+`errors.Is` 與 `%w` 的機制，前作〈[`errors.Is`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/06_errors_is.html)〉與〈[`fmt.Errorf` 與 `%w`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/04_errorf_wrap.html)〉已經講過。本章〈[哨兵錯誤、自訂型別、不透明錯誤的選擇](01_sentinel_custom_opaque.md)〉談過該公開哪一種錯誤，本章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](02_wrap_or_expose.md)〉談過 `%w` 會公開被包住的錯誤；這集談的是公開之後的事：它已經是契約，要像函式簽名一樣維護。
 
 ## 常見寫法
 
@@ -56,10 +56,11 @@ after 的 `Find` 一樣把 id 放進訊息，但用 `%w` 包住 `ErrNotFound`，
 {{#include ../../../examples/chapter2/07_error_contract/after/store/store_test.go:test}}
 ```
 
-這個測試鎖住的，就是上一節壞掉的那類改動。我們實際把 after 改壞三種，測試都會失敗，而且每一種都編譯得過：
+這個測試鎖住的，就是上一節壞掉的那類改動。我們實際對 after 試了三種改動，每一種都重跑 `go test`；三種都編譯得過，測試都失敗（試完已還原）：
 
-- 把 `ErrNotFound` 換成新建的錯誤，或把 `%w` 改成 `%v`：`errors.Is` 變 `false`。
-- 把 `*InvalidIDError` 改成回傳值型別 `InvalidIDError`：`errors.AsType[*InvalidIDError]` 變 `false`。
+- 把 `%w` 改成 `%v`：`errors.Is(err, ErrNotFound)` 變 `false`。
+- 把包住的 `ErrNotFound` 換成新建的 `errors.New("user not found")`：同樣變 `false`，訊息看起來完全一樣。
+- 把 `*InvalidIDError` 改成值型別：`Find` 回傳 `InvalidIDError{ID: id}`，`Error` 的接收者也要一起改成值接收者，否則編譯不過：`errors.AsType[*InvalidIDError]` 變 `false`。
 
 `Example` 則讓文件註解的承諾可以直接讀，`go test` 會比對輸出：
 
