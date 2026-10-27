@@ -21,27 +21,24 @@ func Send(s Sender, m Message) error
 
 v1.1 順手做了四件事：`NewMessage` 改名叫 `New`；`Send` 加上 `ctx` 參數；`Sender` 加上 `SendBatch` 方法；`Message` 多一個 `Priority` 欄位。
 
-```text
-type Message struct {
-	To, Body string
-	Priority int
-}
-func New(to, body string) Message
-type Sender interface {
-	Send(m Message) error
-	SendBatch(ms []Message) error
-}
-func Send(ctx context.Context, s Sender, m Message) error
+```go,ignore
+{{#include ../../../examples/chapter1/04_exported_api_stability/before/notify/notify.go:api}}
 ```
+
+完整程式碼在 `examples/chapter1/04_exported_api_stability/before/`。
 
 ## 問題在哪
 
-套件本身沒有任何錯誤，壞的是呼叫端。下面是 v1 的呼叫端，一行都沒改：
+套件本身編譯、`go vet` 都沒有問題，壞的是呼叫端。下面是 v1 的呼叫端，一行都沒改：
 
 ```text
+package main
+
+import "example.com/app/notify"
+
 type logSender struct{}
 
-func (logSender) Send(m notify.Message) error { ... }
+func (logSender) Send(m notify.Message) error { return nil }
 
 func main() {
 	var s notify.Sender = logSender{}
@@ -52,13 +49,15 @@ func main() {
 }
 ```
 
-對 v1 它能編譯；對上面的 v1.1，`go build` 的結果是（已省略路徑前綴）：
+對 v1 它能編譯；對上面的 v1.1，`go build` 的結果是（`notify` 就是 `before/notify`）：
+
+編譯錯誤：
 
 ```text
-main.go:17:24: cannot use logSender{} (value of struct type logSender) as notify.Sender value in variable declaration: logSender does not implement notify.Sender (missing method SendBatch)
-main.go:18:14: undefined: notify.NewMessage
-main.go:19:51: too few values in struct literal of type notify.Message
-main.go:20:21: not enough arguments in call to notify.Send
+./main.go:10:24: cannot use logSender{} (value of struct type logSender) as notify.Sender value in variable declaration: logSender does not implement notify.Sender (missing method SendBatch)
+./main.go:11:14: undefined: notify.NewMessage
+./main.go:12:51: too few values in struct literal of type notify.Message
+./main.go:13:21: not enough arguments in call to notify.Send
 	have (notify.Sender, unknown type)
 	want (context.Context, notify.Sender, notify.Message)
 ```
@@ -78,7 +77,7 @@ main.go:20:21: not enough arguments in call to notify.Send
 
 - context：保留 `Send`，另外新增 `SendContext`；`Send` 內部轉呼它。
 - 批次：`Sender` 維持只有 `Send`，批次能力放進新的 `BatchSender` 介面，用型別斷言判斷。
-- 優先順序：新增 `Priority` 欄位，零值代表一般優先，舊的建立方式不受影響。
+- 優先順序：新增 `Priority` 欄位，零值代表一般優先。用欄位名稱建立的舊程式不受影響；依欄位順序寫的程式一樣會壞（見下面的取捨）。
 
 ```go,ignore
 {{#include ../../../examples/chapter1/04_exported_api_stability/after/notify/notify.go:sendcontext}}
@@ -94,7 +93,7 @@ main.go:20:21: not enough arguments in call to notify.Send
 {{#include ../../../examples/chapter1/04_exported_api_stability/after/notify/api_test.go:lock}}
 ```
 
-`v1Sender` 就是前面 `logSender` 的角色：如果有人在 `Sender` 加方法，這個檔案在 `go test` 時就編譯不過，不用等到呼叫端回報。`Example` 則同時示範 v1 的舊寫法與 v1.1 的新功能，`go test` 會比對輸出：
+`v1Sender` 就是前面 `logSender` 的角色：如果有人在 `Sender` 加方法，這個檔案在 `go test` 時就編譯不過，不用等到呼叫端回報。這個鎖擋不住依順序寫欄位的 `notify.Message{"a", "b"}`：`Priority` 已經加進去了，這種寫法放進測試自己就編譯不過，所以它沒辦法同時當成「v1 還能編譯」的證明。`Example` 則同時示範 v1 的舊寫法與 v1.1 的新功能，`go test` 會比對輸出：
 
 ```go,ignore
 {{#include ../../../examples/chapter1/04_exported_api_stability/after/notify/example_test.go:example}}
@@ -108,12 +107,12 @@ main.go:20:21: not enough arguments in call to notify.Send
 
 這些代價在沒有外部使用者時不值得付。套件只有你一個人在用、還沒發布，或所有呼叫端都在同一個 repo、改完能一起編譯，那就直接重構，改成理想的樣子，比留下一堆歷史包袱划算。要守相容的，是你改了之後「看不到、改不動」的呼叫端。
 
-另外，struct 加欄位對「依順序寫欄位」的程式不相容，Go 的相容性承諾也不涵蓋這種寫法；與其替它們設防，不如在文件註解寫明請用欄位名稱建立，`go vet` 也會對別的套件的 struct 這樣寫提出警告。
+另外，struct 加欄位對「依順序寫欄位」的程式不相容，Go 的相容性承諾也不涵蓋這種寫法；與其替它們設防，不如在文件註解寫明請用欄位名稱建立（`Message` 就這樣寫了），`go vet` 也會對別的套件的 struct 這樣寫提出警告。
 
 ## 重點整理
 
 - 匯出的名稱、簽名、介面的方法集合、struct 的欄位，都是對呼叫端的承諾。
 - 改名、改簽名、介面加方法、struct 加欄位（對依順序寫的程式）會讓呼叫端編譯失敗，而且壞的是呼叫端，不是套件自己。
 - 演進時只新增：新函式、新的可選介面、新欄位，舊的保持原樣。
-- 用外部測試套件的編譯期斷言鎖住 v1 的公開 API，破壞相容性會在 `go test` 時就被發現。
+- 用外部測試套件的編譯期斷言鎖住 v1 的函式、介面與用欄位名稱建立的寫法，這些被破壞時 `go test` 就會發現；依順序寫欄位的程式鎖不住，要靠文件註解與 `go vet`。
 - 還沒有外部使用者時，大膽重構比維持相容更划算。

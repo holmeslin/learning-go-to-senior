@@ -11,6 +11,7 @@ type Order struct {
 }
 
 // ANCHOR: notifier
+
 // Notifier 是 order 對「通知」的需求：訂單成立後，把它交出去。
 // 介面由使用它的 order 定義，所以 order 不必 import 任何實作。
 type Notifier interface {
@@ -20,6 +21,7 @@ type Notifier interface {
 // ANCHOR_END: notifier
 
 // ANCHOR: place
+
 // Place 成立一筆訂單並通知。通知失敗時，仍回傳已成立的訂單與錯誤。
 func Place(n Notifier, id int, item string, amount int) (Order, error) {
 	o := Order{ID: id, Item: item, Amount: amount}

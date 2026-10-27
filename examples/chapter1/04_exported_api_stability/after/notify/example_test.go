@@ -15,6 +15,7 @@ func (printSender) Send(m notify.Message) error {
 }
 
 // ANCHOR: example
+
 func Example() {
 	var s notify.Sender = printSender{}
 

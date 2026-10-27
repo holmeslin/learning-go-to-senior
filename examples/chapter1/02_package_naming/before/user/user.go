@@ -15,6 +15,7 @@ type User struct {
 }
 
 // ANCHOR: service
+
 type UserService struct {
 	reserved []string
 }

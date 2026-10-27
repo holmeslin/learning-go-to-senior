@@ -8,9 +8,16 @@ import (
 )
 
 // ANCHOR: example
+
 func ExampleNew() {
-	// 零值的 Config 就是全部用預設值。
+	// 零值的 Config 就是全部用預設值：容量 100，寫第 101 筆時最舊的一筆被淘汰。
 	pages := cacheconf.New(cacheconf.Config{})
+	for i := range 101 {
+		pages.Set(fmt.Sprint(i), "v")
+	}
+	_, first := pages.Get("0")
+	_, second := pages.Get("1")
+	fmt.Println(first, second)
 
 	sessions := cacheconf.New(cacheconf.Config{
 		Capacity: 2,
@@ -20,11 +27,9 @@ func ExampleNew() {
 	sessions.Set("b", "2")
 	sessions.Set("c", "3")
 
-	_, ok := pages.Get("a")
-	fmt.Println(ok)
 	// Output:
+	// false true
 	// evict a
-	// false
 }
 
 // ANCHOR_END: example

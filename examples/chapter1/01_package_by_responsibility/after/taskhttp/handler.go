@@ -10,6 +10,7 @@ import (
 )
 
 // ANCHOR: handler
+
 // NewHandler 回傳處理 /tasks/{id}/complete 的 http.Handler。
 func NewHandler(store *task.Store) http.Handler {
 	mux := http.NewServeMux()

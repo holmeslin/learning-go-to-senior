@@ -8,6 +8,7 @@ import (
 )
 
 // ANCHOR: fake
+
 // fakeNotifier 只靠 order 自己的型別就寫得出來；這個測試不需要 notify。
 type fakeNotifier struct {
 	got []order.Order

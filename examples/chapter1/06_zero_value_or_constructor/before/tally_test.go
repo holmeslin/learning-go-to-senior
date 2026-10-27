@@ -8,7 +8,9 @@ import (
 )
 
 // 這個測試記錄的是 before 的缺陷：兩個型別的零值一用就 panic。
+
 // ANCHOR: test
+
 func TestZeroValuePanics(t *testing.T) {
 	tests := []struct {
 		name string
