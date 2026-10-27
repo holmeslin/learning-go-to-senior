@@ -36,7 +36,8 @@ func Parse(spec string) (Schedule, error) {
 
 // ANCHOR: must
 
-// MustParse 和 Parse 一樣，但格式不對時會 panic，panic 的值就是 Parse 回傳的 error。
+// MustParse 和 Parse 一樣，但 Parse 回傳任何 error（格式不對、間隔不是正數）時都會 panic，
+// panic 的值就是那個 error。
 // 只用在寫死在程式裡的字串，例如初始化套件層級的變數；來自使用者或設定檔的字串請用 Parse。
 func MustParse(spec string) Schedule {
 	s, err := Parse(spec)

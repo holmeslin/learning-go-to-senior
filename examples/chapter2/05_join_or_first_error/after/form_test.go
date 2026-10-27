@@ -39,8 +39,11 @@ func TestValidateErrorsAreStillFindable(t *testing.T) {
 	if !errors.Is(err, form.ErrRequired) {
 		t.Errorf("errors.Is(err, ErrRequired) = false; err = %v", err)
 	}
-	if !errors.Is(err, strconv.ErrSyntax) {
-		t.Errorf("errors.Is(err, strconv.ErrSyntax) = false; err = %v", err)
+	if !errors.Is(err, form.ErrNotNumber) {
+		t.Errorf("errors.Is(err, ErrNotNumber) = false; err = %v", err)
+	}
+	if errors.Is(err, strconv.ErrSyntax) {
+		t.Error("errors.Is(err, strconv.ErrSyntax) = true; the cause should not leak")
 	}
 	if fe, ok := errors.AsType[*form.FieldError](err); !ok || fe.Field != "name" {
 		t.Errorf("errors.AsType = %v, %v; want the name field first", fe, ok)
@@ -53,8 +56,8 @@ func TestValidateAgeStopsAtFirstError(t *testing.T) {
 	if got := fields(t, err); !slices.Equal(got, []string{"age"}) {
 		t.Fatalf("fields = %v; want [age]", got)
 	}
-	if !errors.Is(err, strconv.ErrSyntax) {
-		t.Errorf("errors.Is(err, strconv.ErrSyntax) = false; err = %v", err)
+	if !errors.Is(err, form.ErrNotNumber) {
+		t.Errorf("errors.Is(err, ErrNotNumber) = false; err = %v", err)
 	}
 }
 

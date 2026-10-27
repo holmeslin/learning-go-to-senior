@@ -56,7 +56,7 @@
 {{#include ../../../examples/chapter2/01_sentinel_custom_opaque/after/wallet.go:withdraw}}
 ```
 
-文件註解把承諾寫清楚：哪兩種失敗可以用 `errors.Is`、`errors.AsType` 分辨，其他只保證「不是 nil」。呼叫端的 `decide` 少了一個分支，也不再解析文字；輸出和 before 一樣，由 `go test` 逐字比對：
+文件註解要寫明哪些錯誤可以分辨，怎麼寫見本章〈錯誤是 API 契約的一部分〉。呼叫端的 `decide` 少了一個分支，也不再解析文字；輸出和 before 一樣，由 `go test` 逐字比對：
 
 ```go,ignore
 {{#include ../../../examples/chapter2/01_sentinel_custom_opaque/after/example_test.go:example}}

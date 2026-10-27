@@ -62,7 +62,7 @@
 - `errors.AsType` 只回傳**第一個**符合型別的錯誤。想知道每個欄位，它不夠用。
 - 要逐一處理，就用 `Unwrap() []error` 展開。`errors.Join` 的結果有這個方法，標準庫沒有為它另外提供函式，所以直接做型別斷言。
 
-直接 `fmt.Println(err)` 則是每個錯誤一行，給人看、給日誌看都行。完整程式碼在 `examples/chapter2/05_join_or_first_error/after/`，測試鎖住了上面幾點：每個欄位都被回報、`errors.Is` 仍然找得到 `ErrRequired`，也找得到年齡解析失敗時底下的 `strconv.ErrSyntax`。
+直接 `fmt.Println(err)` 則是每個錯誤一行，給人看、給日誌看都行。完整程式碼在 `examples/chapter2/05_join_or_first_error/after/`，測試鎖住了上面幾點：每個欄位都被回報、`errors.Is` 仍然找得到 `ErrRequired`，也找得到年齡解析失敗時的 `ErrNotNumber`。
 
 ### 有依賴的檢查，還是第一個就停
 
@@ -72,7 +72,7 @@
 {{#include ../../../examples/chapter2/05_join_or_first_error/after/form.go:checkage}}
 ```
 
-`"abc"` 解析失敗時，`n` 沒有意義，再比較範圍只會多出一個誤導的錯誤，所以 `checkAge` 在這裡直接回傳。所以整份表單是欄位之間收集，但同一個欄位裡，前一步是後一步的前提時，第一個錯誤就停。測試 `TestValidateAgeStopsAtFirstError` 鎖住這一點。
+`"abc"` 解析失敗時，`n` 沒有意義，再比較範圍只會多出一個誤導的錯誤，所以 `checkAge` 在這裡直接回傳。回傳的是這個套件自己的 `ErrNotNumber`，不是 `strconv` 的錯誤：`strconv.ErrSyntax` 不該成為表單驗證的 API（理由見本章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](02_wrap_or_expose.md)〉），測試也確認 `errors.Is(err, strconv.ErrSyntax)` 是 `false`。整份表單是欄位之間收集，但同一個欄位裡，前一步是後一步的前提時，第一個錯誤就停。測試 `TestValidateAgeStopsAtFirstError` 鎖住這一點。
 
 ## 取捨
 

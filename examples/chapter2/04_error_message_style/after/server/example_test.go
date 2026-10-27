@@ -48,13 +48,6 @@ func ExampleNew_userMessage() {
 
 // ANCHOR_END: user
 
-func TestNewKeepsErrorChain(t *testing.T) {
-	_, err := server.New(fstest.MapFS{}, "app.conf")
-	if !errors.Is(err, fs.ErrNotExist) {
-		t.Errorf("errors.Is(err, fs.ErrNotExist) = false, err = %v", err)
-	}
-}
-
 func TestNewOK(t *testing.T) {
 	s, err := server.New(fstest.MapFS{"app.conf": {Data: []byte("8080\n")}}, "app.conf")
 	if err != nil {

@@ -16,8 +16,7 @@ func ExampleLoad_callerDependsOnFS() {
 	fmt.Println(err)
 	fmt.Println(errors.Is(err, fs.ErrNotExist))
 
-	var pathErr *fs.PathError
-	if errors.As(err, &pathErr) {
+	if pathErr, ok := errors.AsType[*fs.PathError](err); ok {
 		fmt.Println(pathErr.Op, pathErr.Path)
 	}
 	// Output:
