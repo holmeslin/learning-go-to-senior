@@ -12,13 +12,13 @@
 
 ### 前置知識
 
-某一項不太熟的話，點進去補那一塊就好，不必重讀整本前作。
+前置知識是前作全書；以下是最常用到的部分。某一項不太熟的話，點進去補那一塊就好，不必重讀整本前作。
 
 - **語法與基本型別**：變數、控制流程、函式、切片與 map、`struct` 與方法。見[第一部第 1 章（基礎）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter1/index.html)、[第 2 章（函式、陣列、切片與 map）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter2/index.html)、[第 3 章（結構、指標與方法）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter3/index.html)。
 - **介面**：隱式實作、介面值、小介面。見[第 4 章（介面）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/index.html)。
 - **錯誤處理與 `defer`**：`error`、`%w` 包裝、`errors.Is` 與 `errors.As`、`panic` 與 `recover`。見[第 5 章（錯誤處理與 `defer`）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/index.html)。
 - **泛型與迭代器**：型別約束、`slices` 與 `maps`、`iter.Seq`。見[第 6 章（函式值、閉包與泛型）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter6/index.html)、[第 7 章（迭代器）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter7/index.html)。
-- **套件、模組與測試**：`go.mod`、套件與 `internal`、`go test`、表格驅動測試、benchmark。見[第 8 章（套件、模組與測試）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/index.html)，從[`go test`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/09_go_test.html)開始讀起。
+- **套件、模組與測試**：`go.mod`、套件與 `internal`、`go test`、表格驅動測試、benchmark。見[第 8 章（套件、模組與測試）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/index.html)，從 [`go test`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/09_go_test.html) 開始讀起。
 - **並行與 `context`**：goroutine、channel、`sync`、`-race`、`context` 的傳遞慣例。見[第 9 章（並行）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/index.html)、[第 10 章（`context`）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter10/index.html)。
 - **標準庫**：`io.Reader` 與 `io.Writer`、`encoding/json`、`log/slog`。見[第 12 章（進階標準庫）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/index.html)。
 - **Web 服務與資料庫**：`net/http`、`httptest`、`database/sql`。見[第 14 章（實戰：Web 服務）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/index.html)、[第 15 章（實戰：`database/sql`）](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/index.html)。
@@ -42,7 +42,7 @@ runtime 只講到「足以做出判斷」的深度，不是要你去讀 Go 的�
 
 ## 這本書怎麼讀？
 
-- 每一「集」都用同樣的七段結構：**本集目標**、**情境**、**常見寫法**、**問題在哪**、**較好的做法**、**取捨**、**重點整理**。先看到一個真實的情境，再看大家常怎麼寫、這樣寫哪裡出問題，最後才是比較好的做法。
+- 大多數的「集」都用同樣的七段結構：**本集目標**、**情境**、**常見寫法**、**問題在哪**、**較好的做法**、**取捨**、**重點整理**。先看到一個真實的情境，再看大家常怎麼寫、這樣寫哪裡出問題，最後才是比較好的做法。有些主題不適合這樣改寫（例如事故處理、設計文件），那幾集會省略中間三段，改用自己的段落。
 - 「取捨」這一段很重要。較好的做法不是萬靈丹，有些情況下常見寫法反而是對的，這一段會說清楚。
 - 每集的篇幅很短，10 分鐘內讀得完。
 - 你可以跳著讀，挑自己現在最需要的主題。不過後面的章節會引用前面的章節，卡住時請回頭看。
@@ -57,8 +57,12 @@ runtime 只講到「足以做出判斷」的深度，不是要你去讀 Go 的�
 
 把 repo 抓下來（需要 Go 1.27），在專案根目錄執行：
 
-```text
+```bash
 go test -race ./...
 ```
 
-就能一次跑完所有多檔案範例的測試。只想看某一集的話，把 `./...` 換成那一集的目錄即可。`before` 的程式碼保證能編譯並通過 `go vet`，`after` 的程式碼一定附有測試。
+就能一次跑完所有多檔案範例的測試。只想看某一集的話，把 `./...` 換成那一集的目錄即可。有「常見寫法」與「較好的做法」的集，`before` 的程式碼保證能編譯並通過 `go vet`，`after` 的程式碼一定附有測試。
+
+---
+
+本書的初稿由 AI 協助撰寫，再經人工審閱修改。
