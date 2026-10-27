@@ -3,7 +3,6 @@ package services
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter1/01_package_by_responsibility/before/models"
 )
@@ -11,7 +10,6 @@ import (
 var ErrNotFound = errors.New("task: not found")
 
 type TaskService struct {
-	mu     sync.Mutex
 	nextID int
 	tasks  map[int]*models.Task
 }
@@ -21,8 +19,6 @@ func NewTaskService() *TaskService {
 }
 
 func (s *TaskService) Add(title string) models.Task {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.nextID++
 	t := &models.Task{ID: s.nextID, Title: title}
 	s.tasks[t.ID] = t
@@ -31,8 +27,6 @@ func (s *TaskService) Add(title string) models.Task {
 
 // ANCHOR: complete
 func (s *TaskService) Complete(id int) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	t, ok := s.tasks[id]
 	if !ok {
 		return ErrNotFound
@@ -42,13 +36,3 @@ func (s *TaskService) Complete(id int) error {
 }
 
 // ANCHOR_END: complete
-
-func (s *TaskService) Get(id int) (models.Task, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	t, ok := s.tasks[id]
-	if !ok {
-		return models.Task{}, false
-	}
-	return *t, true
-}
