@@ -19,6 +19,7 @@
     - [錯誤訊息怎麼寫](chapter2/04_error_message_style.md)
     - [多個錯誤要合併回傳，還是只回第一個](chapter2/05_join_or_first_error.md)
     - [什麼時候可以 `panic`，什麼時候一定要回傳 `error`](chapter2/06_panic_or_error.md)
+    - [錯誤是 API 契約的一部分](chapter2/07_error_contract.md)
 - [抽象的取捨]()
 - [資料存取的設計]()
 
