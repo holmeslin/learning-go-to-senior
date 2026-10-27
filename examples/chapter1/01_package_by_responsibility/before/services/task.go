@@ -26,6 +26,7 @@ func (s *TaskService) Add(title string) models.Task {
 }
 
 // ANCHOR: complete
+
 func (s *TaskService) Complete(id int) error {
 	t, ok := s.tasks[id]
 	if !ok {

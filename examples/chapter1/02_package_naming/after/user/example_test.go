@@ -8,6 +8,7 @@ import (
 )
 
 // ANCHOR: example
+
 func ExampleService_Register() {
 	svc := user.NewService()
 

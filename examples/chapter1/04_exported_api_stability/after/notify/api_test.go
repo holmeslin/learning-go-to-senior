@@ -9,6 +9,7 @@ import (
 )
 
 // ANCHOR: lock
+
 // v1 的呼叫端寫的實作：只有 Send。
 type v1Sender struct{}
 
@@ -24,8 +25,7 @@ var (
 // ANCHOR_END: lock
 
 type recorder struct {
-	sent    []notify.Message
-	batches int
+	sent []notify.Message
 }
 
 func (r *recorder) Send(m notify.Message) error {
@@ -34,7 +34,10 @@ func (r *recorder) Send(m notify.Message) error {
 }
 
 // batchRecorder 另外實作可選的 BatchSender。
-type batchRecorder struct{ recorder }
+type batchRecorder struct {
+	recorder
+	batches int
+}
 
 func (b *batchRecorder) SendBatch(ms []notify.Message) error {
 	b.batches++

@@ -40,7 +40,16 @@ package example.com/app
 	main.go:3:8: use of internal package example.com/cache/internal/lru not allowed
 ```
 
-原本的路徑 `example.com/cache/lru` 則直接找不到套件。這兩個錯誤都是在 Go 1.27 下，用兩個 module（函式庫與呼叫端，以 `replace` 連起來）實際重現的。
+呼叫端如果沒改 import，仍寫著原本的路徑 `example.com/cache/lru`，則是另一個錯誤：
+
+編譯錯誤：
+
+```text
+main.go:3:8: no required module provides package example.com/cache/lru; to add it:
+	go get example.com/cache/lru
+```
+
+這兩個錯誤都是在 Go 1.27 下，用兩個 module（函式庫與呼叫端，以 `replace` 連起來）實際重現的。
 
 所以 `internal` 得在別人還沒依賴的時候就放好；等到有人依賴了，搬進去就是一次破壞相容性的改動（本章〈匯出名稱與 API 穩定性〉會談）。
 
@@ -50,6 +59,7 @@ package example.com/app
 
 ```text
 cache/
+├── go.mod
 ├── cache.go                 Cache（Get、Put、Stats）
 ├── internal/lru/lru.go      List（只有 cache 能 import）
 └── example_test.go          外部測試套件，只用公開 API

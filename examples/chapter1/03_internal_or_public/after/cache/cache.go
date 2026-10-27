@@ -9,6 +9,7 @@ type Stats struct {
 }
 
 // ANCHOR: cache
+
 // Cache 是固定容量的快取。淘汰順序怎麼記錄，是 internal/lru 的事。
 type Cache[K comparable, V any] struct {
 	order *lru.List[K, V]

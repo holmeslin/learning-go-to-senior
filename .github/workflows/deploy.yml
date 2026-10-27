@@ -36,6 +36,13 @@ jobs:
       - name: Vet and test
         run: go vet ./... && go test -race ./...
 
+      - name: Check no ANCHOR in go doc
+        run: |
+          if go list ./examples/... | xargs -n1 go doc -all | grep -n ANCHOR; then
+            echo "ANCHOR leaked into a doc comment; see docs/style-guide.md" >&2
+            exit 1
+          fi
+
       - name: Build book
         working-directory: zh-TW
         run: mdbook build
