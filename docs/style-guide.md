@@ -91,7 +91,7 @@
 套件、介面、測試這類範例一個檔案放不下，就放進 repo 根目錄 module 底下的 `examples/`，由 `go vet ./...` 與 `go test -race ./...` 驗證，書中再用 mdBook 的 include 引入片段，所以書上顯示的就是被驗證過的程式碼。
 
 - 目錄：`examples/chapterN/##_slug/before/` 與 `examples/chapterN/##_slug/after/`。章與集的目錄名和 `zh-TW/src/` 底下的一致。
-- 命名：用 `before` 與 `after`，不要用其他名字。每個目錄是 module 內獨立的 Go 套件，單獨就能 build。
+- 命名：用 `before` 與 `after`，不要用其他名字。每個目錄是 module 內獨立的 Go 套件，單獨就能 build。範例需要多個套件時，在 `before`、`after` 底下再按套件分子目錄（例如 `after/task/`、`after/taskhttp/`）。
 - 整個 repo 只有根目錄一個 Go module，所有範例共用相依；不要在 `examples/` 裡再放 `go.mod`。
 - 不在 markdown 裡複製貼上範例程式碼。要引入的片段，在原始檔用 anchor 標出來：
 
@@ -119,6 +119,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 - **before**：只需要能編譯並通過 `go vet`。它是用來展示問題的，不要求有測試，也不要求沒有 bug。
 - **after**：必須有測試，`go test -race` 要通過。測試要能說明「較好的做法」好在哪裡，而不只是跑過一次。
+- **before 本身是編譯錯誤時**（例如 import cycle、從外部 import `internal`、破壞相容性的修改）：不建 `before` 目錄，以免 `go vet ./...` 讓建置流程失敗。改用套件結構圖（`text` 區塊或簡單的目錄樹）呈現 before，並用 `text` 區塊貼出 Go 1.27 實際的錯誤訊息，可省略檔案路徑前綴。錯誤訊息由實作者在 repo 外的暫存目錄手動重現，不進建置流程。`after` 照常是有測試的多檔案範例。
 - 書中宣稱的行為（效能差距、錯誤訊息、競爭條件）要能被範例重現。效能數字要寫明量測方式與環境，不寫成保證。
 - 省略「改寫模式」三段的集可以沒有 `before`／`after`，但書中出現的 Go 程式碼仍然要走單檔範例或多檔案範例其中一條驗證路徑。
 
