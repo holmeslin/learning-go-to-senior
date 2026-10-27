@@ -1,10 +1,7 @@
 // Package task 管理待辦任務：資料、規則與儲存都在這一個套件裡。
 package task
 
-import (
-	"errors"
-	"sync"
-)
+import "errors"
 
 // ErrNotFound 表示找不到指定 ID 的任務。
 var ErrNotFound = errors.New("task: not found")
@@ -16,9 +13,8 @@ type Task struct {
 	Done  bool
 }
 
-// Store 是放在記憶體裡的任務儲存，可以同時被多個 goroutine 使用。
+// Store 是放在記憶體裡的任務儲存。
 type Store struct {
-	mu     sync.Mutex
 	nextID int
 	tasks  map[int]*Task
 }
@@ -30,8 +26,6 @@ func NewStore() *Store {
 
 // Add 新增一筆任務並回傳它。
 func (s *Store) Add(title string) Task {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.nextID++
 	t := &Task{ID: s.nextID, Title: title}
 	s.tasks[t.ID] = t
@@ -41,8 +35,6 @@ func (s *Store) Add(title string) Task {
 // ANCHOR: complete
 // Complete 把任務標記為完成，找不到時回傳 ErrNotFound。
 func (s *Store) Complete(id int) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	t, ok := s.tasks[id]
 	if !ok {
 		return ErrNotFound
@@ -55,8 +47,6 @@ func (s *Store) Complete(id int) error {
 
 // Get 回傳指定 ID 任務的複本。
 func (s *Store) Get(id int) (Task, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	t, ok := s.tasks[id]
 	if !ok {
 		return Task{}, false

@@ -19,8 +19,13 @@ func NewHandler(store *task.Store) http.Handler {
 			http.Error(w, "bad id", http.StatusBadRequest)
 			return
 		}
-		if err := store.Complete(id); errors.Is(err, task.ErrNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
+		err = store.Complete(id)
+		if err != nil {
+			if errors.Is(err, task.ErrNotFound) {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
