@@ -44,7 +44,7 @@
 
 ## 重點整理
 
-- 3～5 條，條列本集真正教了什麼（AI 助教靠這段判斷進度）。
+- 3～5 條，條列本集真正教了什麼。
 ```
 
 「常見寫法」「問題在哪」「較好的做法」三段是「改寫模式」。不是每個主題都適合改寫，例如事故處理、設計文件、code review，或 runtime 的概念介紹。可省略與不可省略的規則：
@@ -77,15 +77,7 @@
 
 - 一律 `gofmt` 格式（Tab 縮排）。
 - 單檔的小範例寫在 markdown 的 ```` ```go ```` 區塊，必須是**完整可編譯的 `package main`**，會被 `tools/checkcode` 執行：`go vet` 必須通過，執行必須以結束碼 0 結束。
-- 需要特殊處理時，在 info string 加標註，值裡面不能有空白：
-
-| 標註 | 用在 |
-| --- | --- |
-| `go,stdin=Andy` / `go,stdin=3\n5` | 讀輸入的範例（`\n` 代表換行） |
-| `go,compile_fail` | 故意展示編譯錯誤 |
-| `go,exit=2` | 故意 `panic` 或死結（Go 的 panic 結束碼是 2） |
-| `go,norun` | 會一直執行或需要外部環境，只編譯 |
-| `go,ignore` | 不完整的片段、`go.mod` 以外的檔案內容，以及 `{{#include}}` 引入的程式碼（見下節） |
+- 需要特殊處理時，在 info string 加標註。標註清單見根目錄 `README.md`；值裡面不能有空白，也不能有逗號（`checkcode` 以逗號切開 info string）。`go,ignore` 只用在 `{{#include}}` 引入的程式碼（見下節）與確實不完整的片段，例如 `go.mod` 以外的檔案內容。
 
 - 輸出區塊前一行固定寫「執行結果：」（輸出不固定時寫「執行結果（某一次）：」），編譯錯誤寫「編譯錯誤：」。
 - 單檔範例的 `go.mod` 由 `tools/checkcode/deps/go.mod` 提供（`go 1.27`，`require` 一開始是空的）。某一集真的需要第三方套件時才加入，並遵守下方「第三方套件」。
@@ -120,6 +112,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 ````
 
 - anchor 名稱用描述內容的英文小寫（`handler`、`test`），同一個檔案內不可重複。
+- `// ANCHOR_END:` 的前一行不要留空行，否則書上會多出一行空白。
 - 只引入需要讓讀者看的片段，不要整檔貼上；完整程式碼讓讀者去 `examples/` 看。
 
 ## before/after 的驗證標準
@@ -132,7 +125,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 ## 第三方套件
 
 - **標準庫與 `golang.org/x` 優先**。能用標準庫解決的就不要引入套件。
-- OpenTelemetry 只在第 9 章「可觀測性」使用；`golangci-lint` 只在第 12 章「建置與發布」使用。第 16 章綜合實戰可以沿用它們，但不新增其他相依。
+- OpenTelemetry 只在第 9 章「可觀測性」使用；`golangci-lint` 只在第 12 章「建置與發布」使用，並以 `go.mod` 的 `tool` 指令鎖定版本（Go 1.24 起），不是可 import 的相依。第 4 章與第 16 章可以用 `modernc.org/sqlite`（純 Go、不需要 cgo，與前作第 15 章相同）。第 16 章綜合實戰可以沿用上述套件，但不新增其他相依。
 - 不教框架（Web 框架、ORM、相依注入框架）。要談取捨時，用標準庫寫出同樣的事，再說明框架解決了什麼、換來了什麼。
 - 新增相依要在該集的 ticket 說明理由；單檔範例用到就同步鎖定在 `tools/checkcode/deps/go.mod`，多檔案範例鎖定在根目錄 `go.mod`。
 
