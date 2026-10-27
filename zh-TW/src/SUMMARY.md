@@ -13,7 +13,8 @@
     - [什麼時候讓零值可用，什麼時候該強制用建構函式](chapter1/06_zero_value_or_constructor.md)
     - [循環相依與依賴方向](chapter1/07_import_cycle.md)
     - [棄用（deprecation）與相容性](chapter1/08_deprecation_and_compatibility.md)
-- [錯誤設計]()
+- [錯誤設計](chapter2/README.md)
+    - [哨兵錯誤、自訂型別、不透明錯誤的選擇](chapter2/01_sentinel_custom_opaque.md)
 - [抽象的取捨]()
 - [資料存取的設計]()
 
