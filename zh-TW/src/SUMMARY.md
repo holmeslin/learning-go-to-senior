@@ -9,7 +9,7 @@
     - [套件命名與 `util` 陷阱]()
     - [什麼時候用 `internal`，什麼時候該公開]()
     - [匯出名稱與 API 穩定性]()
-    - [建構函式與 functional options]()
+    - [建構函式與 functional options](chapter1/05_constructor_functional_options.md)
     - [什麼時候讓零值可用，什麼時候該強制用建構函式]()
     - [循環相依與依賴方向]()
     - [棄用（deprecation）與相容性]()
