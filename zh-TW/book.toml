@@ -1,0 +1,17 @@
+[book]
+title = "邁向資深 Go 工程師"
+authors = ["Holmes Lin"]
+language = "zh-TW"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/holmeslin/learning-go-to-senior"
+edit-url-template = "https://github.com/holmeslin/learning-go-to-senior/edit/main/zh-TW/{path}"
+site-url = "/learning-go-to-senior/zh-TW/"
+
+[output.html.playground]
+runnable = false
+
+[output.html.print]
+page-break = false
