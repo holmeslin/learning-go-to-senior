@@ -7,6 +7,7 @@ import (
 )
 
 // ANCHOR: example
+
 func ExampleParse() {
 	n, err := size.Parse("10MiB")
 	fmt.Println(n, err)

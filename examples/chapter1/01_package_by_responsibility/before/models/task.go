@@ -2,6 +2,7 @@
 package models
 
 // ANCHOR: task
+
 type Task struct {
 	ID    int
 	Title string

@@ -2,6 +2,7 @@
 package tally
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -37,22 +38,31 @@ func (c *Counter) Paths() []string {
 
 // ANCHOR: reporter
 
-// reporter 把 Counter 的內容寫到 io.Writer。沒有寫入目標就沒有意義，
-// 所以型別不匯出，呼叫端只能透過 NewReporter 取得。
-type reporter struct {
+// ErrNoWriter 表示 Reporter 沒有寫入目標，通常是沒有用 NewReporter 建立。
+var ErrNoWriter = errors.New("tally: reporter has no writer, create it with NewReporter")
+
+// Reporter 把 Counter 的內容寫到 io.Writer。請用 NewReporter 建立；
+// 直接使用零值時，Report 會回傳 ErrNoWriter。
+type Reporter struct {
 	w io.Writer
 }
 
-// NewReporter 建立寫到 w 的 reporter；w 不可為 nil。
-func NewReporter(w io.Writer) *reporter {
-	return &reporter{w: w}
+// NewReporter 建立寫到 w 的 Reporter。
+func NewReporter(w io.Writer) *Reporter {
+	return &Reporter{w: w}
+}
+
+// Report 每個路徑輸出一行「路徑 次數」。
+func (r *Reporter) Report(c *Counter) error {
+	if r == nil || r.w == nil {
+		return ErrNoWriter
+	}
+	for _, p := range c.Paths() {
+		if _, err := fmt.Fprintf(r.w, "%s %d\n", p, c.Count(p)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ANCHOR_END: reporter
-
-// Report 每個路徑輸出一行「路徑 次數」。
-func (r *reporter) Report(c *Counter) {
-	for _, p := range c.Paths() {
-		fmt.Fprintf(r.w, "%s %d\n", p, c.Count(p))
-	}
-}

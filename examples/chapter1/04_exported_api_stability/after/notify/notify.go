@@ -34,6 +34,7 @@ func Send(s Sender, m Message) error {
 }
 
 // ANCHOR: sendcontext
+
 // SendContext 是 v1.1 新增的函式：與 Send 相同，但 ctx 取消時不送。
 func SendContext(ctx context.Context, s Sender, m Message) error {
 	if err := ctx.Err(); err != nil {
@@ -45,6 +46,7 @@ func SendContext(ctx context.Context, s Sender, m Message) error {
 // ANCHOR_END: sendcontext
 
 // ANCHOR: sendall
+
 // SendAll 送出多則訊息；s 也實作 BatchSender 時改用 SendBatch。
 func SendAll(s Sender, ms []Message) error {
 	if b, ok := s.(BatchSender); ok {

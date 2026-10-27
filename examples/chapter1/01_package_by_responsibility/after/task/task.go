@@ -33,6 +33,7 @@ func (s *Store) Add(title string) Task {
 }
 
 // ANCHOR: complete
+
 // Complete 把任務標記為完成，找不到時回傳 ErrNotFound。
 func (s *Store) Complete(id int) error {
 	t, ok := s.tasks[id]

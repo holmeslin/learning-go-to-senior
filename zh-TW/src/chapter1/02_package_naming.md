@@ -35,7 +35,9 @@ before/
 
 先看呼叫端讀到的名字：`user.NewUserService()`，「user」說了兩次；`go doc` 列出來的也是 `user.UserService`。標準庫是 `http.Client`，不是 `http.HTTPClient`，套件名稱本來就是名字的一部分。
 
-再看 `util` 對外說了什麼：
+再看 `util` 對外說了什麼（`go doc` 輸出，省略第一行的 import 路徑註解）：
+
+執行結果：
 
 ```text
 $ go doc ./util

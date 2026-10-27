@@ -8,6 +8,7 @@ import (
 )
 
 // ANCHOR: example
+
 func ExampleStore_Complete() {
 	store := task.NewStore()
 	t := store.Add("寫第 1 章")

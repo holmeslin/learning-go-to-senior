@@ -9,6 +9,7 @@ import (
 )
 
 // ANCHOR: example
+
 func ExamplePlace() {
 	// 接線在呼叫端：order 不認得 notify，是這裡把兩者接起來。
 	n := notify.Console{W: os.Stdout}

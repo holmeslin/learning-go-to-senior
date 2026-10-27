@@ -9,6 +9,7 @@ import (
 )
 
 // ANCHOR: console
+
 // Console 把通知寫到 W。它依賴 order（要讀 Order 的欄位），反過來沒有。
 type Console struct {
 	W io.Writer

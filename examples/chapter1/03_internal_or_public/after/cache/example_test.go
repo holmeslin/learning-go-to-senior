@@ -7,6 +7,7 @@ import (
 )
 
 // ANCHOR: example
+
 func ExampleCache() {
 	c := cache.New[string, int](2)
 	c.Put("a", 1)

@@ -49,13 +49,13 @@ cache.New(1000, 0, nil, 0)   // 為了新參數，每個呼叫端都得補一個
 {{#include ../../../examples/chapter1/05_constructor_functional_options/after/cacheconf/cacheconf.go:config}}
 ```
 
-**Functional options**：每個設定是一個函式，建構函式收可變數量的 `Option`。
+**Functional options**：每個設定是一個函式，建構函式收可變數量的 `Option`。選項是函式，所以能在建構時檢查：`WithCapacity` 收到小於 1 的值，`New` 就回傳錯誤。
 
 ```go,ignore
 {{#include ../../../examples/chapter1/05_constructor_functional_options/after/cache/cache.go:options}}
 ```
 
-兩種的呼叫端都看得到欄位或選項的名字，加新設定也不會讓既有的呼叫端壞掉。下面兩段 `Example` 放在外部測試套件，`go test` 會比對輸出，可以並排比較兩種建構的寫法：
+兩種的呼叫端都看得到欄位或選項的名字，加新設定也不會讓既有的呼叫端壞掉。下面兩段 `Example` 放在外部測試套件，`go test` 會比對輸出，可以並排比較兩種建構的寫法。兩段都先用預設值建構，寫入 101 筆，看預設容量 100 的效果；functional options 那段最後還示範了 `WithCapacity(0)` 被拒絕：
 
 ```go,ignore
 {{#include ../../../examples/chapter1/05_constructor_functional_options/after/cache/example_test.go:example}}
@@ -78,28 +78,39 @@ cache.New(1000, 0, nil, 0)   // 為了新參數，每個呼叫端都得補一個
 Functional options 不是免費的：
 
 - API 面積變大。每個選項都是一個匯出的函式，加上 `Option` 型別，每一個都要寫文件、長期維護。
-- 不容易一眼看全。用 `go doc` 看這兩個套件（省略套件標頭與部分輸出）：
+- 不容易一眼看全。用 `go doc` 看這兩個套件（省略第一行的 import 路徑）：
+
+執行結果：
 
 ```text
 $ go doc cache
+package cache
+
+Package cache 是一個固定容量的字串快取，寫入超過容量時淘汰最舊的一筆。
+
 type Cache struct{ ... }
-    func New(opts ...Option) *Cache
-type Option func(*Cache)
+    func New(opts ...Option) (*Cache, error)
+type Option func(*Cache) error
     func WithCapacity(n int) Option
     func WithMaxValueLen(n int) Option
     func WithOnEvict(fn func(key string)) Option
 
 $ go doc cacheconf Config
+package cacheconf
+
 type Config struct {
 	Capacity    int              // 最多保留幾筆；0 表示預設值 100
 	MaxValueLen int              // 值的長度上限；0 表示不限制
 	OnEvict     func(key string) // 淘汰一筆資料時的回呼；nil 表示不呼叫
 }
+    Config 是 Cache 的設定，每個欄位的零值都有意義。
 ```
 
 - Config struct 把每個欄位與它的註解放在同一處；functional options 只看得到函式名稱，預設值要讀 `New` 或文件註解才知道。
 
-Config struct 也有它的代價：零值同時代表「沒設定」與「明確設成 0」，所以 `Capacity: 0` 沒辦法要求容量為 0，只能當成預設值。欄位一多、型別很複雜，或需要在建構時檢查時，才值得換成 functional options。
+Config struct 也有它的代價：零值同時代表「沒設定」與「明確設成 0」，所以 `Capacity: 0` 沒辦法要求容量為 0，只能當成預設值；`Capacity: -5` 這類不合理的值，這裡也是悄悄當成預設值，不會報錯。欄位一多、型別很複雜，或需要在建構時檢查時，才值得換成 functional options。
+
+Functional options 檢查得出錯，代價是 `New` 多回傳一個 `error`，每個呼叫端都得處理它，包括完全不給選項的那些。
 
 另外，**必填**的值（例如連線位址）留在參數列比較誠實：把它做成選項，編譯器就不能提醒你漏了。before 的參數列表在參數少而穩定時才是對的，也最簡單。
 
@@ -107,6 +118,6 @@ Config struct 也有它的代價：零值同時代表「沒設定」與「明確
 
 - 參數列表只適合參數少、一看就懂、不太會增加的建構函式。
 - 設定大多是單純資料、零值有意義：config struct 最簡單，所有欄位在同一處看得到。
-- 選項多、預設值不是零值、或需要建構時檢查：functional options，代價是 API 面積變大、預設值藏在程式碼裡。
+- 選項多、預設值不是零值、或需要建構時檢查：functional options，代價是 API 面積變大、預設值藏在程式碼裡、`New` 要多回傳 `error`。
 - 必填的值留在參數列，可選的才進 config 或選項。
-- 不要只因為「以後可能會加」就先用 functional options。套件已有外部使用者時，改建構函式的簽名會讓呼叫端壞掉（本章前面的〈[匯出名稱與 API 穩定性](04_exported_api_stability.md)〉談過這類修改），所以先想一下它會不會長出很多選項。
+- 不要只因為「以後可能會加」就先用 functional options。套件已有外部使用者時，改建構函式的簽名會讓呼叫端壞掉（本章〈[匯出名稱與 API 穩定性](04_exported_api_stability.md)〉談過這類修改），所以先想一下它會不會長出很多選項。
