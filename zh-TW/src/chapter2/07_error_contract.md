@@ -8,7 +8,7 @@
 
 你維護一個內部共用的 `store` 套件，`Find(id)` 找不到使用者時回傳哨兵錯誤 `ErrNotFound`，三個服務都用 `errors.Is(err, store.ErrNotFound)` 把它對應成 404。現在要發 v1.1，想讓錯誤訊息好查一點：把 id 放進訊息裡。
 
-`errors.Is` 與 `%w` 的機制，前作〈[`errors.Is`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/06_errors_is.html)〉與〈[`fmt.Errorf` 與 `%w`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/04_errorf_wrap.html)〉已經講過。本章〈哨兵錯誤、自訂型別、不透明錯誤的選擇〉談過該公開哪一種錯誤，本章〈包裝錯誤：`%w` 該不該暴露給呼叫端〉談過 `%w` 會公開被包住的錯誤；這集談的是公開之後的事：它已經是契約，要像函式簽名一樣維護。
+`errors.Is` 與 `%w` 的機制，前作〈[`errors.Is`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/06_errors_is.html)〉與〈[`fmt.Errorf` 與 `%w`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/04_errorf_wrap.html)〉已經講過。本章〈哨兵錯誤、自訂型別、不透明錯誤的選擇〉談過該公開哪一種錯誤，本章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](02_wrap_or_expose.md)〉談過 `%w` 會公開被包住的錯誤；這集談的是公開之後的事：它已經是契約，要像函式簽名一樣維護。
 
 ## 常見寫法
 
