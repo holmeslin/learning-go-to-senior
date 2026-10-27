@@ -14,6 +14,7 @@
     - [循環相依與依賴方向](chapter1/07_import_cycle.md)
     - [棄用（deprecation）與相容性](chapter1/08_deprecation_and_compatibility.md)
 - [錯誤設計]()
+    - [在哪一層處理、哪一層只回傳](chapter2/03_handle_at_boundary.md)
 - [抽象的取捨]()
 - [資料存取的設計]()
 
