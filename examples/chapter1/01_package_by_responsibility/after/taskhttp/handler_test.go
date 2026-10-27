@@ -1,6 +1,7 @@
 package taskhttp_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,7 +20,7 @@ func TestCompleteRoute(t *testing.T) {
 		path string
 		want int
 	}{
-		{"存在的任務", "/tasks/1/complete", http.StatusNoContent},
+		{"存在的任務", fmt.Sprintf("/tasks/%d/complete", added.ID), http.StatusNoContent},
 		{"不存在的任務", "/tasks/99/complete", http.StatusNotFound},
 		{"id 不是數字", "/tasks/abc/complete", http.StatusBadRequest},
 	}
