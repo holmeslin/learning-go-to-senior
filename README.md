@@ -26,10 +26,10 @@ cd zh-TW && mdbook build             # 建置（mdbook serve 可本機預覽）
   | 標註 | 意義 |
   | --- | --- |
   | `go,compile_fail` | 必須編譯失敗 |
-  | `go,stdin=3\n5` | 執行時餵入 stdin（`\n` 代表換行，值內不可有空白） |
+  | `go,stdin=3\n5` | 執行時餵入 stdin（`\n` 代表換行，值內不可有空白或逗號） |
   | `go,exit=2` | 預期的結束碼（例如 panic、死結） |
   | `go,norun` | 只編譯與 `go vet`，不執行（伺服器、signal） |
-  | `go,ignore` | 不驗證（片段） |
+  | `go,ignore` | 不驗證（`{{#include}}` 引入的程式碼與不完整的片段） |
 
   這些範例共用 `tools/checkcode/deps/go.mod`；需要第三方套件時在那裡鎖定版本（目前沒有任何相依）。
 
