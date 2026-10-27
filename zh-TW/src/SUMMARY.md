@@ -12,7 +12,7 @@
     - [建構函式與 functional options]()
     - [什麼時候讓零值可用，什麼時候該強制用建構函式]()
     - [循環相依與依賴方向]()
-    - [棄用（deprecation）與相容性]()
+    - [棄用（deprecation）與相容性](chapter1/08_deprecation_and_compatibility.md)
 - [錯誤設計]()
 - [抽象的取捨]()
 - [資料存取的設計]()
