@@ -22,7 +22,26 @@
 
 ## 問題在哪
 
-套件本身編譯、`go vet` 都沒問題，壞的是呼叫端。某個服務還寫著 `size.ParseSize("10MiB")`，它一升到 v1.3.0 就無法編譯：
+套件本身編譯、`go vet` 都沒問題，壞的是呼叫端。某個服務還寫著舊名稱：
+
+```text
+package main
+
+import (
+	"fmt"
+
+	"example.com/app/size"
+)
+
+func main() {
+	n, err := size.ParseSize("10MiB")
+	fmt.Println(n, err)
+}
+```
+
+它一升到 v1.3.0 就無法編譯：
+
+編譯錯誤：
 
 ```text
 # example.com/app
@@ -41,9 +60,14 @@
 
 `Parse` 的實作和上面 before 的一樣。幾件事要注意：
 
-- `Deprecated:` 要自成一個段落（和前面的說明之間隔一行 `//`），開頭固定這個詞，工具才認得。`go doc` 會顯示它：
+- `Deprecated:` 要自成一個段落（和前面的說明之間隔一行 `//`），開頭固定這個詞，工具才認得。`go doc` 會顯示它（省略第一行的 import 路徑）：
+
+  執行結果：
 
   ```text
+  $ go doc ParseSize
+  package size
+
   func ParseSize(s string) (int64, error)
       ParseSize 把大小字串解析成位元組數。
 
@@ -66,7 +90,7 @@
 
 ### 什麼時候才需要 `/v2`
 
-同一個匯入路徑底下的 API 要保持相容，這是 Go module 的基本約定。棄用只能處理「多一個新名稱」的改動；如果新舊行為無法並存，例如同名函式必須改簽名、必須改變既有輸入的結果，才需要把模組路徑改成 `.../size/v2`，讓 v1 與 v2 是兩個不同的匯入路徑，呼叫端可以分別升級，甚至同時用兩個版本。這一集的改名不需要它。
+棄用只能處理「多一個新名稱」的改動。新舊行為無法並存時，例如同名函式必須改簽名、必須改變既有輸入的結果，才需要把模組路徑改成 `.../size/v2`，讓呼叫端分別升級。這一集的改名不需要它；路徑與版本號怎麼對應，前作〈[`go get` 與相依版本](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/15_go_get.html)〉已經講過。
 
 ## 取捨
 

@@ -9,6 +9,7 @@ import (
 )
 
 // ANCHOR: welcome
+
 func Welcome(name, bio string) (string, error) {
 	svc := user.NewUserService()
 	u, err := svc.Register(name)

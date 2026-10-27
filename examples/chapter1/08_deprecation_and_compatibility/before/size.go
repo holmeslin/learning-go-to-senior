@@ -17,18 +17,18 @@ func Parse(s string) (int64, error) {
 	s = strings.TrimSpace(s)
 	i := strings.IndexFunc(s, func(r rune) bool { return r < '0' || r > '9' })
 	if i < 0 {
-		return 0, fmt.Errorf("size: %q 沒有單位", s)
+		return 0, fmt.Errorf("size: %q has no unit", s)
 	}
 	n, err := strconv.ParseInt(s[:i], 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("size: %q 的數字不正確: %w", s, err)
+		return 0, fmt.Errorf("size: %q has an invalid number: %w", s, err)
 	}
 	unit, ok := units[strings.TrimSpace(s[i:])]
 	if !ok {
-		return 0, fmt.Errorf("size: %q 的單位不認得", s)
+		return 0, fmt.Errorf("size: %q has an unknown unit", s)
 	}
 	if n > math.MaxInt64/unit {
-		return 0, fmt.Errorf("size: %q 太大", s)
+		return 0, fmt.Errorf("size: %q is too large", s)
 	}
 	return n * unit, nil
 }

@@ -27,6 +27,8 @@ order  ──►  notify
 
 編譯會直接失敗（這是在 repo 外的暫存目錄、Go 1.27 實際重現的輸出，省略了路徑前綴）：
 
+編譯錯誤：
+
 ```text
 package .../before/notify
 	imports .../before/order from notify.go
@@ -43,7 +45,7 @@ order/     import common
 notify/    import common
 ```
 
-環是消失了，但 `Order` 明明是訂單的核心，卻住在一個沒有職責的套件裡；之後每個「兩邊都要用」的東西，也都往 `common` 丟。這和〈[套件切分的依據（依職責，不依型別）](01_package_by_responsibility.md)〉裡的 `models` 是同一種切法：依「被誰共用」分，而不是依職責分。
+環是消失了，但 `Order` 明明是訂單的核心，卻住在一個沒有職責的套件裡；之後每個「兩邊都要用」的東西，也都往 `common` 丟。這和本章〈[套件切分的依據（依職責，不依型別）](01_package_by_responsibility.md)〉裡的 `models` 是同一種切法：依「被誰共用」分，而不是依職責分。
 
 ## 較好的做法
 

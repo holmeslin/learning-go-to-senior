@@ -31,12 +31,14 @@ var c tally.Counter
 c.Add("/home")
 ```
 
+執行結果：
+
 ```text
 panic: assignment to entry in nil map
 
 goroutine 1 [running]:
-demo/tally.(*Counter).Add(...)
-	tally/tally.go:24
+example.com/demo/tally.(*Counter).Add(...)
+	tally/tally.go:25
 main.main()
 	cmd1/main.go:7 +0x38
 exit status 2
@@ -49,15 +51,22 @@ var r tally.Reporter
 r.Report(c)
 ```
 
+堆疊裡的位址每次不同，檔案路徑前綴已省略。
+
+執行結果（某一次）：
+
 ```text
 panic: runtime error: invalid memory address or nil pointer dereference
-[signal SIGSEGV: segmentation violation code=0x2 addr=0x18 pc=0x104a8ac48]
+[signal SIGSEGV: segmentation violation code=0x2 addr=0x18 pc=0x100ccec48]
 
 goroutine 1 [running]:
-fmt.Fprintf({0x0, 0x0}, {0x104a92ced, 0x6}, {0x245c12b1ad30, 0x2, 0x2})
+fmt.Fprintf({0x0, 0x0}, {0x100cd6ced, 0x6}, {0xd2bdc19ad30, 0x2, 0x2})
 	.../src/fmt/print.go:217 +0x58
-demo/tally.(*Reporter).Report(0x245c12b1ad88, 0x245c12b1ae90)
-	tally/tally.go:55 +0xbc
+example.com/demo/tally.(*Reporter).Report(0xd2bdc19ad88, 0xd2bdc19ae90)
+	tally/tally.go:57 +0xbc
+main.main()
+	cmd2/main.go:9 +0xb0
+exit status 2
 ```
 
 堆疊停在 `fmt.Fprintf`，錯誤訊息裡看不出是哪個欄位沒設。before 目錄的測試把這兩種情況寫成 `TestZeroValuePanics`，確認它們真的會 panic：
@@ -82,16 +91,24 @@ demo/tally.(*Reporter).Report(0x245c12b1ad88, 0x245c12b1ae90)
 {{#include ../../../examples/chapter1/06_zero_value_or_constructor/after/tally_test.go:test}}
 ```
 
-`Reporter` 不一樣：它需要一個 `io.Writer`，這是呼叫端才知道的資訊，沒有合理的預設值。這種型別的零值不可能有用，那就別讓它有零值可用：把型別改成不匯出，建構函式成為唯一的入口。
+`Reporter` 不一樣：它需要一個 `io.Writer`，這是呼叫端才知道的資訊，沒有合理的預設值，零值不可能有用。Go 沒辦法強制呼叫端用建構函式，不匯出型別、`var r tally.reporter` 這類寫法也只是換來更難用的 API。比較實際的做法，是讓誤用又便宜又明確：型別照樣匯出、欄位不匯出，文件註解寫明「請用 `NewReporter`」；萬一拿到零值，方法回傳一個說得清楚的錯誤，而不是 nil pointer panic。
 
 ```go,ignore
 {{#include ../../../examples/chapter1/06_zero_value_or_constructor/after/tally.go:reporter}}
 ```
 
-外部套件寫 `var r tally.reporter`，會在編譯時被擋下來，不用等到執行：
+測試鎖住這個行為，零值與 `NewReporter(nil)` 都一樣：
+
+```go,ignore
+{{#include ../../../examples/chapter1/06_zero_value_or_constructor/after/tally_test.go:zeroreporter}}
+```
+
+錯誤訊息直接說出原因與解法：
+
+執行結果：
 
 ```text
-name reporter not exported by package tally
+tally: reporter has no writer, create it with NewReporter
 ```
 
 兩種做法放在一起，就是呼叫端看到的樣子，`Example` 由 `go test` 驗證：
@@ -109,12 +126,12 @@ name reporter not exported by package tally
 - 每個寫入的方法都要檢查是否已初始化，漏掉一個就是 panic。
 - 零值可用的型別通常要靠指標接收者，不要複製它：初始化之後複製，兩份會共用同一個 map；初始化之前複製，兩份又各自獨立。
 
-強制用建構函式也有代價：
+把建構函式當作預期的入口也有代價：
 
-- 回傳不匯出的型別，呼叫端沒辦法在欄位或函式參數裡寫出這個型別的名字，`go doc` 也不會列出它的方法。實務上，呼叫端會自己定義一個小介面來接它（第 3 章〈抽象的取捨〉會談）。
-- `NewReporter(nil)` 仍然會造出壞掉的 `reporter`。要擋就得在建構函式檢查並回傳 `error`，這是額外的成本。
+- 擋不住誤用，只能讓它被發現得早、讀得懂：每個方法開頭都要檢查，漏掉一個就又回到 panic。
+- `Report` 多了 `error` 回傳值，呼叫端要處理；`NewReporter(nil)` 也要到 `Report` 才報錯。要在建構時就擋，得讓 `NewReporter` 回傳 `error`，這是額外的成本。
 
-before 的做法在這些情況下反而可以：型別只在自己的套件內部使用，呼叫端都是你自己；或是型別有複雜的不變條件，需要建構函式驗證參數，這時匯出型別、不匯出欄位、附一個建構函式，是常見而且夠用的做法。
+before 不加檢查的做法在這些情況下反而可以：型別只在自己的套件內部使用，呼叫端都是你自己；或是型別有複雜的不變條件，需要建構函式驗證參數，這時匯出型別、不匯出欄位、附一個建構函式，是常見而且夠用的做法。
 
 判斷方法：問自己「不給任何參數，這個型別有沒有合理的預設行為？」有，就讓零值可用；沒有，就用建構函式。
 
@@ -122,6 +139,6 @@ before 的做法在這些情況下反而可以：型別只在自己的套件內�
 
 - 零值可用與強制建構函式是兩種都對的設計，依型別「有沒有合理的預設行為」選擇。
 - 欄位只是 map、slice 這類不需要外部資訊的資源，用 lazy 初始化讓零值可用；讀取 nil map 是安全的，只有寫入會 panic。
-- 型別依賴呼叫端才知道的東西（`io.Writer`、`*sql.DB`），零值不可能有用，改成不匯出的型別加建構函式，讓錯誤在編譯期出現。
-- 只有建構函式加不匯出欄位，擋不住 `var x T`，這種零值 panic 要到執行時才發現。
-- 強制建構函式的成本是呼叫端不能直接寫出型別名字；零值可用的成本是每個寫入方法都要檢查初始化。
+- 型別依賴呼叫端才知道的東西（`io.Writer`、`*sql.DB`），零值不可能有用：匯出型別、不匯出欄位，文件註解寫「請用建構函式」。
+- Go 沒辦法強制呼叫端用建構函式；資深的做法是讓誤用便宜又明確：零值的方法回傳清楚的錯誤，不要等到 nil pointer panic。
+- 強制建構函式的成本是每個方法都要檢查、多一個 `error` 要處理；零值可用的成本是每個寫入方法都要檢查初始化。

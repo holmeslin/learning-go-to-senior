@@ -9,6 +9,8 @@ import (
 )
 
 // ANCHOR: welcome
+
+// Welcome 註冊 name，回傳「網址 自我介紹摘要」形式的歡迎訊息；註冊失敗時回傳錯誤。
 func Welcome(name, bio string) (string, error) {
 	svc := user.NewService()
 	u, err := svc.Register(name)
