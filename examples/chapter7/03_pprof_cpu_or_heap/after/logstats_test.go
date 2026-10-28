@@ -59,7 +59,10 @@ func TestSummarizeErrors(t *testing.T) {
 
 // ANCHOR: allocs
 
-// 配置次數不隨行數成長：每 10 行配置不到一次（before 每行至少配置一次）。
+// 每行不再配置：2000 行只配置幾十次（before 是 4057 次，每行至少 2 次）。
+// 剩下的配置是 5 個路徑各一個 ms slice 的倍增擴張（約 10 次）加上 map 與緩衝區，
+// 隨行數只有對數成長。這條路徑不經過 sync.Pool，次數是確定的，-race 下也一樣；
+// 上限 100 比實測的 65 寬一些，Go 調整 slice 擴張策略時不會誤報。
 func TestSummarizeAllocsDoNotScaleWithLines(t *testing.T) {
 	lines := sampleLines(2000)
 	allocs := testing.AllocsPerRun(10, func() {
@@ -67,8 +70,8 @@ func TestSummarizeAllocsDoNotScaleWithLines(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
-	if limit := float64(len(lines)) / 10; allocs >= limit {
-		t.Errorf("Summarize() allocs = %v for %d lines, want < %v", allocs, len(lines), limit)
+	if allocs > 100 {
+		t.Errorf("Summarize() allocs = %v for %d lines, want <= 100", allocs, len(lines))
 	}
 }
 
