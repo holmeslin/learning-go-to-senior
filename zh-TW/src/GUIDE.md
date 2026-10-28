@@ -46,7 +46,7 @@
 | `zh-TW/src/chapterN/NN_slug.md` | 第 N 章第 NN 集 |
 | `examples/chapterN/NN_slug/before/` | 該集「常見寫法」的程式碼 |
 | `examples/chapterN/NN_slug/after/` | 該集「較好的做法」的程式碼與測試 |
-| `go.mod` | 範例共用的 module，看得到使用的 Go 版本與第三方相依 |
+| `go.mod`、`go.sum` | 範例共用的 module，看得到使用的 Go 版本與第三方相依；解壓後可以直接 `go test ./...` |
 
 ### 讀懂一集
 
