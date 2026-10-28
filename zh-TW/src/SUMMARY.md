@@ -79,6 +79,7 @@
     - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
 - [runtime]()
     - [`runtime/metrics`](chapter8/06_runtime_metrics.md)
+    - [阻塞、syscall 與排程](chapter8/07_blocking_syscall_scheduling.md)
 
 # 第五部　上線與維運
 
