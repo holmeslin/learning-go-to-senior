@@ -56,6 +56,7 @@
 # 第三部　並行實務
 
 - [結構化並行]()
+    - [`errgroup`](chapter6/02_errgroup.md)
     - [`errgroup` 的並行上限](chapter6/03_errgroup_limit.md)
     - [取消與 `context` 的傳遞](chapter6/04_cancellation_context.md)
     - [fan-out / fan-in 的取捨](chapter6/05_fan_out_fan_in.md)
