@@ -47,6 +47,7 @@
     - [測試替身放在哪裡](chapter5/04_where_test_doubles_live.md)
     - [整合測試與 build tags](chapter5/05_integration_tests_build_tags.md)
     - [golden file](chapter5/06_golden_file.md)
+    - [要啟動真的 server，還是只測 handler](chapter5/09_server_or_handler.md)
 
 # 第三部　並行實務
 
