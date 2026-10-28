@@ -6,7 +6,7 @@ Go 1.25 起，容器裡的 `GOMAXPROCS` 預設會依 cgroup 的 CPU 配額決定
 
 ## 情境
 
-訂單服務跑在容器裡，部署時的 CPU limit 是 4 顆。幾年前的 Go 在容器裡看到的是整台機器的 CPU 數，`GOMAXPROCS` 的預設值就是那個數字，遠大於容器實際分到的配額。當時的建議是把 `GOMAXPROCS` 設成 limit：在程式碼裡呼叫 `runtime.GOMAXPROCS`、在 Dockerfile 寫 `ENV GOMAXPROCS=4`，或 import `go.uber.org/automaxprocs`。後來 limit 改成 2 顆，這些設定還留在原地。`GOMAXPROCS` 限制的是什麼，本章〈排程器（GMP）怎麼看〉談過。
+訂單服務跑在容器裡，部署時的 CPU limit 是 4 顆。幾年前的 Go 在容器裡看到的是整台機器的 CPU 數，`GOMAXPROCS` 的預設值就是那個數字，遠大於容器實際分到的配額。當時的建議是把 `GOMAXPROCS` 設成 limit：在程式碼裡呼叫 `runtime.GOMAXPROCS`、在 Dockerfile 寫 `ENV GOMAXPROCS=4`，或 import `go.uber.org/automaxprocs`。後來 limit 改成 2 顆，這些設定還留在原地。`GOMAXPROCS` 限制的是什麼，本章〈[排程器（GMP）怎麼看](01_scheduler_gmp.md)〉談過。
 
 ## 常見寫法
 
