@@ -41,6 +41,7 @@
 # 第二部　測試
 
 - [測試策略]()
+    - [整合測試與 build tags](chapter5/05_integration_tests_build_tags.md)
 
 # 第三部　並行實務
 
