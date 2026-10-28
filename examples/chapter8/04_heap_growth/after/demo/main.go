@@ -2,8 +2,8 @@
 //
 // 用法：
 //
-//	go run ./examples/chapter8/04_heap_growth/demo -case=cache|seen|pending -mode=before|after
-//	go run ./examples/chapter8/04_heap_growth/demo -case=rss
+//	go run ./examples/chapter8/04_heap_growth/after/demo -case=cache|seen|pending -mode=before|after
+//	go run ./examples/chapter8/04_heap_growth/after/demo -case=rss
 package main
 
 import (

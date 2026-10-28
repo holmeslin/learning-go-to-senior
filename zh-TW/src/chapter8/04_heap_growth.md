@@ -45,11 +45,11 @@ webhook 接收服務每收到一筆通知（最多 64 KiB）就讀進一塊緩�
 執行結果（某一次）：
 
 ```text
-$ go run ./examples/chapter8/04_heap_growth/demo -case=cache -mode=before
-before cache    live heap    82.0 MiB
-$ go run ./examples/chapter8/04_heap_growth/demo -case=seen -mode=before
+$ go run ./examples/chapter8/04_heap_growth/after/demo -case=cache -mode=before
+before cache    live heap    81.9 MiB
+$ go run ./examples/chapter8/04_heap_growth/after/demo -case=seen -mode=before
 before seen     live heap   125.3 MiB
-$ go run ./examples/chapter8/04_heap_growth/demo -case=pending -mode=before
+$ go run ./examples/chapter8/04_heap_growth/after/demo -case=pending -mode=before
 before pending  live heap    80.3 MiB
 ```
 
@@ -89,11 +89,11 @@ cache 放了 50 萬個客戶，一筆都沒被丟掉。seen 收了 2000 筆 64 K
 執行結果（某一次）：
 
 ```text
-$ go run ./examples/chapter8/04_heap_growth/demo -case=cache -mode=after
+$ go run ./examples/chapter8/04_heap_growth/after/demo -case=cache -mode=after
 after  cache    live heap     2.3 MiB
-$ go run ./examples/chapter8/04_heap_growth/demo -case=seen -mode=after
+$ go run ./examples/chapter8/04_heap_growth/after/demo -case=seen -mode=after
 after  seen     live heap     0.4 MiB
-$ go run ./examples/chapter8/04_heap_growth/demo -case=pending -mode=after
+$ go run ./examples/chapter8/04_heap_growth/after/demo -case=pending -mode=after
 after  pending  live heap     0.4 MiB
 ```
 
@@ -102,26 +102,26 @@ after  pending  live heap     0.4 MiB
 **heap 與 RSS。** 修好之後，監控上的 RSS（作業系統認為行程占用的實體記憶體）不一定馬上跟著降。GC 回收的是 heap 裡的物件，空出來的頁面先留在 runtime 手上，之後才還給作業系統：`/memory/classes/heap/free:bytes` 是閒置但還沒還的，`released` 是已經還的。`runtime/debug` 的文件說，不呼叫任何東西時 runtime 也會在背景逐步歸還；`debug.FreeOSMemory` 則是強制 GC 再盡量歸還。用 `demo -case=rss` 看這三個欄位和 `VmRSS`（讀 `/proc/self/status`，所以要在 Linux 跑）。環境是 `golang:1.27-alpine` image、`--cpus=4 --memory=1g`、cgroup v2、4 個 P；輸出省略了第一行 `GOMAXPROCS 4`：
 
 ```bash
-CGO_ENABLED=0 GOOS=linux go build -o demo-linux ./examples/chapter8/04_heap_growth/demo
+CGO_ENABLED=0 GOOS=linux go build -o demo-linux ./examples/chapter8/04_heap_growth/after/demo
 docker run --rm --cpus=4 --memory=1g -v "$PWD:/w:ro" golang:1.27-alpine /w/demo-linux -case=rss
 ```
 
 執行結果（某一次）：
 
 ```text
-holding 256 MiB             live  256.1  free    0.1  released    3.2  VmRSS 259.5 MiB
-after runtime.GC()          live    0.1  free  256.1  released    3.2  VmRSS 259.6 MiB
-after debug.FreeOSMemory()  live    0.1  free    2.0  released  257.3  VmRSS 3.4 MiB
+holding 256 MiB             live  256.1  free    0.1  released    7.2  VmRSS 259.6 MiB
+after runtime.GC()          live    0.1  free  256.1  released    7.1  VmRSS 259.6 MiB
+after debug.FreeOSMemory()  live    0.1  free    1.5  released  261.7  VmRSS 5.1 MiB
 ```
 
-GC 之後 `live` 幾乎歸零，原本占用的量全變成 `free`，VmRSS 幾乎沒變；`FreeOSMemory` 之後 `released` 變大、VmRSS 才降下來。所以看監控要分開看：`live` 持續上升才是程式碼的問題；RSS 高而 `live` 低，通常是 `free` 還沒還。runtime 在設了記憶體上限時會更積極歸還，本章〈`GOMEMLIMIT` 與容器記憶體上限〉會談。
+GC 之後 `live` 幾乎歸零，原本占用的量全變成 `free`，VmRSS 幾乎沒變；`FreeOSMemory` 之後 `released` 變大、VmRSS 才降下來。所以看監控要分開看：`live` 持續上升才是程式碼的問題；RSS 高而 `live` 低，通常是 `free` 還沒還。runtime 在設了記憶體上限時會更積極歸還，本章〈`GOMEMLIMIT` 與容器記憶體上限〉談過。
 
 ## 取捨
 
 - **複製有成本。** `Seen.Add` 每次多配置一次、多拷貝 16 位元組。通知本來就小，或處理完請求就放掉時，子切片沒有問題；只有「來源很大、又長期保存」才值得複製。
 - **上限怎麼定沒有公式。** 看每筆的大小、記憶體預算與命中率；太小，命中率下降、重算變多。LRU 每筆還多一個 `list` 節點，而且這個 `Cache` 不是並行安全的，多個 goroutine 要加鎖（第 6 章〈[channel 與 mutex 怎麼選](../chapter6/07_channel_or_mutex.md)〉）。
 - **map 不縮小通常不是問題。** 空出來的位置之後會被新的 key 重用；尖峰會反覆回來的服務，重建只是讓下一次尖峰重新擴張。只有曾經很大、之後長期很小才值得 `Compact`，重建的當下新舊兩張 map 也會同時存在。
-- **別為了讓 RSS 好看定期呼叫 `debug.FreeOSMemory`。** 它每次都強制一次 GC，下一輪配置又得向作業系統要頁面。要不要調 GC，本章〈什麼時候該調 `GOGC`，什麼時候別動〉會談。
+- **別為了讓 RSS 好看定期呼叫 `debug.FreeOSMemory`。** 它每次都強制一次 GC，下一輪配置又得向作業系統要頁面。要不要調 GC，本章〈什麼時候該調 `GOGC`，什麼時候別動〉談過。
 - **before 在什麼情況下是對的？** 快取的 key 本來就有界（例如客戶只有幾百個）、程式很短命（CLI、批次工作，結束時記憶體全還），都不必加上限或重建。
 
 ## 重點整理
