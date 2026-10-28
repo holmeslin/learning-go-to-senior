@@ -62,7 +62,7 @@ CPU 密集的迴圈不會阻塞，也就沒有 `select` 可以放，只能自己
 {{#include ../../../examples/chapter6/04_cancellation_context/after/pages.go:sum}}
 ```
 
-檢查有成本。一次檢查是沿著 `context` 鏈呼叫 `Err`，最底層的 `cancelCtx` 是一次 atomic 讀取，單次很便宜，但每個元素都檢查，次數就跟元素數一樣多。每 `CheckEvery` 個元素檢查一次，換來的是取消的延遲：最多多算 `CheckEvery-1` 個元素。測試用一個數 `Err` 呼叫次數的 `context` 讓這件事可以驗證：一萬個元素只檢查 10 次。粒度要多大，用 `b.Loop` 量過再決定，量測的方法第 7 章會談。
+檢查有成本。一次檢查是沿著 `context` 鏈呼叫 `Err`，最底層的 `cancelCtx` 是一次 atomic 讀取，單次很便宜，但每個元素都檢查，次數就跟元素數一樣多。每 `CheckEvery` 個元素檢查一次，換來的是取消的延遲：最多多算 `CheckEvery-1` 個元素。測試用一個數 `Err` 呼叫次數的 `context` 讓這件事可以驗證：一萬個元素只檢查 10 次。粒度要多大，用 `b.Loop` 量過再決定，量測的方法第 7 章〈[`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](../chapter7/02_b_loop_benchstat.md)〉談過。
 
 ```go,ignore
 {{#include ../../../examples/chapter6/04_cancellation_context/after/pages_test.go:cpu}}
