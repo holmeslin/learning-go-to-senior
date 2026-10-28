@@ -42,6 +42,7 @@
 
 - [測試策略]()
     - [表格驅動測試的邊界](chapter5/02_table_driven_boundary.md)
+    - [什麼時候值得寫 fuzz 測試](chapter5/07_fuzz_roundtrip.md)
 
 # 第三部　並行實務
 
