@@ -69,6 +69,7 @@
 # 第四部　效能
 
 - [效能調查流程]()
+    - [`pprof`：先看 CPU 還是 heap](chapter7/03_pprof_cpu_or_heap.md)
 - [runtime]()
 
 # 第五部　上線與維運
