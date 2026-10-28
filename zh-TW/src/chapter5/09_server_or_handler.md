@@ -6,7 +6,7 @@
 
 ## 情境
 
-一個筆記服務：`GET /notes/{id}` 讀取筆記，`DELETE /notes/{id}` 刪除筆記，刪除必須帶 `Authorization: Bearer <token>`。兩個 handler 函式各管一件事，token 檢查是 `requireToken` 這個 middleware，最後由 `Handler()` 用 `http.ServeMux` 把路由與 middleware 組起來。
+一個筆記服務：`GET /notes/{id}` 讀取筆記，`DELETE /notes/{id}` 刪除筆記，刪除必須帶 `Authorization: Bearer <token>`。兩個 handler 函式各管一件事，token 檢查是 `requireToken` 這個 middleware，最後由 `NewHandler` 用 `http.ServeMux` 把路由與 middleware 組起來，回傳一個 `http.Handler`。
 
 `httptest` 的用法前作已經教過：〈[`httptest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/09_httptest.html)〉。這集不教 API，只談測哪一層。「組好的 handler」是什麼，第 1 章〈[套件切分的依據（依職責，不依型別）](../chapter1/01_package_by_responsibility.md)〉的 `taskhttp.NewHandler` 就是一例。
 
@@ -22,13 +22,13 @@
 
 ## 問題在哪
 
-這三個測試測的都是零件，沒有一個走過 `Handler()`。而零件之間怎麼接，寫在這裡：
+這三個測試測的都是零件，沒有一個走過 `NewHandler` 組出來的 handler。而零件之間怎麼接，寫在這裡：
 
 ```go,ignore
 {{#include ../../../examples/chapter5/09_server_or_handler/before/notes.go:routes}}
 ```
 
-讀取的 pattern 少打了一個 `s`，刪除的路由忘了包上 `requireToken`。換成用戶端的角度，對組好的 handler 發請求：
+讀取的 pattern 少打了一個 `s`，刪除的路由忘了包上 `requireToken`。換成 client 的角度，對組好的 handler 發請求：
 
 ```go,ignore
 {{#include ../../../examples/chapter5/09_server_or_handler/before/example_test.go:example}}
@@ -44,17 +44,19 @@
 {{#include ../../../examples/chapter5/09_server_or_handler/after/handler_test.go:table}}
 ```
 
-表裡刻意有「錯路徑」「錯方法」「錯 token」，這些都是路由與 middleware 才決定得了的行為。每個測試用 `newHandler()` 建自己的 Handler，沒有共用狀態。把 after 的路由改回 before 的樣子，這張表與 `Example` 立刻失敗；只拿掉 middleware 的話（輸出省略了耗時）：
+表裡刻意有「錯路徑」「錯方法」「錯 token」，這些都是路由與 middleware 才決定得了的行為。每個測試用 `newHandler()` 建自己的 Handler，沒有共用狀態。把 after 的路由改回 before 的樣子，這張表與 `Example` 會失敗；只拿掉 middleware 的話，執行 `go test` 的輸出如下（省略了每個測試與套件後面的耗時）。
+
+執行結果：
 
 ```text
---- FAIL: TestRoutes (0.00s)
-    --- FAIL: TestRoutes/delete_without_token (0.00s)
+--- FAIL: TestRoutes
+    --- FAIL: TestRoutes/delete_without_token
         handler_test.go:41: DELETE /notes/1 = 204, want 401
-    --- FAIL: TestRoutes/delete_with_wrong_token (0.00s)
+    --- FAIL: TestRoutes/delete_with_wrong_token
         handler_test.go:41: DELETE /notes/1 = 204, want 401
---- FAIL: TestUnauthorizedDeleteKeepsNote (0.00s)
+--- FAIL: TestUnauthorizedDeleteKeepsNote
     handler_test.go:63: GET /notes/1 after unauthorized delete = 404, want 200
---- FAIL: ExampleServer_Handler (0.00s)
+--- FAIL: ExampleNewHandler
 got:
 GET /notes/1 = 200
 DELETE /notes/1 without token = 204
@@ -63,6 +65,7 @@ GET /notes/1 = 200
 DELETE /notes/1 without token = 401
 FAIL
 FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/09_server_or_handler/after
+FAIL
 ```
 
 同樣的 `Example` 在 after 印出 `GET /notes/1 = 200` 與 `DELETE /notes/1 without token = 401`。

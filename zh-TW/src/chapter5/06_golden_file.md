@@ -64,7 +64,9 @@
 {{#include ../../../examples/chapter5/06_golden_file/after/example_test.go:example}}
 ```
 
-在真的測試失敗時看起來像這樣。把 `Render` 的 `%3d` 改成 `%d` 再跑 `go test -run TestRenderGolden .`，輸出如下；省略了每行測試後面的耗時，以及最後一行套件的耗時：
+在真的測試失敗時看起來像這樣。把 `Render` 的 `%3d` 改成 `%d` 再跑 `go test -run TestRenderGolden .`，輸出如下；省略了每個測試與套件後面的耗時：
+
+執行結果：
 
 ```text
 --- FAIL: TestRenderGolden
@@ -78,6 +80,8 @@
              got: "  Coffee beans 1kg           2 x    18.00 =     36.00"
             want: "  Coffee beans 1kg             2 x    18.00 =     36.00"
             run go test -update if the change is intended
+FAIL
+FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/06_golden_file/after
 FAIL
 ```
 
