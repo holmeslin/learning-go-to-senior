@@ -63,7 +63,7 @@ FAIL	quoterepro
 
 其他常見的洩漏，長相都一樣：goroutine 等一個永遠不會發生的事。在 bubble 裡，下面每一種都會得到和上面一樣的 `deadlock` panic：
 
-- `range` 一條沒人關的 channel：`for v := range in` 在 `in` 關閉前不會結束。誰送誰關，見本章〈fan-out / fan-in 的取捨〉。
+- `range` 一條沒人關的 channel：`for v := range in` 在 `in` 關閉前不會結束。誰送誰關，見本章〈[fan-out / fan-in 的取捨](05_fan_out_fan_in.md)〉。
 - 沒有呼叫 `cancel` 的 `context`：goroutine 等 `<-ctx.Done()`，卻沒人取消。`go vet` 的 `lostcancel` 抓得到直接丟掉 `cancel` 的寫法，抓不到回傳 `cancel` 之後呼叫端忘了用的情況。修正見本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉。
 - 沒有出口的 `time.Ticker` 迴圈：Go 1.23 起沒人參照的 `Ticker` 會被回收，洩漏的是 `for range t.C` 那個 goroutine；迴圈要和 `ctx.Done()` 或停止信號一起 `select`。
 
