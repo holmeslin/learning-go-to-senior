@@ -11,8 +11,8 @@ var ErrEmailTaken = errors.New("email already registered")
 
 // User 是一個已註冊的使用者。
 type User struct {
-	ID    int64
-	Email string
+	ID    int64  // 資料庫配給的主鍵
+	Email string // 註冊時給的信箱，保留原本的大小寫
 }
 
 // ANCHOR: service
