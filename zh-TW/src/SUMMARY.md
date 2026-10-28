@@ -30,7 +30,9 @@
     - [什麼時候用嵌入，什麼時候該明確委派](chapter3/06_embedding_or_delegation.md)
     - [不用框架的相依注入](chapter3/07_di_without_framework.md)
 - [資料存取的設計]()
+    - [交易邊界放在哪裡](chapter4/02_transaction_boundary.md)
     - [連線池要設多大、設錯會怎樣](chapter4/04_pool_size.md)
+    - [N+1 與查詢組裝](chapter4/05_n_plus_one.md)
 
 # 第二部　測試
 

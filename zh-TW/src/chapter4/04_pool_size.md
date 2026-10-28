@@ -8,7 +8,7 @@
 
 你的訂單服務有個背景工作，定期用風控規則掃描訂單，找出第一筆符合的，交給人工覆核。規則寫在 Go 裡，所以 `Store.Find` 把訂單一筆一筆讀出來交給 `match` 判斷，找到就回傳。服務跑 4 個副本，共用一個最多允許 100 條連線的資料庫（數字是舉例）。
 
-`*sql.DB` 是連線池、沒讀完的 `rows` 會占住連線，這些前作〈[`Query` 與 `Rows`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/04_query_rows.html)〉與〈[context 與連線池](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/08_context_pool.html)〉已經講過，這集只談池子怎麼設、卡住時從哪裡找原因。交易沒結束同樣會占住連線，本章〈交易邊界放在哪裡〉談過；deadline 該由誰設，本章〈查詢逾時該設在哪一層〉談過。
+`*sql.DB` 是連線池、沒讀完的 `rows` 會占住連線，這些前作〈[`Query` 與 `Rows`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/04_query_rows.html)〉與〈[context 與連線池](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/08_context_pool.html)〉已經講過，這集只談池子怎麼設、卡住時從哪裡找原因。交易沒結束同樣會占住連線，本章〈[交易邊界放在哪裡](02_transaction_boundary.md)〉談過；deadline 該由誰設，本章〈查詢逾時該設在哪一層〉談過。
 
 ## 常見寫法
 
@@ -39,6 +39,8 @@
 ```
 
 不會卡住，也沒有錯誤：三次呼叫開了三條連線，三條都還占著。洩漏沒有消失，只是從「服務卡住」變成「資料庫的連線被一條條吃掉」。伺服器型資料庫都有連線上限（SQLite 沒有，所以這裡看不到被拒絕的那一步），而且 4 個副本共用同一個上限，一個副本漏光，其他副本也連不上。
+
+沒關 `rows` 不是占住連線的唯一方式。邊走訪 `rows`、邊在同一個請求裡發第二個查詢，也會同時占住兩條連線；池子只有 1 條時，第二個查詢等的就是第一個查詢自己。
 
 ## 較好的做法
 
