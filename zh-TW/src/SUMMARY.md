@@ -31,6 +31,7 @@
     - [不用框架的相依注入](chapter3/07_di_without_framework.md)
 - [資料存取的設計]()
     - [交易邊界放在哪裡](chapter4/02_transaction_boundary.md)
+    - [N+1 與查詢組裝](chapter4/05_n_plus_one.md)
 
 # 第二部　測試
 
