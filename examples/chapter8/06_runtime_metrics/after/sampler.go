@@ -5,17 +5,19 @@ import "runtime/metrics"
 
 // ANCHOR: names
 
-// Names 是服務要回報的指標，名稱與說明都來自 metrics.All，視為唯讀。
-// 加一個指標只要加一行名稱。
-var Names = []string{
-	"/memory/classes/total:bytes",        // runtime 向作業系統要的全部記憶體
-	"/memory/classes/heap/objects:bytes", // 活著與還沒被回收的物件
-	"/gc/heap/live:bytes",                // 上一次 GC 標記到的活物件
-	"/gc/heap/goal:bytes",                // 這一輪 GC 的 heap 目標
-	"/gc/cycles/total:gc-cycles",         // 完成的 GC 次數
-	"/sched/goroutines:goroutines",       // 活著的 goroutine 數
-	"/cpu/classes/gc/total:cpu-seconds",  // GC 用掉的 CPU 時間
-	"/cpu/classes/total:cpu-seconds",     // 可用的 CPU 時間總和
+// Names 回傳服務要回報的指標，名稱與說明都來自 metrics.All。
+// 每次回傳新的切片，呼叫端改動它不影響別人；加一個指標只要加一行名稱。
+func Names() []string {
+	return []string{
+		"/memory/classes/total:bytes",        // runtime 向作業系統要的全部記憶體
+		"/memory/classes/heap/objects:bytes", // 活著與還沒被回收的物件
+		"/gc/heap/live:bytes",                // 上一次 GC 標記到的活物件
+		"/gc/heap/goal:bytes",                // 這一輪 GC 的 heap 目標
+		"/gc/cycles/total:gc-cycles",         // 完成的 GC 次數
+		"/sched/goroutines:goroutines",       // 活著的 goroutine 數
+		"/cpu/classes/gc/total:cpu-seconds",  // GC 用掉的 CPU 時間
+		"/cpu/classes/total:cpu-seconds",     // 可用的 CPU 時間總和
+	}
 }
 
 // ANCHOR_END: names
