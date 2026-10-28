@@ -66,8 +66,8 @@ func (*ServerError) Match(r *Request) bool { return r.Status >= 500 }
 
 // Tally 統計 reqs 裡符合 rule 的紀錄。
 //
-// shortcut: 標 noinline，不讓 benchmark 的迴圈把整個函式 inline 進去；
-// 那樣量到的不再是實際執行檔裡 main 只呼叫一次的 Tally。
+// 標 noinline，是為了讓 benchmark 量到實際執行檔裡的 Tally：沒標的話，
+// 有 PGO 時 benchmark 的迴圈會把整個函式 inline 進去，量到的就不是 main 呼叫的那一個。
 //
 //go:noinline
 func Tally(reqs []Request, rule Rule) Stats {
