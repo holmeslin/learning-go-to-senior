@@ -42,6 +42,7 @@
 
 - [測試策略]()
     - [表格驅動測試的邊界](chapter5/02_table_driven_boundary.md)
+    - [golden file](chapter5/06_golden_file.md)
 
 # 第三部　並行實務
 
