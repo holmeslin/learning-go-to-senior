@@ -51,6 +51,7 @@
     - [測時間與並行：用 `testing/synctest`，還是自己注入時鐘](chapter5/08_synctest_or_clock.md)
     - [要啟動真的 server，還是只測 handler](chapter5/09_server_or_handler.md)
     - [不穩定（flaky）測試](chapter5/10_flaky_tests.md)
+    - [覆蓋率的意義與限制](chapter5/11_coverage_meaning_limits.md)
 
 # 第三部　並行實務
 
