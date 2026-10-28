@@ -69,6 +69,7 @@
 # 第四部　效能
 
 - [效能調查流程]()
+    - [`runtime/trace`](chapter7/04_runtime_trace.md)
 - [runtime]()
 
 # 第五部　上線與維運
