@@ -23,6 +23,7 @@
     - [錯誤是 API 契約的一部分](chapter2/07_error_contract.md)
 - [抽象的取捨](chapter3/README.md)
     - [在使用端定義介面](chapter3/01_define_interface_at_consumer.md)
+    - [接受介面、回傳 struct](chapter3/02_accept_interfaces_return_structs.md)
     - [介面何時是多餘的](chapter3/03_redundant_interface.md)
     - [過早抽象的代價](chapter3/05_premature_abstraction.md)
     - [什麼時候用嵌入，什麼時候該明確委派](chapter3/06_embedding_or_delegation.md)
