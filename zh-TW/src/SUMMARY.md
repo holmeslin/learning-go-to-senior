@@ -41,6 +41,7 @@
 # 第二部　測試
 
 - [測試策略]()
+    - [測試替身放在哪裡](chapter5/04_where_test_doubles_live.md)
 
 # 第三部　並行實務
 
