@@ -56,6 +56,7 @@
 # 第三部　並行實務
 
 - [結構化並行]()
+    - [`errgroup`](chapter6/02_errgroup.md)
 
 # 第四部　效能
 
