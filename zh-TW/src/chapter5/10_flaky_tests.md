@@ -24,10 +24,12 @@
 
 測試的執行順序一換，或同一個行程裡跑第二遍，就會失敗。套件的文件註解寫明了重現的指令，這裡用 `-shuffle=2`，讓 `go test` 打亂測試的順序，數字是亂數的種子，同一個種子永遠是同一個順序：
 
+執行結果：
+
 ```text
 -test.shuffle 2
 --- FAIL: TestRun
-    registry_test.go:22: Run("echo") error = run "echo": unknown command, want nil
+    registry_test.go:23: Run("echo") error = run "echo": unknown command, want nil
 FAIL
 FAIL	.../10_flaky_tests/before
 FAIL
@@ -35,17 +37,19 @@ FAIL
 
 `-count=2` 讓每個測試在同一個行程裡跑兩遍，第二遍 `echo` 已經在表裡了：
 
+執行結果：
+
 ```text
 --- FAIL: TestRegister
-    registry_test.go:15: Register("echo") error = register "echo": already registered, want nil
+    registry_test.go:16: Register("echo") error = register "echo": already registered, want nil
 FAIL
 FAIL	.../10_flaky_tests/before
 FAIL
 ```
 
-這兩段是自己跑出來再貼的，省略了每個測試後面的耗時，以及最後一行的套件路徑前綴與耗時。`-shuffle=1` 剛好排成和預設相同的順序，所以通過：種子要試過才知道。單獨執行 `go test -run TestRun .` 同樣失敗，這就是「整包跑都過，單跑一個就掛」的來源。
+這兩段是 `go test` 的輸出，省略了每個測試與套件後面的耗時，以及套件那一行的路徑前綴。`-shuffle=1` 剛好排成和預設相同的順序，所以通過：種子要試過才知道。單獨執行 `go test -run TestRun .` 同樣失敗，這就是「整包跑都過，單跑一個就掛」的來源。
 
-換成 `-shuffle=on`，種子由系統時鐘決定，`go test` 會把它印在第一行（`-test.shuffle` 後面那串數字）。CI 上遇到失敗，把這個數字抄下來帶回本機，就能照同一個順序重跑。這讓「偶爾紅一次」變成「給我這個種子，我穩定重現」。
+換成 `-shuffle=on`，種子由系統時鐘決定，`go test` 會把它印在第一行（`-test.shuffle` 後面那串數字）。CI 上遇到失敗，把這個數字抄下來帶回本機，就能照同一個順序重跑。這讓「偶爾紅一次」變成「拿到種子就能穩定重現」。
 
 ## 較好的做法
 
@@ -65,7 +69,7 @@ FAIL
 {{#include ../../../examples/chapter5/10_flaky_tests/after/example_test.go:example}}
 ```
 
-這份 after 在 `go test -shuffle=on`（連跑 30 次）、`-shuffle=1` 到 `-shuffle=20`、`-count=3` 與 `-race -shuffle=on -count=5` 下都通過。程式本身只多了一個 `Registry` 型別，沒有任何魔法。
+這份 after 不受順序與次數影響：每個測試都從空的註冊表開始，沒有東西留給下一個測試。想自己確認，執行 `go test -race -shuffle=on -count=20 ./...`。程式本身只多了一個 `Registry` 型別，沒有任何魔法。
 
 ## 取捨
 
@@ -82,7 +86,7 @@ FAIL
 2. **修，或隔離。** 能修就修：讓測試自己建立狀態。一時修不了，用 `t.Skip` 暫時隔離，原因寫上 issue 編號，並真的開那張 issue。
 3. **不要重跑到過。** CI 上自動重試會讓失敗變成雜訊，之後真的壞掉時沒人相信紅燈。
 
-依賴時間長短的 flaky（逾時、重試、睡一下等結果）是另一個來源，不屬於順序相依，做法見本章〈測時間與並行：用 `testing/synctest`，還是自己注入時鐘〉。
+依賴時間長短的 flaky（逾時、重試、睡一下等結果）是另一個來源，不屬於順序相依，做法見本章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](08_synctest_or_clock.md)〉。
 
 after 也不是「所有東西都不能共用」。建起來很貴、而且測試只讀不寫的 fixture 值得共用，例如整份載入一次的測試資料。條件是唯讀：只要有一個測試會改它，就回到 before 的問題。after 測試裡的 `echo` 就是這樣的例子，它是沒有狀態的函式。
 

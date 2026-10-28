@@ -6,7 +6,7 @@
 
 ## 情境
 
-你寫了一個連續長度編碼（run-length encoding）：`Encode` 把連續相同的位元組寫成「長度加位元組」，`"aaab"` 變成 `"3a1b"`；`Decode` 把它還原。編碼與解碼互為反函式，所以有一條很明確的性質：任何字串編碼再解碼，都要得到原本的字串。
+你寫了一個連續長度編碼（run-length encoding）：`Encode` 把連續相同的位元組寫成「長度加位元組」，`"aaab"` 變成 `"3a1b"`；`Decode` 把它還原。編碼與解碼互為反函式，所以有一條很明確的性質：任何字串編碼再解碼，都要得到原本的字串。這裡的「任何」有一個上限：`Decode` 拒絕超過 `maxRun`（約一百萬）的單一連續長度，免得惡意輸入逼它配置巨大的記憶體，所以性質只涵蓋單一連續段不超過這個上限的字串。
 
 fuzz 的語法與機制前作已經教過：〈[fuzzing](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/14_fuzzing.html)〉。這集不教寫法，只談什麼時候值得寫。
 
@@ -40,20 +40,22 @@ fuzz 的語法與機制前作已經教過：〈[fuzzing](https://holmeslin.githu
 {{#include ../../../examples/chapter5/07_fuzz_roundtrip/after/rle_test.go:fuzz}}
 ```
 
-把它加到 before 的 `rle_test.go` 後面，執行 `go test -fuzz=FuzzRoundTrip -fuzztime=10s`（輸出省略了：進度行裡的耗時、worker 數與 baseline 數量，失敗輸入檔名裡的雜湊值，重跑提示，以及測試的耗時與套件路徑）：
+把它加到 before 的 `rle_test.go` 後面，執行 `go test -fuzz=FuzzRoundTrip -fuzztime=10s`。輸出經過整理：進度行只留兩行並省略其中的數字，省略了失敗測試後面的耗時、失敗輸入檔名裡的雜湊值、重跑提示，以及最後的 `exit status 1` 與套件那一行。
+
+執行結果（某一次）：
 
 ```text
 fuzz: elapsed: 0s, gathering baseline coverage: ...
 fuzz: elapsed: 0s, minimizing
 --- FAIL: FuzzRoundTrip
     --- FAIL: FuzzRoundTrip
-        rle_test.go:52: Decode(Encode("0")) error = decode: count "10" has no byte after it (encoded as "10"), want nil
+        rle_test.go:53: Decode(Encode("0")) error = decode: count "10" has no byte after it (encoded as "10"), want nil
 
     Failing input written to testdata/fuzz/FuzzRoundTrip/<hash>
 FAIL
 ```
 
-這是我們實際跑出來的一次。fuzz 是隨機的，每次找到的輸入不一定相同：我們重跑幾次，也看過 `"00"`。所以別把某個特定輸入當成保證；能保證的是「性質寫在那裡，會不斷用新的輸入去檢查它」。
+上面是其中一次的結果。fuzz 是隨機的，不同次執行找到的輸入不一定相同，所以別把某個特定輸入當成保證；能保證的是「性質寫在那裡，會不斷用新的輸入去檢查它」。
 
 ## 較好的做法
 
@@ -69,15 +71,17 @@ FAIL
 {{#include ../../../examples/chapter5/07_fuzz_roundtrip/after/example_test.go:example}}
 ```
 
-fuzz 測試留在 after 的測試檔裡，被找到的輸入存在 `testdata/fuzz/FuzzRoundTrip/` 底下，之後每次普通的 `go test` 都會把它當成種子重跑，同一個 bug 不會再回來。這個資料夾放在 after，不放在 before：before 的程式有這個 bug，corpus 檔放進去，預設的 `go test` 就會失敗。
+fuzz 測試留在 after 的測試檔裡，被找到的輸入存在 `testdata/fuzz/FuzzRoundTrip/` 底下，之後每次普通的 `go test` 都會把它當成種子重跑，同一個 bug 不會再回來。這個目錄放在 after，不放在 before：before 的程式有這個 bug，corpus 檔放進去，預設的 `go test` 就會失敗。
 
 after 的 `go test` 只花一瞬間（輸出省略了耗時）：
+
+執行結果：
 
 ```text
 ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter5/07_fuzz_roundtrip/after
 ```
 
-修正之後要再 fuzz 一次，確認修正沒有留下別的漏洞。我們對 after 跑了三次 `-fuzztime=15s`，都沒有找到失敗的輸入；但「沒找到」不是「沒有」，它只代表這段時間內的輸入都通過。
+修正之後要再 fuzz 一次，確認修正沒有留下別的漏洞。對 after 執行 `go test -fuzz=FuzzRoundTrip -fuzztime=15s`，時間越長，檢查過的輸入越多；但「沒找到」不是「沒有」，它只代表這段時間內的輸入都通過。
 
 ## 取捨
 

@@ -6,7 +6,7 @@
 
 ## 情境
 
-筆記服務的 `notes.Store` 把筆記存在一個 SQLite 檔案裡。`Normalize`（去掉前後空白、拒絕空筆記）是純函式，測試很單純。`Store` 要開真的檔案才測得到，這是整合測試。
+筆記服務的 `notes.Store` 把筆記存在一個 SQLite 檔案裡。`Normalize`（去掉前後空白、拒絕空筆記）是純函式，測試很單純。`Store` 要開真的檔案才測得到，這是整合測試。這裡的 SQLite 只是代替真實專案裡需要的資料庫或外部服務；它是純 Go、不用安裝，範例才能直接跑。
 
 build tags 的機制前作教過：〈[build tags](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter11/06_build_tags.html)〉；`go test` 的基本用法見〈[`go test`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/09_go_test.html)〉。這集只談怎麼用它們分開測試。
 
@@ -22,7 +22,7 @@ build tags 的機制前作教過：〈[build tags](https://holmeslin.github.io/l
 
 ## 問題在哪
 
-**第一個問題：每個人的 `go test ./...` 都會跑它。** 光是改了 `Normalize`，也得開檔案、建表。這裡的 SQLite 是純 Go，成本很低；換成要先起服務的資料庫，沒有那個服務的機器上，`go test ./...` 一開始就是紅的。
+**第一個問題：每個人的 `go test ./...` 都會跑它。** 光是改了 `Normalize`，也得開檔案、建表。SQLite 在這裡很快，看不出痛處；它代表的那類資源才是問題：每個測試都要連線、建表、清資料，所以慢；沒有那個服務、帳號或網路的機器上，`go test ./...` 一開始就是紅的，所以依賴環境。
 
 於是有人給整合測試加上 `//go:build integration`，搬到自己的檔案。這解決了第一個問題，卻帶來第二個：**預設的 `go vet` 與 `go test` 不編譯有 tag 的檔案，沒人帶 tag 跑，它壞了也沒人知道。**
 
@@ -57,18 +57,27 @@ func TestStoreAddList(t *testing.T) {
 }
 ```
 
-我們在 repo 外的暫存 module 重現（套件與單元測試用 before 的，加上這個檔案），預設的指令全部通過；帶 tag 才看到錯誤：
+要自己重現，把這個檔案放進 `before/notes/`，刪掉 `notes_test.go` 裡原本的 `TestStoreAddList`（它搬到了這裡），在 `before/` 目錄執行。預設的指令全部通過（省略了耗時）：
+
+執行結果：
 
 ```text
 $ go vet ./... && go test ./...
-ok  	.../before/notes
+ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter5/05_integration_tests_build_tags/before/notes
+```
+
+帶 tag 才看到錯誤（省略了開頭兩行 `#` 開頭的套件標頭）：
+
+編譯錯誤：
+
+```text
 $ go vet -tags integration ./...
-vet: store_integration_test.go:14:65: not enough arguments in call to notes.Open
+vet: notes/store_integration_test.go:14:65: not enough arguments in call to notes.Open
 	have (string)
 	want (context.Context, string)
 ```
 
-`ok` 那一行省略了耗時與套件路徑的前綴，錯誤訊息省略了路徑前綴。第一個指令全綠，整合測試其實已經壞了，直到有人哪天帶 tag 跑才會發現。編輯器也一樣：除非另外設定 build flags，它不會載入這個檔案。
+第一個指令全綠，整合測試其實已經壞了，直到有人哪天帶 tag 跑才會發現。編輯器也一樣：除非另外設定 build flags，它不會載入這個檔案。
 
 ## 較好的做法
 
@@ -80,7 +89,9 @@ vet: store_integration_test.go:14:65: not enough arguments in call to notes.Open
 
 這個測試放在外部測試套件，每次用 `t.TempDir()` 的新檔案，所以不依賴別的測試、也不依賴任何外部服務；它驗證的是「關掉再開，筆記還在」，只有真的檔案測得出來。完整程式碼在 `examples/chapter5/05_integration_tests_build_tags/after/`。
 
-本機與 CI 的差別，只在 `-tags integration`。在 `examples/chapter5/05_integration_tests_build_tags/` 底下，同一個套件不帶與帶 tag 各列一次會跑的測試（`-list` 只列名稱、不執行；`ok` 那一行同樣省略了耗時與套件路徑前綴）：
+本機與 CI 的差別，只在 `-tags integration`。在 `examples/chapter5/05_integration_tests_build_tags/` 底下，同一個套件不帶與帶 tag 各列一次會跑的測試（`-list` 只列名稱、不執行；`ok` 那一行省略了耗時與套件路徑前綴）：
+
+執行結果：
 
 ```text
 $ go test -list . ./after/notes
@@ -113,7 +124,7 @@ go vet ./... && go vet -tags integration ./... && go test -race -tags integratio
 | 環境變數加 `t.Skip` | 不跑 | 一直編譯，`vet` 看得到 | 要記得設變數；忘了設，測試只是「跳過」，看起來像通過 |
 | `testing.Short()` | 全跑 | 一直編譯 | 方向相反：要加 `-short` 才跳過，慢的測試預設還是會跑 |
 
-第二種做法的好處，我們在暫存 module 驗證過：同一個壞掉的測試，改成不加 tag、用 `NOTES_INTEGRATION` 變數決定要不要 `t.Skip`，預設的 `go vet ./...` 立刻就報同一個編譯錯誤。代價是 CI 還是得設變數；少設一次，整合測試整批變成 `SKIP`，而 `go test` 仍然回報通過。
+第二種做法的好處：同一個壞掉的測試，如果改成不加 tag、用 `NOTES_INTEGRATION` 變數決定要不要 `t.Skip`，那個檔案預設就會被編譯，所以 `go vet ./...` 會立刻報同一個編譯錯誤。代價是 CI 還是得設變數；少設一次，整合測試整批變成 `SKIP`，而 `go test` 仍然回報通過。
 
 選擇的依據：
 
