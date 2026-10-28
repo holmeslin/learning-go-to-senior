@@ -57,6 +57,7 @@
 
 - [結構化並行]()
     - [取消與 `context` 的傳遞](chapter6/04_cancellation_context.md)
+    - [channel 與 mutex 怎麼選](chapter6/07_channel_or_mutex.md)
 
 # 第四部　效能
 
