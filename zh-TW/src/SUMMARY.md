@@ -45,6 +45,7 @@
     - [表格驅動測試的邊界](chapter5/02_table_driven_boundary.md)
     - [整合測試與 build tags](chapter5/05_integration_tests_build_tags.md)
     - [golden file](chapter5/06_golden_file.md)
+    - [不穩定（flaky）測試](chapter5/10_flaky_tests.md)
 
 # 第三部　並行實務
 
