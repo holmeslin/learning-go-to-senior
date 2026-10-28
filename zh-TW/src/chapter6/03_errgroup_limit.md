@@ -8,7 +8,7 @@
 
 匯入服務收到一份客戶名單，每一筆地址都要呼叫下游的地址驗證服務查一次。名單實際上有上萬筆，範例用 20 筆。下游的合約寫明每個客戶同時最多受理 5 個請求，超過的會被拒絕或排隊到逾時（數字是舉例）。
 
-`errgroup` 的 `Go`、`Wait`、`WithContext` 本章〈`errgroup`〉談過；goroutine 與 buffered channel 前作已經教過：〈[goroutine](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/01_goroutine.html)〉、〈[buffered channel](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/09_buffered_channel.html)〉。這集只談 `SetLimit` 與 `TryGo`。
+`errgroup` 的 `Go`、`Wait`、`WithContext` 本章〈[`errgroup`](02_errgroup.md)〉談過；goroutine 與 buffered channel 前作已經教過：〈[goroutine](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/01_goroutine.html)〉、〈[buffered channel](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/09_buffered_channel.html)〉。這集只談 `SetLimit` 與 `TryGo`。
 
 ## 常見寫法
 
@@ -40,9 +40,15 @@
 
 `SetLimit` 要在第一次 `Go` 之前呼叫。設了之後，同時活著的 goroutine 達到上限時，`Go` 會阻塞，直到有一個結束，所以迴圈停在第 `limit + 1` 筆，不會一口氣建出全部 goroutine。內部就是一個容量為 `limit` 的 buffered channel。
 
-`limit` 小於 1 要先擋掉。文件寫明 `SetLimit(0)` 不允許任何 goroutine 加入，第一個 `Go` 會永遠等下去；負數則是不設上限，正好是 before 的行為。
+`limit` 小於 1 要先擋掉，回傳 `ErrInvalidLimit`。文件寫明 `SetLimit(0)` 不允許任何 goroutine 加入，第一個 `Go` 會永遠等下去；負數則是不設上限，正好是 before 的行為。
 
-同樣的假下游，這次的 `Example`，前 5 筆進了下游就放行：
+假下游這次換成 `counter`，記錄同時進行的呼叫數與最大值（`Peak`）：
+
+```go,ignore
+{{#include ../../../examples/chapter6/03_errgroup_limit/after/check_test.go:counter}}
+```
+
+同樣的 `Example`，前 5 筆進了下游就放行：
 
 ```go,ignore
 {{#include ../../../examples/chapter6/03_errgroup_limit/after/example_test.go:example}}
@@ -60,8 +66,8 @@
 
 ```text
 --- FAIL: TestCheckAllLimit
-    check_test.go:58: peak concurrent calls = 12, want 5
-    check_test.go:62: CheckAll() took 100ms, want 300ms
+    check_test.go:63: peak concurrent calls = 12, want 5
+    check_test.go:67: CheckAll() took 100ms, want 300ms
 FAIL
 ```
 

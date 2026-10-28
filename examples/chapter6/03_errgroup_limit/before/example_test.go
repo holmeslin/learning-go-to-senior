@@ -8,6 +8,8 @@ import (
 	addrcheck "github.com/holmeslin/learning-go-to-senior/examples/chapter6/03_errgroup_limit/before"
 )
 
+// ANCHOR: example
+
 // downstream 記錄同時進行中的呼叫數與它的最大值。
 type downstream struct {
 	mu       sync.Mutex
@@ -31,8 +33,6 @@ func (d *downstream) check(ctx context.Context, addr string) error {
 	d.mu.Unlock()
 	return nil
 }
-
-// ANCHOR: example
 
 func ExampleCheckAll() {
 	addrs := make([]string, 20)

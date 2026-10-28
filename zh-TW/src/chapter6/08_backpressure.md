@@ -48,7 +48,7 @@ buffered channel 與 `select` 加 `default` 前作教過：〈[buffered channel]
 {{#include ../../../examples/chapter6/08_backpressure/after/example_test.go:example}}
 ```
 
-`Submit` 的等待用 `ctx` 收尾：consumer 卡住、佇列又滿時，只有 `ctx` 結束它才會回來。取消要傳進每個會阻塞的地方，見本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉。
+`Submit` 的等待用 `ctx` 收尾：consumer 卡住、佇列又滿時，只有 `ctx` 結束它才會回來。取消要傳進每個會阻塞的地方，本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉談過。
 
 ```go,ignore
 {{#include ../../../examples/chapter6/08_backpressure/after/example_test.go:wait}}
@@ -71,15 +71,15 @@ buffered channel 與 `select` 加 `default` 前作教過：〈[buffered channel]
 - **批次匯入可以等。** 沒有人在等結果，慢一點只是花更久，而且被擋住正是想要的效果。
 - **使用者請求應該快速失敗。** handler 把 `ErrFull` 轉成 `503 Service Unavailable`（可加 `Retry-After`），讓使用者或前端知道稍後再試，比讓請求卡到逾時好。
 
-`errgroup` 的 `SetLimit` 也是同一回事：`Go` 滿了會等（背壓），`TryGo` 滿了回傳 `false`（拒絕），見本章〈[`errgroup` 的並行上限](03_errgroup_limit.md)〉。
+`errgroup` 的 `Go` 對應「等」，`TryGo` 對應「拒絕」，本章〈[`errgroup` 的並行上限](03_errgroup_limit.md)〉談過。
 
 ## 取捨
 
 - **容量是在決定願意讓工作等多久。** 最壞的等待約為容量乘以單筆的處理時間，不是越大越好；容量大到跟沒有上限差不多時，問題又回來了。容量 0（無緩衝）也合法，producer 和 consumer 直接交接。
-- **上限擋不住長期的失衡。** 佇列只能吸收短暫的突波。producer 長期比 consumer 快，有上限只是把「記憶體長大」換成「一直被擋、一直被拒絕」，要解決得增加 consumer 或減少進來的量。consumer 該開幾個，本章〈什麼時候需要 worker pool，什麼時候每個任務一個 goroutine 就夠〉會談。
-- **丟掉工作也是一種選擇，但要讓呼叫端知道。** `TrySubmit` 就是丟掉新的，而且用 `ErrFull` 明說了。有些資料只有最新的才有意義（例如即時位置），可以改成丟掉最舊的；這要和 consumer 一起動佇列，直接用 channel 容易寫出競爭，用 mutex 保護、只留最新一筆比較直接。不管丟哪一個，都要有人知道：回錯誤、記計數或 log。靜默丟棄是資料遺失。
+- **上限擋不住長期的失衡。** 佇列只能吸收短暫的突波。producer 長期比 consumer 快，有上限只是把「記憶體長大」換成「一直被擋、一直被拒絕」，要解決得增加 consumer 或減少進來的量。consumer 的形式（worker pool 或每個任務一個 goroutine），本章〈[什麼時候需要 worker pool，什麼時候每個任務一個 goroutine 就夠](06_worker_pool_or_goroutine_per_task.md)〉談過；開幾個最好是要量測的效能問題，第 7 章會談。
+- **丟掉工作也是一種選擇，但要讓呼叫端知道。** `TrySubmit` 就是丟掉新的，而且用 `ErrFull` 明說了。有些資料只有最新的才有意義（例如即時位置），可以改成丟掉最舊的。用 channel 做的話，要先取出最舊的、再放進新的，這兩步之間 consumer 或別的 producer 可能插進來：consumer 已經取走，取出那一步就會等；別的 producer 已經補上，放入那一步就會等。所以得把兩步包成一個不可分的動作，既然要上鎖，用 mutex 保護、只留最新一筆比較直接。不管丟哪一個，都要有人知道：回錯誤、記計數或 log。靜默丟棄是資料遺失。
 - **負載卸載與降級是下一步。** 佇列滿了之後整個服務要怎麼縮小服務範圍，第 10 章〈負載卸載與降級〉會談。
-- **範例的 `Close` 有前提。** 它要在所有 producer 停止之後才呼叫，否則對已關閉的 channel 送出會 panic。誰負責停誰，本章〈goroutine 的生命週期歸誰管〉會談。
+- **範例的 `Close` 有前提。** 它要在所有 producer 停止之後才呼叫，否則對已關閉的 channel 送出會 panic。誰負責停誰，本章〈[goroutine 的生命週期歸誰管](01_goroutine_ownership.md)〉談過。
 
 before 在這些情況下反而是對的：工作量有已知的小上界（例如啟動時載入固定幾十筆設定），或突波很短、記憶體綽綽有餘。這時 `Submit` 不會失敗，呼叫端不必處理 `ErrFull`，少一個要設的數字。
 

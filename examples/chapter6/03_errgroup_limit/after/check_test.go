@@ -11,6 +11,8 @@ import (
 	addrcheck "github.com/holmeslin/learning-go-to-senior/examples/chapter6/03_errgroup_limit/after"
 )
 
+// ANCHOR: counter
+
 // counter 記錄同時進行中的呼叫數與它的最大值。
 type counter struct {
 	mu       sync.Mutex
@@ -37,6 +39,8 @@ func (c *counter) Peak() int {
 	defer c.mu.Unlock()
 	return c.peak
 }
+
+// ANCHOR_END: counter
 
 // ANCHOR: limit
 

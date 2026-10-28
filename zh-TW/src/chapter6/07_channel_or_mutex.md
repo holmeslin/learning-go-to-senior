@@ -79,7 +79,7 @@ channel 版就是為了避免這件事，代價是：
 
 - 長度：四個 channel、一個請求型別、一個 `loop`，換來的功能和 mutex 版一樣。
 - 生命週期：用完要 `Close`，漏了就洩漏一個永遠等請求的 goroutine（偵測方式本章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談）。
-- 關閉之後：`Close` 之後 `Inc` 沒有人接收，永遠卡住；在 `synctest.Test` 裡重現，得到 `panic: deadlock: main bubble goroutine has exited but blocked goroutines remain`。
+- 關閉之後：`Close` 之後 `Inc` 沒有人接收，永遠卡住；在 repo 外的暫存模組，用 `synctest.Test` 依序呼叫 `New`、`Close`、`Inc`，會得到 `panic: deadlock: all goroutines in bubble are blocked`，卡住的是 `Inc` 的那一行送出。
 - 零值不能用：沒有 `New` 就沒有 channel。
 
 ## 較好的做法
