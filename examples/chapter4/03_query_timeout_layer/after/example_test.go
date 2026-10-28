@@ -25,7 +25,7 @@ func ExampleStore_PendingCount() {
 	fmt.Println(err, db.Stats().WaitCount)
 
 	// 呼叫端的 deadline 到了：已經在排隊的查詢跟著放棄。
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	_, err = store.PendingCount(ctx)
 	fmt.Println(err, db.Stats().WaitCount)

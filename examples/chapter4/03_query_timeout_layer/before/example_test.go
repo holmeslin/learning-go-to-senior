@@ -13,7 +13,7 @@ import (
 func ExampleStore_PendingCount() {
 	db := openDB()
 	defer db.Close()
-	store := orders.NewStore(db, 50*time.Millisecond)
+	store := orders.NewStore(db, 100*time.Millisecond)
 
 	// 呼叫端取消了。為了讓輸出固定，這裡先取消再呼叫。
 	canceled, cancel := context.WithCancel(context.Background())
