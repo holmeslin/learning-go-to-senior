@@ -43,8 +43,12 @@
 - [測試策略](chapter5/README.md)
     - [測什麼、不測什麼](chapter5/01_what_to_test.md)
     - [表格驅動測試的邊界](chapter5/02_table_driven_boundary.md)
+    - [fake、stub、mock 的選擇](chapter5/03_fake_stub_mock.md)
+    - [測試替身放在哪裡](chapter5/04_where_test_doubles_live.md)
+    - [整合測試與 build tags](chapter5/05_integration_tests_build_tags.md)
     - [golden file](chapter5/06_golden_file.md)
     - [測時間與並行：用 `testing/synctest`，還是自己注入時鐘](chapter5/08_synctest_or_clock.md)
+    - [要啟動真的 server，還是只測 handler](chapter5/09_server_or_handler.md)
 
 # 第三部　並行實務
 
