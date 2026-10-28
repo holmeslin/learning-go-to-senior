@@ -37,6 +37,10 @@ jobs:
         # 帶 integration tag，加了 //go:build integration 的整合測試才會被編譯與執行
         run: go vet ./... && go vet -tags integration ./... && go test -race -tags integration ./...
 
+      - name: Run each benchmark once
+        # 不量速度，只確保 benchmark 能跑完、不會爛掉
+        run: go test -run='^$' -bench=. -benchtime=1x ./...
+
       - name: Check no ANCHOR in go doc
         run: |
           if go list ./examples/... | xargs -n1 go doc -all | grep -n ANCHOR; then
