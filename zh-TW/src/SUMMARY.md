@@ -69,6 +69,7 @@
 # 第四部　效能
 
 - [效能調查流程]()
+    - [什麼時候值得看逃逸分析](chapter7/06_when_to_check_escape_analysis.md)
 - [runtime]()
 
 # 第五部　上線與維運
