@@ -6,7 +6,7 @@
 
 ## 情境
 
-報價服務同時問好幾個供應商，先回來的先用：`Fastest` 拿到第一筆就回傳。洩漏是什麼，前作教過：〈[goroutine 洩漏](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/16_goroutine_leak.html)〉。`synctest` 的基本規則見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉。本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉在送出少了 `select` 時順便看過同一種 panic；這集把它當成方法來講。
+報價服務同時問好幾個供應商，先回來的先用：`Fastest` 拿到第一筆就回傳。洩漏是什麼，前作教過：〈[goroutine 洩漏](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/16_goroutine_leak.html)〉。`synctest` 的基本規則見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉。本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉談過取消要傳進每個會阻塞的地方；這集談的是，沒做到的時候怎麼在測試裡抓到。
 
 ## 常見寫法
 
@@ -20,7 +20,22 @@
 
 ## 問題在哪
 
-這個測試會過。下面是 repo 外的暫存模組裡的結果，測試的程式沒有放進 repo，因為它會讓測試結束時留下一個卡住的 goroutine；輸出省略了耗時。
+這個測試會過。測試的程式如下，沒有放進 repo，因為它會讓測試結束時留下一個卡住的 goroutine，所以在 repo 外的暫存模組重現：
+
+```text
+func TestFastest(t *testing.T) {
+	block := make(chan struct{}) // 永遠不關閉：慢的供應商一直卡著
+	fast := func() string { return "fast" }
+	slow := func() string { <-block; return "slow" }
+
+	got := quote.Fastest([]quote.Source{slow, fast})
+	if want := "fast"; got != want {
+		t.Errorf("Fastest() = %q, want %q", got, want)
+	}
+}
+```
+
+用 `go test -race` 執行，輸出省略了耗時。
 
 執行結果：
 
