@@ -64,6 +64,7 @@
     - [什麼時候需要 worker pool，什麼時候每個任務一個 goroutine 就夠](chapter6/06_worker_pool_or_goroutine_per_task.md)
     - [channel 與 mutex 怎麼選](chapter6/07_channel_or_mutex.md)
     - [背壓](chapter6/08_backpressure.md)
+    - [goroutine 洩漏怎麼發生、怎麼在測試裡抓到](chapter6/09_goroutine_leak.md)
 
 # 第四部　效能
 
