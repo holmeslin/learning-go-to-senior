@@ -1,7 +1,5 @@
 package main
 
-// ANCHOR: run
-
 // run 模擬一個把資料集留在記憶體裡的服務：前 cacheMiB 個請求的結果進快取、一直留著，
 // 其餘請求只配置一塊 1 MiB 的暫存緩衝區，用完就丟。
 func run(cacheMiB, requests int) int {
@@ -17,5 +15,3 @@ func run(cacheMiB, requests int) int {
 	}
 	return len(cache)
 }
-
-// ANCHOR_END: run
