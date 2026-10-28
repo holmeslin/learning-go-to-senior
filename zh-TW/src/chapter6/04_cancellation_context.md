@@ -28,21 +28,9 @@
 
 五筆全抓完，後三筆沒有人要。傳給 `fetch` 的 `ctx` 也不會讓迴圈停下來：就算 `fetch` 一看到取消就立刻返回，迴圈還是會用同一個已取消的 `ctx` 呼叫剩下的每一筆。
 
-另一個問題在送出那一行。呼叫端取消後若不再接收，`out <- fetch(ctx, u)` 永遠等不到人，goroutine 就卡在那裡。下面這個測試屬於 after（見下一段），這裡把它對 before 的實作執行，測試的程式放在 repo 外的暫存模組重現；輸出省略了耗時、goroutine 編號、位址、檔案路徑與 stack 中間各行，模組路徑也簡寫。
+每一筆都是一次沒人要的下游請求：名單愈長、使用者離開得愈早，白做的就愈多。
 
-執行結果：
-
-```text
---- FAIL: TestPagesStopsWhenNobodyReceives
-    pages_test.go:43: received a page after cancel, want closed channel
-panic: deadlock: main bubble goroutine has exited but blocked goroutines remain [recovered, repanicked]
-...
-goroutine N [chan send (durable), synctest bubble 1]:
-crawlrepro.Pages.func1()
-FAIL	crawlrepro
-```
-
-`synctest.Test` 在 bubble 結束時發現還有 goroutine 卡在 channel 送出，直接 panic。怎麼系統性地抓這類洩漏，本章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談。
+另一個問題在送出那一行。`out` 沒有緩衝，呼叫端取消後若不再接收，`out <- fetch(ctx, u)` 永遠等不到人，goroutine 就卡在那裡。怎麼在測試裡抓到這種洩漏，本章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談。
 
 ## 較好的做法
 
@@ -58,7 +46,7 @@ FAIL	crawlrepro
 {{#include ../../../examples/chapter6/04_cancellation_context/after/example_test.go:example}}
 ```
 
-第二筆正在處理時發生的取消，無法收回已經開始的那一筆；但第三筆不會再開始。取消後不再接收的情況，用 `synctest` 確定地證明，不必等任何時間：第一筆收下後取消，`synctest.Wait` 等到 goroutine 都結束或卡住，再檢查 channel 已經關閉。若送出那一行少了 `select`，這個測試就是上面那份 panic。測試的基本規則見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉：
+第二筆正在處理時發生的取消，無法收回已經開始的那一筆；但第三筆不會再開始。取消後不再接收的情況，用 `synctest` 確定地證明，不必等任何時間：第一筆收下後取消，`synctest.Wait` 等到 goroutine 都結束或卡住，再檢查 channel 已經關閉。若送出那一行少了 `select`，goroutine 會卡在送出，bubble 結束時它還沒結束，`synctest.Test` 會讓測試失敗。測試的基本規則見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉：
 
 ```go,ignore
 {{#include ../../../examples/chapter6/04_cancellation_context/after/pages_test.go:abandoned}}
