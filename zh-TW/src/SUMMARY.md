@@ -58,6 +58,7 @@
 - [結構化並行]()
     - [`errgroup` 的並行上限](chapter6/03_errgroup_limit.md)
     - [取消與 `context` 的傳遞](chapter6/04_cancellation_context.md)
+    - [背壓](chapter6/08_backpressure.md)
 
 # 第四部　效能
 
