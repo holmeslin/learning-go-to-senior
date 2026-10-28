@@ -56,6 +56,7 @@
 # 第三部　並行實務
 
 - [結構化並行]()
+    - [fan-out / fan-in 的取捨](chapter6/05_fan_out_fan_in.md)
 
 # 第四部　效能
 
