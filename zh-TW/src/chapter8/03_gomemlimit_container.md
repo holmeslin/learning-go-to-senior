@@ -13,7 +13,7 @@
 什麼都不設，用預設的 `GOGC=100`。下面用 160 MiB 的快取加 2000 個請求模擬這個服務，每個請求配置 1 MiB：
 
 ```go,ignore
-{{#include ../../../examples/chapter8/03_gomemlimit_container/before/workload.go:run}}
+{{#include ../../../examples/chapter8/03_gomemlimit_container/before/workload.go}}
 {{#include ../../../examples/chapter8/03_gomemlimit_container/before/main.go:main}}
 ```
 
@@ -24,11 +24,13 @@
 用官方 image 在容器裡重現。編譯不加限制，執行才套上 `--memory`；`--memory-swap` 與 `--memory` 相同，關掉 swap。在 macOS（arm64）上用 OrbStack 執行，容器是 `golang:1.27-alpine`（Go 1.27.3、linux/arm64、cgroup v2），`--cpus=2` 所以容器內的 P 是 2 個：
 
 ```bash
+mkdir -p bin
 docker run --rm -v "$PWD":/src:ro -v "$PWD/bin":/out -w /src -e CGO_ENABLED=0 golang:1.27-alpine \
   sh -c 'go build -o /out/before ./examples/chapter8/03_gomemlimit_container/before'
 docker run --name ep03-before --memory=256m --memory-swap=256m --cpus=2 -v "$PWD/bin":/out:ro golang:1.27-alpine /out/before
 echo "exit code: $?"
-docker inspect --format '{{.State.OOMKilled}}' ep03-before
+echo -n "OOMKilled: "; docker inspect --format '{{.State.OOMKilled}}' ep03-before
+docker rm ep03-before
 ```
 
 執行結果（某一次）：
@@ -39,11 +41,26 @@ exit code: 137
 OOMKilled: true
 ```
 
-`memory limit` 是程式啟動時印出的 `debug.SetMemoryLimit(-1)`，`math.MaxInt64` 就是「沒有上限」，runtime 不知道有 256 MiB 這回事。`done` 沒有印出來，因為行程被 kernel 殺了：137 是 128 加上 `SIGKILL` 的 9，`OOMKilled` 是 Docker 記下的原因。`exit code` 與 `OOMKilled` 兩行是 `docker run` 結束後另外查的，`docker run` 本身沒有印別的。
+`memory limit` 是程式啟動時印出的 `debug.SetMemoryLimit(-1)`，`math.MaxInt64` 就是「沒有上限」，runtime 不知道有 256 MiB 這回事。`done` 沒有印出來，因為行程被 kernel 殺了：137 是 128 加上 `SIGKILL` 的 9，`OOMKilled` 是 Docker 記下的原因。`memory limit` 那行是程式印的；`exit code` 與 `OOMKilled` 兩行是 `docker run` 結束後，上面的兩條 `echo` 印的。
 
 原因在 `GOGC=100`：下次 GC 的目標是上次 GC 之後活著資料的兩倍。活著的有 160 MiB，目標超過 256 MiB，heap 在 GC 啟動前就把容器的上限用完了。這個比例只和自己的資料有關，容器有多大它不看。
 
-沒有加 `--memory-swap` 時，Docker 預設連 swap 一起給（是 `--memory` 的兩倍）；在這台 OrbStack 上，同一支程式沒有被殺，跑完才結束（見 `repro.sh` 的 `noswap.txt`）。允許 swap 的環境看不到 OOM，但記憶體其實已經超過上限了；要重現就要關掉 swap。
+沒有加 `--memory-swap` 時，Docker 預設連 swap 一起給（是 `--memory` 的兩倍）；在這台 OrbStack 上，同一支程式沒有被殺，跑完才結束：
+
+```bash
+docker run --rm --memory=256m --cpus=2 -v "$PWD/bin":/out:ro golang:1.27-alpine /out/before
+echo "exit code: $?"
+```
+
+執行結果（某一次）：
+
+```text
+memory limit: 9223372036854775807
+done, cached MiB: 160
+exit code: 0
+```
+
+允許 swap 的環境看不到 OOM，但記憶體其實已經超過上限了；要重現就要關掉 swap。
 
 ## 較好的做法
 
@@ -61,13 +78,20 @@ OOMKilled: true
 {{#include ../../../examples/chapter8/03_gomemlimit_container/after/memlimit/memlimit.go:apply}}
 ```
 
-`main` 在啟動時呼叫一次，沒有 cgroup、沒有上限或已經設過都維持原狀；負載與 before 逐字相同（兩邊的 `workload.go` 內容一樣，由 `repro.sh` 用 `cmp` 確認）：
+`main` 在啟動時呼叫一次，沒有 cgroup、沒有上限或已經設過都維持原狀；負載與 before 逐字相同（兩邊的 `workload.go` 內容一樣，`cmp examples/chapter8/03_gomemlimit_container/before/workload.go examples/chapter8/03_gomemlimit_container/after/workload.go` 沒有輸出就是相同）：
 
 ```go,ignore
 {{#include ../../../examples/chapter8/03_gomemlimit_container/after/main.go:main}}
 ```
 
 同樣的容器參數，改跑 after：
+
+```bash
+docker run --rm -v "$PWD":/src:ro -v "$PWD/bin":/out -w /src -e CGO_ENABLED=0 golang:1.27-alpine \
+  sh -c 'go build -o /out/after ./examples/chapter8/03_gomemlimit_container/after'
+docker run --rm --memory=256m --memory-swap=256m --cpus=2 -v "$PWD/bin":/out:ro golang:1.27-alpine /out/after
+echo "exit code: $?"
+```
 
 執行結果（某一次）：
 
@@ -96,11 +120,11 @@ exit code: 0
 
 ## 取捨
 
-- **活著的資料超過上限，`GOMEMLIMIT` 救不了。** 它是軟上限：垃圾可以收，活著的資料收不掉。活著的部分逼近上限時，GC 為了壓住總量越跑越頻繁，應用程式分到的 CPU 越來越少，這就是 death spiral。runtime 有保護，會把 GC 占用的 CPU 限制在大約一半以內，所以程式不會被 GC 完全餓死，代價是總量超過上限，容器還是可能被殺。GC 實際有多頻繁，本章〈讀 GC trace〉會談；該改的是活著的資料（本章〈記憶體配置與 heap 成長〉會談）或加大上限。
-- **`GOGC=off` 加 `GOMEMLIMIT`。** 這樣 GC 只在總量碰到上限時才啟動，不再依比例觸發，少跑 GC、多用記憶體。服務獨占容器、活著的資料遠小於上限而且穩定時合理。危險在活著的資料長到靠近上限：沒有比例的觸發，GC 就一直在上限邊緣打轉，前面的 death spiral 立刻出現；上限也不能設到比容器還大。
-- **也可以只在部署設定裡設環境變數。** 同一支 before，容器加 `-e GOMEMLIMIT=230MiB`，也跑完了（見 `repro.sh` 的 `env_override.txt`），不用改程式。代價是數字寫死在部署檔，上限調整了要記得同步。`Apply` 讓已經存在的設定優先，兩種做法可以並存。`automemlimit` 這類第三方套件做的是同一件事，只是不用自己寫。
+- **活著的資料超過上限，`GOMEMLIMIT` 救不了。** 它是軟上限：垃圾可以收，活著的資料收不掉。活著的部分逼近上限時，GC 為了壓住總量越跑越頻繁，應用程式分到的 CPU 越來越少，這就是 death spiral。runtime 有保護：`go doc runtime/debug.SetMemoryLimit` 寫上限太低時 GC 可能「nearly continuously」執行，但程式仍然能前進；GC guide（<https://go.dev/doc/gc-guide>）說明 GC 能用的 CPU 有上限，目前大約 50%，以一段時間為窗口，短暫的尖峰可以超過。所以程式不會被 GC 完全餓死，代價是 GC 被延後，總量可能超過上限，容器還是可能被殺。GC 實際有多頻繁，本章〈讀 GC trace〉會談；該改的是活著的資料（本章〈記憶體配置與 heap 成長〉會談）或加大上限。
+- **`GOGC=off` 加 `GOMEMLIMIT`。** `go doc runtime/debug.SetGCPercent` 寫負的百分比「effectively disables garbage collection, unless the memory limit is reached」，`go doc runtime/debug.SetMemoryLimit` 也寫上限在 `GOGC=off` 時仍然有效。照文件推：GC 只在總量碰到上限時才啟動，不再依比例觸發，少跑 GC、多用記憶體（這集沒有另外在容器裡跑這個組合）。服務獨占容器、活著的資料遠小於上限而且穩定時合理。危險在活著的資料長到靠近上限：沒有比例的觸發，GC 就一直在上限邊緣打轉，前面的 death spiral 立刻出現；上限也不能設到比容器還大。
+- **也可以只在部署設定裡設環境變數。** 同一支 before，把 `docker run --name ep03-before --memory=256m --memory-swap=256m --cpus=2` 加上 `-e GOMEMLIMIT=230MiB`（其餘同上），也跑完了：程式印出 `memory limit: 241172480`（230 MiB）、`done, cached MiB: 160`，exit code 是 0。不用改程式。代價是數字寫死在部署檔，上限調整了要記得同步。`Apply` 讓已經存在的設定優先，兩種做法可以並存。`automemlimit` 這類第三方套件做的是同一件事，只是不用自己寫。
 - **這份計算有前提。** 只讀 cgroup v2 的 `memory.max`；cgroup v1 的檔名不同，這裡不處理。`/sys/fs/cgroup` 要是容器自己的 cgroup 根才對，容器的預設是如此，直接跑在主機上的行程不是。
-- **before 在什麼情況下是對的？** 大多數服務用預設值就好。活著的資料加上 `GOGC` 帶來的餘裕遠小於容器上限，或根本沒有上限，`GOGC` 的比例已經夠用，不需要多這一層；`GOGC` 本身什麼時候該調，本章〈什麼時候該調 `GOGC`，什麼時候別動〉談過。
+- **before 在什麼情況下是對的？** 大多數服務用預設值就好。活著的資料加上 `GOGC` 帶來的餘裕遠小於容器上限，或根本沒有上限，`GOGC` 的比例已經夠用，不需要多這一層；`GOGC` 本身什麼時候該調，本章〈[什麼時候該調 `GOGC`，什麼時候別動](02_when_to_tune_gogc.md)〉談過。
 
 ## 重點整理
 
