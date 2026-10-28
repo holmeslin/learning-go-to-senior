@@ -29,8 +29,12 @@
     - [過早抽象的代價](chapter3/05_premature_abstraction.md)
     - [什麼時候用嵌入，什麼時候該明確委派](chapter3/06_embedding_or_delegation.md)
     - [不用框架的相依注入](chapter3/07_di_without_framework.md)
-- [資料存取的設計]()
+- [資料存取的設計](chapter4/README.md)
+    - [要不要有 repository 這一層](chapter4/01_repository_layer.md)
+    - [交易邊界放在哪裡](chapter4/02_transaction_boundary.md)
     - [查詢逾時該設在哪一層](chapter4/03_query_timeout_layer.md)
+    - [N+1 與查詢組裝](chapter4/05_n_plus_one.md)
+    - [migration](chapter4/06_migration.md)
 
 # 第二部　測試
 
