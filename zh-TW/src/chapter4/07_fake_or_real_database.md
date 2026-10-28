@@ -44,7 +44,7 @@
 
 兩個 store 對同一個呼叫給了不同的答案：
 
-- **fake 收下重複的信箱。** 第三筆的 ann 也成功了，`added=3`。map 不會替你執行唯一約束；外鍵、交易回滾也一樣（回滾本章〈交易邊界放在哪裡〉會用真的資料庫示範）。fake 只做你寫進去的事。
+- **fake 收下重複的信箱。** 第三筆的 ann 也成功了，`added=3`。map 不會替你執行唯一約束；外鍵、交易回滾也一樣（回滾本章〈[交易邊界放在哪裡](02_transaction_boundary.md)〉用真的資料庫示範過）。fake 只做你寫進去的事。
 - **真的資料庫拒絕了，但 `SQLStore` 沒把錯誤翻成 `ErrEmailTaken`。** `Invite` 的「略過」分支永遠進不去，名單在第三筆中止，`skipped` 是空的。
 
 這個 bug 通過了所有測試。fake 不會回 `ErrEmailTaken`，「略過重複」這條路徑就沒有測到；想測它，得先教 fake 回 `ErrEmailTaken`，而 fake 怎麼回，是寫的人憑印象決定的。沒有任何東西把 fake 和真的資料庫放在一起比過。
@@ -53,7 +53,7 @@
 
 分三件事。
 
-**測 store 時，直接對真的資料庫跑。** 每個測試拿到一個全新的檔案資料庫（放在 `t.TempDir()` 底下，測試結束自動清掉），套用的是 `signup.Schema`，也就是部署用的那份 SQL，不是測試自己抄一份。各測試用各的檔案，並行也不會互相干擾。資料表怎麼隨版本演進，本章〈migration〉會談。
+**測 store 時，直接對真的資料庫跑。** 每個測試拿到一個全新的檔案資料庫（放在 `t.TempDir()` 底下，測試結束自動清掉），套用的是 `signup.Schema`，也就是部署用的那份 SQL，不是測試自己抄一份。各測試用各的檔案，並行也不會互相干擾。這裡只有一張表，一份 SQL 就夠；有了編號的 migration（本章〈[migration](06_migration.md)〉），這一行就換成正式環境啟動時跑的同一個 `Up`，測試從空資料庫一路套到最新版，migration 本身也跟著被測到。
 
 ```go,ignore
 {{#include ../../../examples/chapter4/07_fake_or_real_database/after/signup/store_test.go:db}}
