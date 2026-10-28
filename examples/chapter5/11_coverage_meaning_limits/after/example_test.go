@@ -15,7 +15,7 @@ func ExampleSplit() {
 	// Output:
 	// [34 33 33] <nil>
 	// [] weight must be positive
-	// [] split -100: total must not be negative
+	// [] total must not be negative
 }
 
 // ANCHOR_END: example
