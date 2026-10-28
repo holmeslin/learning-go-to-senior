@@ -134,7 +134,7 @@ flush 2 rows
 
 `atomic` 適合單一數值，例如總點閱數用 `atomic.Int64` 就夠，不需要 mutex，見〈[`sync/atomic`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/06_atomic.html)〉。一旦要同時更新兩個以上的欄位並維持它們的關係（總數與各路徑的計數要一致），就回到 mutex。
 
-mutex 也有代價：臨界區要短，不要在鎖裡呼叫會阻塞或會呼叫外部程式碼的函式，否則其他 goroutine 全部跟著等。鎖競爭是否成為瓶頸、怎麼量，第 7 章會談。
+mutex 也有代價：臨界區要短，不要在鎖裡呼叫會阻塞或會呼叫外部程式碼的函式，否則其他 goroutine 全部跟著等。鎖競爭是否成為瓶頸、怎麼量，第 7 章〈[常見熱點：配置、拷貝、鎖競爭](../chapter7/05_common_hotspots.md)〉談過。
 
 ## 重點整理
 

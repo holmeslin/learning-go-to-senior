@@ -132,6 +132,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 - 書中的錯誤訊息、錯誤鏈與程式輸出，來自 `Example` 的 `// Output:`，用 anchor 連同 `// Output:` 註解一起 include（anchor 範圍要包含整個 `Example` 函式）。只有 `Example` 無法表達時才手動貼。
 - **整合測試**：需要真實資源的測試加上 `//go:build integration`，CI 以 `-tags integration` 編譯並執行。`integration` 是本書唯一的測試 tag；不要寫 `//go:build !integration`，否則帶 tag 時那些檔案會被漏掉。
 - 書中宣稱的行為（效能差距、錯誤訊息、競爭條件）要能被範例重現。效能數字要寫明量測方式與環境，不寫成保證。
+- **效能**：時間（ns/op、延遲）每次執行、每台機器都不同，不放進 `// Output:`，也不在測試裡斷言。
+  - 確定的結果（配置次數）用 `testing.AllocsPerRun` 在 after 的測試斷言，`-race` 下也要成立；經過 `sync.Pool` 的路徑不斷言精確次數（`-race` 下 Pool 會隨機丟掉物件）。
+  - 效能工具的輸出（`go test -bench`、`benchstat`、`go tool pprof -top`／`-list`、`go build -gcflags=-m`、從 trace 轉出的 pprof）在 repo 裡實際執行後手動貼上，前一行標「執行結果（某一次）：」，保留 `goos`／`goarch`／`cpu` 標頭，省略的部分要在文中說明。
+  - 正文的結論只談相對差異與 `benchstat` 的判斷，「快了多少」只引用貼出的 `benchstat` 結果；沒有顯著差異就照實寫。不放截圖。
+  - `benchstat` 一律寫成固定版本的 `go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e`，不加進 `go.mod`。
+  - benchmark 用 `b.Loop`，準備工作放在迴圈外。CI 以 `-benchtime=1x` 讓每個 benchmark 跑一次。
+  - profile 與 trace 檔不進 repo；唯一例外是 PGO 用的 `default.pgo`，放在 main 套件旁。
+  - 最佳化的 after 可以 import 同集的 before 當比對基準（oracle），證明改寫前後結果一致。
 - 省略「改寫模式」三段的集可以沒有 `before`／`after`，但書中出現的 Go 程式碼仍然要走單檔範例或多檔案範例其中一條驗證路徑。
 
 ## 第三方套件
@@ -146,7 +154,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 - 以 Go 1.27 為準。Go 1.22 起迴圈變數每次迭代各一份；1.23 起有 range over func；1.26 起 `new(expr)`、`errors.AsType`；1.27 起泛型方法、struct literal 可用巢狀欄位選擇器、`encoding/json/v2`、`uuid` 套件。
 - 不要寫過時的網路說法（例如 Go 1.22 前的迴圈變數陷阱、`time.After` 在迴圈中洩漏）。
 - 不確定時用 `go doc <套件>.<名稱>` 或實際寫程式驗證，不要憑印象。
-- 完成後執行 `go run ./tools/checkcode zh-TW/src/<章節目錄>`，再執行 `go vet ./... && go vet -tags integration ./... && go test -race -tags integration ./...`，全部通過才算完成。
+- 完成後執行 `go run ./tools/checkcode zh-TW/src/<章節目錄>`，再執行 `go vet ./... && go vet -tags integration ./... && go test -race -tags integration ./...` 與 `go test -run='^$' -bench=. -benchtime=1x ./...`，全部通過才算完成。
 
 ## 完成一章時
 
