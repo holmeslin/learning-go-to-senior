@@ -78,8 +78,8 @@ FAIL	quoterepro
 
 其他常見的洩漏，長相都一樣：goroutine 等一個永遠不會發生的事。在 bubble 裡，下面每一種都會得到和上面一樣的 `deadlock` panic：
 
-- `range` 一條沒人關的 channel：`for v := range in` 在 `in` 關閉前不會結束。誰送誰關，見本章〈[fan-out / fan-in 的取捨](05_fan_out_fan_in.md)〉。
-- 沒有呼叫 `cancel` 的 `context`：goroutine 等 `<-ctx.Done()`，卻沒人取消。`go vet` 的 `lostcancel` 抓得到直接丟掉 `cancel` 的寫法，抓不到回傳 `cancel` 之後呼叫端忘了用的情況。修正見本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉。
+- `range` 一條沒人關的 channel：`for v := range in` 在 `in` 關閉前不會結束。誰送誰關，本章〈[fan-out / fan-in 的取捨](05_fan_out_fan_in.md)〉談過。
+- 沒有呼叫 `cancel` 的 `context`：goroutine 等 `<-ctx.Done()`，卻沒人取消。`go vet` 的 `lostcancel` 抓得到直接丟掉 `cancel` 的寫法，抓不到回傳 `cancel` 之後呼叫端忘了用的情況。修正的做法，本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉談過。
 - 沒有出口的 `time.Ticker` 迴圈：Go 1.23 起沒人參照的 `Ticker` 會被回收，洩漏的是 `for range t.C` 那個 goroutine；迴圈要和 `ctx.Done()` 或停止信號一起 `select`。
 
 ## 取捨
@@ -93,7 +93,7 @@ FAIL	quoterepro
 
 比較 `runtime.NumGoroutine` 的前後數量也是常見做法，但這個數字包含 runtime 與 testing 自己開的 goroutine、其他平行測試開的 goroutine，而且 goroutine 結束不是同步的：想比得準就得加等待，又回到「賭時間」。第三方的 goleak 也能在測試結束時列出還活著的 goroutine，這裡只提名稱。正式環境怎麼看 goroutine 數量，第 9 章〈`/debug/pprof` 與診斷端點〉會談。
 
-after 也不是沒有代價。緩衝大小等於供應商數量，輸家仍會跑完，繼續占著它用到的連線與下游配額；要讓輸家提早停下來，得把 `ctx` 傳進 `Source`，見本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉。供應商若可能永遠不回，緩衝救不了它，一樣要靠取消。而 before 在一個只呼叫一次、回傳後行程就結束的小工具裡，洩漏沒有後果，不值得多加一行。
+after 也不是沒有代價。緩衝大小等於供應商數量，輸家仍會跑完，繼續占著它用到的連線與下游配額；要讓輸家提早停下來，得把 `ctx` 傳進 `Source`，做法本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉談過。供應商若可能永遠不回，緩衝救不了它，一樣要靠取消。而 before 在一個只呼叫一次、回傳後行程就結束的小工具裡，洩漏沒有後果，不值得多加一行。
 
 ## 重點整理
 
