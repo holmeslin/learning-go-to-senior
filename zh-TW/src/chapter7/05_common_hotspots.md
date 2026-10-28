@@ -6,7 +6,7 @@
 
 ## 情境
 
-日誌服務有兩條熱路徑。`Report` 把一批請求紀錄裡的失敗請求（狀態碼 400 以上）整理成文字報告；`Metrics.Observe` 在每個請求結束時累計各路由的請求數，幾百個 goroutine 同時呼叫。假設 profile 已經指到這兩處（怎麼找到熱點，本章〈`pprof`：先看 CPU 還是 heap〉會談）。benchmark 與工具的用法前作教過：〈[benchmark 與 `b.Loop`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/12_benchmark.html)〉、〈[`strings.Builder` 與 `bytes`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/06_builder_bytes.html)〉、〈[`sync.Mutex`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/04_mutex.html)〉。
+日誌服務有兩條熱路徑。`Report` 把一批請求紀錄裡的失敗請求（狀態碼 400 以上）整理成文字報告；`Metrics.Observe` 在每個請求結束時累計各路由的請求數，幾百個 goroutine 同時呼叫。假設 profile 已經指到這兩處（怎麼找到熱點，本章〈[`pprof`：先看 CPU 還是 heap](03_pprof_cpu_or_heap.md)〉談過）。benchmark 與工具的用法前作教過：〈[benchmark 與 `b.Loop`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/12_benchmark.html)〉、〈[`strings.Builder` 與 `bytes`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/06_builder_bytes.html)〉、〈[`sync.Mutex`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/04_mutex.html)〉。
 
 ## 常見寫法
 
@@ -35,11 +35,11 @@ $ go test -run='^$' -bench=Report -benchmem -benchtime=1000x ./examples/chapter7
 goos: darwin
 goarch: arm64
 cpu: Apple M4 Max
-BenchmarkReport/entries=100-14         	    1000	      3249 ns/op	   10192 B/op	     106 allocs/op
-BenchmarkReport/entries=1000-14        	    1000	     74590 ns/op	  675079 B/op	    1009 allocs/op
+BenchmarkReport/entries=100-14         	    1000	      6511 ns/op	   10197 B/op	     106 allocs/op
+BenchmarkReport/entries=1000-14        	    1000	     79293 ns/op	  675069 B/op	    1009 allocs/op
 ```
 
-筆數是 10 倍，配置次數也大約是 10 倍，每筆失敗請求約 4 次。來源有三處：`append` 沒有預留容量，每次空間不夠就配置一塊更大的、把舊的拷過去；`out +=` 每一圈都配置一個新字串，再把前面全部的內容拷一遍，總拷貝量隨筆數的平方成長；`route` 先轉成 `[]byte`、`bytes.ToLower` 再拷一份、`string(b)` 又拷一份，每一次拷貝都是一份新的路徑；`strconv.Itoa` 也配置一次。
+筆數是 10 倍，配置次數也大約是 10 倍，每筆失敗請求約 4 次。來源有四處：`append` 沒有預留容量，每次空間不夠就配置一塊更大的、把舊的拷過去；`out +=` 每一圈都配置一個新字串，再把前面全部的內容拷一遍，總拷貝量隨筆數的平方成長；`route` 先轉成 `[]byte`、`bytes.ToLower` 再拷一份、`string(b)` 又拷一份，每一次拷貝都是一份新的路徑；`strconv.Itoa` 也配置一次。
 
 **鎖競爭。** 沒有競爭時，鎖幾乎沒有成本；問題要在多個 goroutine 同時搶時才出現，所以 benchmark 用 `RunParallel`，讓多個 goroutine 同時呼叫（`b.Loop` 是單一 goroutine 的寫法，`RunParallel` 改用 `pb.Next()` 控制迴圈）：
 
@@ -55,14 +55,14 @@ BenchmarkReport/entries=1000-14        	    1000	     74590 ns/op	  675079 B/op	
 $ go test -run='^$' -bench=Observe -benchtime=2000000x -mutexprofile=mutex_before.out ./examples/chapter7/05_common_hotspots/before
 $ go tool pprof -top -cum -nodecount=5 mutex_before.out
 Type: delay
-Showing nodes accounting for 4050.72ms, 100% of 4052.10ms total
+Showing nodes accounting for 4.58s, 100% of 4.58s total
 Showing top 5 nodes out of 17
       flat  flat%   sum%        cum   cum%
-         0     0%     0%  3496.17ms 86.28%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/05_common_hotspots/before.(*Metrics).Observe
-         0     0%     0%  3496.17ms 86.28%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/05_common_hotspots/before_test.BenchmarkObserve.func1
-         0     0%     0%  3496.17ms 86.28%  testing.(*B).RunParallel.func1
- 2626.76ms 64.82% 64.82%  3081.88ms 76.06%  sync.(*Mutex).Unlock
- 1423.97ms 35.14%   100%  1423.97ms 35.14%  runtime.unlock (inline)
+         0     0%     0%      4.02s 87.71%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/05_common_hotspots/before.(*Metrics).Observe
+         0     0%     0%      4.02s 87.71%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/05_common_hotspots/before_test.BenchmarkObserve.func1
+         0     0%     0%      4.02s 87.71%  testing.(*B).RunParallel.func1
+     3.11s 67.79% 67.79%      3.58s 78.21%  sync.(*Mutex).Unlock
+     1.48s 32.20%   100%      1.48s 32.20%  runtime.unlock (inline)
 ```
 
 type 是 `delay`，意思是等待時間的總和（可以超過實際經過的時間，因為每個 goroutine 各算各的）。等待時間記在放鎖的那一行，所以 `sync.(*Mutex).Unlock` 的 flat 最大；往上看 cum，源頭是 `Observe`，絕大部分的等待來自這一把鎖。讀法和 CPU profile 一樣：flat 指出誰在花時間，cum 指出該改哪一層。第 6 章〈[channel 與 mutex 怎麼選](../chapter6/07_channel_or_mutex.md)〉留下的問題「鎖競爭是否成為瓶頸」，量法就是這一段。
@@ -100,26 +100,26 @@ type 是 `delay`，意思是等待時間的總和（可以超過實際經過的�
 ```text
 $ go test -run='^$' -bench=Observe -benchtime=2000000x -mutexprofile=mutex_after.out ./examples/chapter7/05_common_hotspots/after
 $ go tool pprof -top -cum -nodecount=5 mutex_after.out
-Showing nodes accounting for 669.84ms, 100% of 669.89ms total
+Showing nodes accounting for 576.57ms, 100% of 576.63ms total
 ```
 
-同樣 200 萬次 `Observe`，等待時間的總和少了很多。最後用 `benchstat` 比較兩邊各 10 次的結果。輸出省略了 `B/op` 那張表；表頭的 `-14` 是這台機器的 `GOMAXPROCS`；`Observe` 的 allocs/op 沒有變（`~`），可見這裡改的只有鎖：
+同樣 200 萬次 `Observe`，等待時間的總和少了很多。最後用 `benchstat` 比較兩邊各 10 次的結果。輸出省略了 `B/op` 那張表；表頭的 `-14` 是這台機器的 `GOMAXPROCS`；`Observe` 的 allocs/op 沒有變（`~`）：key 的串接仍然配置一次，只是移到鎖外，改的是鎖的範圍（分片加上更短的臨界區），不是配置：
 
 執行結果（某一次）：
 
 ```text
 $ go test -run='^$' -bench=. -benchmem -count=10 ./examples/chapter7/05_common_hotspots/before > before.txt
 $ go test -run='^$' -bench=. -benchmem -count=10 ./examples/chapter7/05_common_hotspots/after > after.txt
-$ go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e -ignore=pkg before.txt after.txt
+$ go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e -ignore pkg before.txt after.txt
 goos: darwin
 goarch: arm64
 cpu: Apple M4 Max
-                       │  before.txt   │              after.txt              │
-                       │    sec/op     │   sec/op     vs base                │
-Report/entries=100-14     2.849µ ± 10%   1.022µ ± 9%  -64.13% (p=0.000 n=10)
-Report/entries=1000-14   72.928µ ±  1%   9.142µ ± 2%  -87.47% (p=0.000 n=10)
-Observe-14                179.6n ±  6%   115.4n ± 2%  -35.76% (p=0.000 n=10)
-geomean                   3.342µ         1.025µ       -69.32%
+                       │  before.txt  │              after.txt              │
+                       │    sec/op    │   sec/op     vs base                │
+Report/entries=100-14    2709.0n ± 1%   911.9n ± 3%  -66.34% (p=0.000 n=10)
+Report/entries=1000-14   67.718µ ± 1%   8.142µ ± 3%  -87.98% (p=0.000 n=10)
+Observe-14               183.05n ± 1%   94.00n ± 1%  -48.65% (p=0.000 n=10)
+geomean                   3.226µ        887.0n       -72.51%
 
                        │  before.txt   │              after.txt               │
                        │   allocs/op   │ allocs/op   vs base                  │
@@ -130,7 +130,7 @@ geomean                     47.47        1.587       -96.66%
 ¹ all samples are equal
 ```
 
-三列的 sec/op 都顯著下降（p 值都遠小於 0.05）。`Report` 的差距隨筆數放大：before 的耗時成長得比筆數快，after 大致跟著筆數走，與平方成長的推論吻合。`benchstat` 怎麼讀，本章〈`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信〉談過。
+三列的 sec/op 都顯著下降（p 值都遠小於 0.05）。`Report` 的差距隨筆數放大：before 的耗時成長得比筆數快，after 大致跟著筆數走，與平方成長的推論吻合。`benchstat` 怎麼讀，本章〈[`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](02_b_loop_benchstat.md)〉談過。
 
 ## 取捨
 
