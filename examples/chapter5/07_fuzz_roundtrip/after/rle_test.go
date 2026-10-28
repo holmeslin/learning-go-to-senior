@@ -35,8 +35,8 @@ func TestDecodeRejectsMalformedInput(t *testing.T) {
 
 // ANCHOR: fuzz
 
-// FuzzRoundTrip 檢查一條性質：不論輸入是什麼，編碼再解碼都要得到原本的字串。
-// 性質只涵蓋單一連續段不超過 rle 的 maxRun（約一百萬位元組）的字串，更長的連續段 Decode 會拒絕。
+// FuzzRoundTrip 檢查一條性質：編碼再解碼，要得到原本的字串。
+// 範圍是單一連續段不超過 rle 的 maxRun（約一百萬位元組）的字串，更長的連續段 Decode 會拒絕。
 func FuzzRoundTrip(f *testing.F) {
 	for _, seed := range []string{"", "a", "abc", "aaabbc", "zzzzzzzzzzzz", "hello, world", "héllo"} {
 		f.Add(seed)
