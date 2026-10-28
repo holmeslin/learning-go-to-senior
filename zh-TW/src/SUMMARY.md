@@ -22,6 +22,7 @@
     - [什麼時候可以 `panic`，什麼時候一定要回傳 `error`](chapter2/06_panic_or_error.md)
     - [錯誤是 API 契約的一部分](chapter2/07_error_contract.md)
 - [抽象的取捨]()
+    - [不用框架的相依注入](chapter3/07_di_without_framework.md)
 - [資料存取的設計]()
 
 # 第二部　測試
