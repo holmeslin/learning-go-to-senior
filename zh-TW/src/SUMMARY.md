@@ -56,6 +56,7 @@
 # 第三部　並行實務
 
 - [結構化並行]()
+    - [`errgroup` 的並行上限](chapter6/03_errgroup_limit.md)
 
 # 第四部　效能
 
