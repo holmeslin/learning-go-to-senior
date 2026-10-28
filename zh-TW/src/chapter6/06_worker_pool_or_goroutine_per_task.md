@@ -102,7 +102,7 @@ worker pool 不是沒有用處，只是理由不在「限制同時幾個」。�
 
 goroutine 很便宜，它做的事不便宜：連線、記憶體、下游的配額。上限該放在真正稀缺的那個資源上，而不是放在 goroutine 數量上；一萬個任務各自開 goroutine 本身沒事，一萬個同時打下游才有事。需要依權重分配上限時有 `golang.org/x/sync/semaphore`，這裡只提名稱。
 
-「worker 開幾個最好」是效能問題，要量測才回答得了，第 7 章會談。任務小到 goroutine 的啟動成本不能忽略時，也要先量測，再決定要不要改回 worker pool。
+「worker 開幾個最好」是效能問題，要量測才回答得了，第 7 章〈[先量測，再最佳化](../chapter7/01_measure_before_optimizing.md)〉談過。任務小到 goroutine 的啟動成本不能忽略時，也要先量測，再決定要不要改回 worker pool。
 
 before 在這些情況下才是對的：每個 worker 本來就要持有狀態；或來源是一條不會結束的 channel，沒有「一批」可以展開成一個 slice。這時 worker pool 是設計本身，不是為了限制並行而寫。
 
