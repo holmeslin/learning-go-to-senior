@@ -30,6 +30,7 @@
     - [什麼時候用嵌入，什麼時候該明確委派](chapter3/06_embedding_or_delegation.md)
     - [不用框架的相依注入](chapter3/07_di_without_framework.md)
 - [資料存取的設計]()
+    - [查詢逾時該設在哪一層](chapter4/03_query_timeout_layer.md)
 
 # 第二部　測試
 
