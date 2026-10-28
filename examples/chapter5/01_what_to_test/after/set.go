@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-// ANCHOR: set
-
 // Set is a set of normalized tags. The zero value is not ready for use;
 // call New.
 type Set struct {
@@ -55,5 +53,3 @@ func (s *Set) indexOf(tag string) int {
 func normalize(tag string) string {
 	return strings.ToLower(strings.TrimSpace(tag))
 }
-
-// ANCHOR_END: set
