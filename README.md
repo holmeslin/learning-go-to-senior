@@ -15,6 +15,7 @@
 go run ./tools/checkcode zh-TW/src   # 驗證書中的單檔 Go 範例
 go vet ./... && go vet -tags integration ./...  # 驗證多檔案範例（含整合測試）
 go test -race -tags integration ./...
+go test -run='^$' -bench=. -benchtime=1x ./...  # 每個 benchmark 跑一次，確保不會爛掉
 ! (go list ./examples/... | xargs -n1 go doc -all | grep -n ANCHOR)  # anchor 不可出現在 go doc
 cd zh-TW && mdbook build             # 建置（mdbook serve 可本機預覽）
 ```
