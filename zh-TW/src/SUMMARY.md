@@ -55,6 +55,7 @@
 
 # 第三部　並行實務
 
+- [結構化並行](chapter6/README.md)
     - [goroutine 的生命週期歸誰管](chapter6/01_goroutine_ownership.md)
     - [`errgroup`](chapter6/02_errgroup.md)
     - [`errgroup` 的並行上限](chapter6/03_errgroup_limit.md)
