@@ -35,6 +35,7 @@
     - [連線池要設多大、設錯會怎樣](chapter4/04_pool_size.md)
     - [N+1 與查詢組裝](chapter4/05_n_plus_one.md)
     - [migration](chapter4/06_migration.md)
+    - [測試資料層：fake 與真實資料庫](chapter4/07_fake_or_real_database.md)
 
 # 第二部　測試
 
