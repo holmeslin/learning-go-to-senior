@@ -56,6 +56,7 @@
 # 第三部　並行實務
 
 - [結構化並行]()
+    - [取消與 `context` 的傳遞](chapter6/04_cancellation_context.md)
 
 # 第四部　效能
 
