@@ -32,7 +32,7 @@ func newService() (*signup.Service, *fakeMailer) {
 
 // ANCHOR_END: graph
 
-// 下面兩個測試用同一個信箱，又同時執行：各自組了一張圖，所以不會互相影響。
+// 下面的測試都用同一個信箱，又同時執行：各自組了一張圖，所以不會互相影響。
 
 func TestRegisterSendsWelcomeMail(t *testing.T) {
 	t.Parallel()
@@ -50,7 +50,9 @@ func TestRegisterTwiceSendsOneMail(t *testing.T) {
 	t.Parallel()
 	svc, mailer := newService()
 
-	_ = svc.Register("ann@example.com")
+	if err := svc.Register("ann@example.com"); err != nil {
+		t.Fatalf("first Register() error = %v", err)
+	}
 	err := svc.Register("ann@example.com")
 
 	if !errors.Is(err, signup.ErrExists) {
