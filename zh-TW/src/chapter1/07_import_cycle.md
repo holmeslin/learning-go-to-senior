@@ -79,7 +79,7 @@ notify/    import common
 {{#include ../../../examples/chapter1/07_import_cycle/after/order/order_test.go:fake}}
 ```
 
-為什麼介面放在使用端、介面該多大，第 3 章〈抽象的取捨〉會談；這裡只看它在解環裡的角色：它讓「執行時的呼叫」和「編譯時的 import」不必同一個方向。完整程式碼在 `examples/chapter1/07_import_cycle/after/`。
+為什麼介面放在使用端、介面該多大，第 3 章〈[在使用端定義介面](../chapter3/01_define_interface_at_consumer.md)〉會談；這裡只看它在解環裡的角色：它讓「執行時的呼叫」和「編譯時的 import」不必同一個方向。完整程式碼在 `examples/chapter1/07_import_cycle/after/`。
 
 ## 取捨
 

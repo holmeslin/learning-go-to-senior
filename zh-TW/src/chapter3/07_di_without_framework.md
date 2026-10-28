@@ -8,7 +8,7 @@
 
 你有一個註冊功能：新使用者用信箱註冊，記進儲存，再寄一封歡迎信。儲存是記憶體裡的 `Store`，寄信交給 `Mailer`（正式環境走 SMTP）。你要為它寫測試：註冊會寄一封信，同一個信箱註冊兩次只寄一封。
 
-`init` 函式的規則與執行順序，前作〈[`init` 函式](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/06_init.html)〉已經講過，這集只談相依該怎麼交給元件。介面該宣告在哪裡、該多大，本章〈在使用端定義介面〉談過。
+`init` 函式的規則與執行順序，前作〈[`init` 函式](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/06_init.html)〉已經講過，這集只談相依該怎麼交給元件。介面該宣告在哪裡、該多大，本章〈[在使用端定義介面](01_define_interface_at_consumer.md)〉談過。
 
 ## 常見寫法
 
