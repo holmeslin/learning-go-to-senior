@@ -64,7 +64,13 @@ after/
 {{#include ../../../examples/chapter4/01_repository_layer/after/order/store.go:open}}
 ```
 
-`OpenOrdersFor` 是「未完成」唯一的定義：`defer rows.Close()`，迴圈後檢查 `rows.Err()`，沒有訂單回傳空結果，不是錯誤。找單筆訂單的方法：
+`OpenOrdersFor` 是「未完成」唯一的定義：`defer rows.Close()`，迴圈後檢查 `rows.Err()`，沒有訂單回傳空結果，不是錯誤。已出貨與別人的訂單都不會出現：
+
+```go,ignore
+{{#include ../../../examples/chapter4/01_repository_layer/after/order/example_test.go:open}}
+```
+
+找單筆訂單的方法：
 
 ```go,ignore
 {{#include ../../../examples/chapter4/01_repository_layer/after/order/store.go:find}}
@@ -94,7 +100,13 @@ after/
 {{#include ../../../examples/chapter4/01_repository_layer/after/shophttp/example_test.go:example}}
 ```
 
-查單筆訂單的 handler 改成判斷 `order.ErrNotFound`，不再認得 `database/sql`。完整程式碼在 `examples/chapter4/01_repository_layer/after/`。
+查單筆訂單的 handler 改成判斷 `order.ErrNotFound`，不再認得 `database/sql`：
+
+```go,ignore
+{{#include ../../../examples/chapter4/01_repository_layer/after/shophttp/handler.go:get}}
+```
+
+完整程式碼在 `examples/chapter4/01_repository_layer/after/`。
 
 ## 取捨
 
