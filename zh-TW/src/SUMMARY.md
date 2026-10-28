@@ -69,6 +69,7 @@
 # 第四部　效能
 
 - [效能調查流程]()
+    - [`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](chapter7/02_b_loop_benchstat.md)
     - [`pprof`：先看 CPU 還是 heap](chapter7/03_pprof_cpu_or_heap.md)
     - [常見熱點：配置、拷貝、鎖競爭](chapter7/05_common_hotspots.md)
     - [什麼時候值得看逃逸分析](chapter7/06_when_to_check_escape_analysis.md)
