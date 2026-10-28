@@ -23,6 +23,7 @@
     - [錯誤是 API 契約的一部分](chapter2/07_error_contract.md)
 - [抽象的取捨](chapter3/README.md)
     - [在使用端定義介面](chapter3/01_define_interface_at_consumer.md)
+    - [過早抽象的代價](chapter3/05_premature_abstraction.md)
     - [什麼時候用嵌入，什麼時候該明確委派](chapter3/06_embedding_or_delegation.md)
     - [不用框架的相依注入](chapter3/07_di_without_framework.md)
 - [資料存取的設計]()
