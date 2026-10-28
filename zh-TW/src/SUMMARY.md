@@ -55,7 +55,16 @@
 
 # 第三部　並行實務
 
-- [結構化並行]()
+- [結構化並行](chapter6/README.md)
+    - [goroutine 的生命週期歸誰管](chapter6/01_goroutine_ownership.md)
+    - [`errgroup`](chapter6/02_errgroup.md)
+    - [`errgroup` 的並行上限](chapter6/03_errgroup_limit.md)
+    - [取消與 `context` 的傳遞](chapter6/04_cancellation_context.md)
+    - [fan-out / fan-in 的取捨](chapter6/05_fan_out_fan_in.md)
+    - [什麼時候需要 worker pool，什麼時候每個任務一個 goroutine 就夠](chapter6/06_worker_pool_or_goroutine_per_task.md)
+    - [channel 與 mutex 怎麼選](chapter6/07_channel_or_mutex.md)
+    - [背壓](chapter6/08_backpressure.md)
+    - [goroutine 洩漏怎麼發生、怎麼在測試裡抓到](chapter6/09_goroutine_leak.md)
 
 # 第四部　效能
 
