@@ -79,6 +79,7 @@
     - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
 - [runtime](chapter8/README.md)
     - [排程器（GMP）怎麼看](chapter8/01_scheduler_gmp.md)
+    - [`runtime/metrics`](chapter8/06_runtime_metrics.md)
 
 # 第五部　上線與維運
 
