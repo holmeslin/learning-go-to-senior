@@ -114,7 +114,7 @@ after runtime.GC()          live    0.1  free  256.1  released    7.1  VmRSS 259
 after debug.FreeOSMemory()  live    0.1  free    1.5  released  261.7  VmRSS 5.1 MiB
 ```
 
-GC 之後 `live` 幾乎歸零，原本占用的量全變成 `free`，VmRSS 幾乎沒變；`FreeOSMemory` 之後 `released` 變大、VmRSS 才降下來。所以看監控要分開看：`live` 持續上升才是程式碼的問題；RSS 高而 `live` 低，通常是 `free` 還沒還。runtime 在設了記憶體上限時會更積極歸還，本章〈`GOMEMLIMIT` 與容器記憶體上限〉談過。
+GC 之後 `live` 幾乎歸零，原本占用的量全變成 `free`，VmRSS 幾乎沒變；`FreeOSMemory` 之後 `released` 變大、VmRSS 才降下來。所以看監控要分開看：`live` 持續上升才是程式碼的問題；RSS 高而 `live` 低，通常是 `free` 還沒還。runtime 在設了記憶體上限時會更積極歸還，本章〈[`GOMEMLIMIT` 與容器記憶體上限](03_gomemlimit_container.md)〉談過。
 
 ## 取捨
 
