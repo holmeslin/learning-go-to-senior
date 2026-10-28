@@ -41,6 +41,7 @@
 # 第二部　測試
 
 - [測試策略]()
+    - [fake、stub、mock 的選擇](chapter5/03_fake_stub_mock.md)
 
 # 第三部　並行實務
 
