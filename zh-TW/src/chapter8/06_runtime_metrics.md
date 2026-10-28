@@ -24,17 +24,20 @@
 
 下面的程式（`readings`）持有 64 MiB 的資料再放掉，並排印出兩種讀法。`after` 那三列是 `runtime/metrics` 的指標：`/memory/classes/total:bytes` 對應 `Sys`，`/memory/classes/heap/objects:bytes` 對應 `HeapAlloc`，`/gc/heap/live:bytes` 是上一次 GC 標記到的活物件。為了讓 `live` 反映當下，程式在每次讀取前先呼叫 `runtime.GC()`，正式的服務不該這樣做。
 
-程式讀的是 `Names` 的八個指標，下面只印其中三個加上 `before` 的兩個，單位換成 MiB；三欄依序是剛啟動（`start`）、持有 64 MiB（`hold`）、放掉並 GC 之後（`released`）。
+程式讀的是 `Names()` 的八個指標，下面只印其中三個加上 `before` 的兩個，單位換成 MiB；三欄依序是剛啟動（`start`）、持有 64 MiB（`hold`）、放掉並 GC 之後（`released`）。平台是 macOS arm64（Apple M4 Max），Go 1.27，第一行印出 P 的數量 14：
 
-執行結果（某一次）：平台 macOS arm64（Apple M4 Max），Go 1.27，P 的數量 14。
+```bash
+go run ./examples/chapter8/06_runtime_metrics/after/readings
+```
+
+執行結果（某一次）：
 
 ```text
-$ go run ./examples/chapter8/06_runtime_metrics/after/readings
 P=14
 source  metric (MiB)                             start    hold released
-before  heap_bytes                                11.9    76.5     76.5
+before  heap_bytes                                12.6    73.0     73.0
 before  heap_alloc_bytes                           0.3    64.3      0.3
-after   /memory/classes/total:bytes               11.9    76.5     76.5
+after   /memory/classes/total:bytes               12.6    73.0     73.0
 after   /memory/classes/heap/objects:bytes         0.3    64.3      0.3
 after   /gc/heap/live:bytes                        0.3    64.3      0.3
 ```
@@ -88,8 +91,8 @@ after   /gc/heap/live:bytes                        0.3    64.3      0.3
 - **`ReadMemStats` 沒有被淘汰。** 一次性的除錯（臨時印一行、在測試裡看某段程式配置前後的 `HeapAlloc`）用它最快，不必先查名稱。問題出在把它當成長期指標，又沒讀清楚欄位的意思。只想看 heap，也可以用 heap profile：第 7 章〈[`pprof`：先看 CPU 還是 heap](../chapter7/03_pprof_cpu_or_heap.md)〉談過。
 - **名稱會隨版本增加，也會被標成棄用。** 例如 `/gc/pauses:seconds` 在說明裡寫著請改用 `/sched/pauses/total/gc:seconds`。清單是自己挑的，新版本的新指標不會自動出現；`Unsupported` 不為空時，啟動時記一行日誌，別默默少一條線。
 - **這個 `Sampler` 只處理單一數值。** 直方圖（例如 `/sched/latencies:seconds`）要自己決定怎麼彙整 bucket，留給第 9 章。它也不能被多個 goroutine 同時呼叫，要並行就各建一個。
-- **`/memory/classes/total:bytes` 不含 cgo 或 `syscall` 映射的記憶體**，所以和作業系統看到的行程記憶體還是會有差距。heap 與行程記憶體的差別，本章〈記憶體配置與 heap 成長〉談過。
-- **`gctrace` 適合一次性的除錯，長期觀察用這集的指標。** 怎麼逐欄讀 `gctrace`，本章〈讀 GC trace〉會談；什麼時候該動 `GOGC`，本章〈什麼時候該調 `GOGC`，什麼時候別動〉談過。
+- **`/memory/classes/total:bytes` 不含 cgo 或 `syscall` 映射的記憶體**，所以和作業系統看到的行程記憶體還是會有差距。heap 與行程記憶體的差別，本章〈[記憶體配置與 heap 成長](04_heap_growth.md)〉談過。
+- **`gctrace` 適合一次性的除錯，長期觀察用這集的指標。** 怎麼逐欄讀 `gctrace`，本章〈讀 GC trace〉會談；什麼時候該動 `GOGC`，本章〈[什麼時候該調 `GOGC`，什麼時候別動](02_when_to_tune_gogc.md)〉談過。
 
 ## 重點整理
 

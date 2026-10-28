@@ -22,7 +22,7 @@ var rows = []struct{ source, name string }{
 }
 
 func main() {
-	s := after.New(after.Names...)
+	s := after.New(after.Names()...)
 	dst := map[string]float64{}
 	var cols []map[string]float64
 
