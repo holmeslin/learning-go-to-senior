@@ -78,6 +78,7 @@
     - [PGO](chapter7/07_pgo.md)
     - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
 - [runtime]()
+    - [讀 GC trace](chapter8/08_read_gc_trace.md)
 
 # 第五部　上線與維運
 
