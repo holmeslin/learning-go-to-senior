@@ -21,7 +21,14 @@
     - [多個錯誤要合併回傳，還是只回第一個](chapter2/05_join_or_first_error.md)
     - [什麼時候可以 `panic`，什麼時候一定要回傳 `error`](chapter2/06_panic_or_error.md)
     - [錯誤是 API 契約的一部分](chapter2/07_error_contract.md)
-- [抽象的取捨]()
+- [抽象的取捨](chapter3/README.md)
+    - [在使用端定義介面](chapter3/01_define_interface_at_consumer.md)
+    - [接受介面、回傳 struct](chapter3/02_accept_interfaces_return_structs.md)
+    - [介面何時是多餘的](chapter3/03_redundant_interface.md)
+    - [什麼時候用泛型、什麼時候用介面、什麼時候複製貼上](chapter3/04_generics_interface_or_copy.md)
+    - [過早抽象的代價](chapter3/05_premature_abstraction.md)
+    - [什麼時候用嵌入，什麼時候該明確委派](chapter3/06_embedding_or_delegation.md)
+    - [不用框架的相依注入](chapter3/07_di_without_framework.md)
 - [資料存取的設計]()
 
 # 第二部　測試
