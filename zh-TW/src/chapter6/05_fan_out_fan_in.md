@@ -14,9 +14,6 @@
 
 ```go,ignore
 {{#include ../../../examples/chapter6/05_fan_out_fan_in/before/fetch.go:fetchall}}
-```
-
-```go,ignore
 {{#include ../../../examples/chapter6/05_fan_out_fan_in/before/fetch_test.go:test}}
 ```
 
@@ -24,7 +21,7 @@
 
 ## 問題在哪
 
-**順序。** 結果依抵達的順序收集，先抓完的排前面。before 的測試只能排序後再比，所以看不出來。after 有一個順序測試（用 `synctest` 讓 `/a` 最慢、`/c` 最快，完成順序剛好相反），把它拿去測 before（在 repo 外的暫存模組）：
+**順序。** 結果依抵達的順序收集，先抓完的排前面。before 的測試只能排序後再比，所以看不出來。after 有一個順序測試（用 `synctest` 讓 `/a` 最慢、`/c` 最快，完成順序剛好相反），把它拿去測 before（在 repo 外的暫存模組），輸出省略了測試與套件後面的耗時：
 
 執行結果：
 
@@ -36,8 +33,6 @@ FAIL	repro/order
 FAIL
 ```
 
-省略了測試與套件後面的耗時。
-
 **channel 由誰關。** 結果數量事先不知道時，不能收固定次數，只能 `for p := range results`，這時 channel 一定要有人關。下面兩種常見的錯，都會讓 `go test` 失敗，所以只在 repo 外重現。第一種是每個 goroutine 送完就關：
 
 ```text
@@ -47,7 +42,7 @@ go func() {
 }()
 ```
 
-第一個完成的 goroutine 一關，`range` 就結束，`FetchAll` 只帶著 1 頁回傳；其他 goroutine 抓完再送出時：
+第一個完成的 goroutine 一關，`range` 就結束，`FetchAll` 只帶著 1 頁回傳；其他 goroutine 抓完再送出時就會 panic，輸出省略了 panic 之後的 stack、可能重複出現的其他 panic 與耗時：
 
 執行結果：
 
@@ -57,7 +52,15 @@ panic: send on closed channel
 FAIL	repro/closeworker
 ```
 
-省略了 panic 之後的 stack 與耗時。第二種是沒人關，`range` 永遠等不到結束。一般測試會卡到 `-timeout`（預設 10 分鐘）；在 `synctest` 的 bubble 裡會立刻變成 deadlock：
+第二種是沒人關，`range` 永遠等不到結束：
+
+```text
+for p := range results { // 其餘和 before 相同，只是沒人 close(results)
+	pages = append(pages, p)
+}
+```
+
+一般測試會卡到 `-timeout`（預設 10 分鐘）；測試放進 `synctest` 的 bubble，呼叫 `FetchAll` 並檢查頁數，就會立刻變成 deadlock（輸出同樣省略了 stack 與耗時）：
 
 執行結果：
 
@@ -68,22 +71,28 @@ panic: deadlock: all goroutines in bubble are blocked [recovered, repanicked]
 FAIL	repro/noclose
 ```
 
-同樣省略了 stack 與耗時。
+**共享 slice。** 不用 channel，直接讓每個 goroutine `append` 同一個 slice：
 
-**共享 slice。** 不用 channel，直接 `pages = append(pages, fetch(url))`，多個 goroutine 同時改同一個 slice，是 data race，`append` 還可能互相覆蓋而丟結果。`go test -race` 的報告如下，這是同一個報告裡的前兩段，位址與 goroutine 編號以 `...` 代替，其餘省略；哪個 goroutine 讀、哪個寫每次不一定相同：
+```text
+var pages []Page // 所有 goroutine 共用
+for _, url := range urls {
+	wg.Go(func() { pages = append(pages, fetch(url)) })
+}
+```
+
+多個 goroutine 同時改同一個 slice，是 data race，`append` 還可能互相覆蓋而丟結果。`go test -race` 的報告如下，只留第一對讀寫；位址以 `0x...`、goroutine 編號以 `N` 代替，省略了 `+0x..` 偏移、檔案路徑（只留檔名）、各 goroutine 的建立堆疊、其餘幾份報告與最後的測試結果行。`fetch.go:19` 是暫存檔裡 `append` 那一行；哪個 goroutine 讀、哪個寫每次不一定相同。怎麼讀 `-race` 報告，本章〈channel 與 mutex 怎麼選〉會談。
 
 執行結果（某一次）：
 
 ```text
 WARNING: DATA RACE
-Write at ... by goroutine ...:
+Write at 0x... by goroutine N:
   repro/race.FetchAll.func1()
-      .../fetch.go:16 +0x114
+      fetch.go:19
 
-Previous read at ... by goroutine ...:
+Previous read at 0x... by goroutine N:
   repro/race.FetchAll.func1()
-      .../fetch.go:16 +0x68
-...
+      fetch.go:19
 ```
 
 加上 `sync.Mutex` 可以消除 race，但結果又回到抵達順序，和第一個問題一樣。
@@ -100,9 +109,6 @@ Previous read at ... by goroutine ...:
 
 ```go,ignore
 {{#include ../../../examples/chapter6/05_fan_out_fan_in/after/fetch_test.go:order}}
-```
-
-```go,ignore
 {{#include ../../../examples/chapter6/05_fan_out_fan_in/after/fetch_test.go:example}}
 ```
 
@@ -125,9 +131,9 @@ Previous read at ... by goroutine ...:
 channel 版適合兩種情況：結果要邊收邊處理（第一頁到了就先處理，不必等最慢的）；或結果數量事先不知道，例如 producer 一邊走訪一邊產生工作。它的代價：
 
 - 順序是完成的順序。要順序就得帶上索引，收完再排，那就是繞一圈回到 slice。
-- 呼叫端必須讀到 channel 關閉。讀到一半就 `break`，還在送出的 goroutine 會永遠卡住，本章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談；用取消讓它們提早結束，是本章〈取消與 `context` 的傳遞〉的內容。
+- 呼叫端必須讀到 channel 關閉。讀到一半就 `break`，還在送出的 goroutine 會永遠卡住，本章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談；用取消讓它們提早結束，本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉談過。
 
-兩種寫法都是每個網址一個 goroutine，同時進行的數量等於批次大小，批次很大時要設上限，見本章〈`errgroup` 的並行上限〉。
+兩種寫法都是每個網址一個 goroutine，同時進行的數量等於批次大小，批次很大時要設上限，本章〈[`errgroup` 的並行上限](03_errgroup_limit.md)〉談過。
 
 不在乎順序、數量又已知時，before 其實是對的：例如只要彙總（總數、最大值），收 `len(urls)` 次就好，不用關 channel，也不用預先配置 slice。
 
