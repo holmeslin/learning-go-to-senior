@@ -48,6 +48,7 @@
     - [整合測試與 build tags](chapter5/05_integration_tests_build_tags.md)
     - [golden file](chapter5/06_golden_file.md)
     - [什麼時候值得寫 fuzz 測試](chapter5/07_fuzz_roundtrip.md)
+    - [測時間與並行：用 `testing/synctest`，還是自己注入時鐘](chapter5/08_synctest_or_clock.md)
     - [要啟動真的 server，還是只測 handler](chapter5/09_server_or_handler.md)
     - [不穩定（flaky）測試](chapter5/10_flaky_tests.md)
 
