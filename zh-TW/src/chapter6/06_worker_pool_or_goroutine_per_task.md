@@ -8,7 +8,7 @@
 
 批次抓取頁面標題：給一串 id，對每個 id 呼叫 `fetch`，同一時間最多 `limit` 個（上限由下游的容量決定，見第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉）。結果要和 id 同順序，第一個錯誤要取消其餘的 `fetch`。
 
-worker pool 的機制前作教過：〈[worker pool](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/17_worker_pool.html)〉，這集不重講。`errgroup` 的 `Go`、`Wait`、`WithContext` 見本章〈`errgroup`〉，`SetLimit` 見本章〈`errgroup` 的並行上限〉，這裡直接用。
+worker pool 的機制前作教過：〈[worker pool](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/17_worker_pool.html)〉，這集不重講。`errgroup` 的 `Go`、`Wait`、`WithContext` 本章〈[`errgroup`](02_errgroup.md)〉談過，`SetLimit` 本章〈[`errgroup` 的並行上限](03_errgroup_limit.md)〉談過，這裡直接用。
 
 ## 常見寫法
 
@@ -41,12 +41,12 @@ panic: deadlock: all goroutines in bubble are blocked [recovered, repanicked]
 
 goroutine N [chan send (durable), synctest bubble 1]:
 repro.FetchAll(...)
-	batch.go:45
+	batch.go:48
 ```
 
 輸出省略了耗時、其餘 goroutine 與 runtime 的 stack、參數與檔案路徑，goroutine 編號以 `N` 代替。
 
-出錯時若收結果的迴圈直接 `return`，沒人再收 `results`，worker 與送工作的 goroutine 會永遠卡在送出，函式雖然回傳了，卻留下洩漏。這些都是為了「同時最多 N 個」付出的程式量：`FetchAll` 在 `before/batch.go` 有 53 行，下面的 after 是 20 行。
+出錯時若收結果的迴圈直接 `return`，沒人再收 `results`；它沒有緩衝，worker 的送出沒有對象，送工作的 goroutine 也卡在 `jobs`，函式回傳了，這些 goroutine 卻永遠結束不了。這種洩漏怎麼在測試裡抓到，本章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談。這些都是為了「同時最多 N 個」付出的程式量：`FetchAll` 在 `before/batch.go` 有 53 行，下面的 after 是 20 行。
 
 ## 較好的做法
 
@@ -56,7 +56,7 @@ repro.FetchAll(...)
 {{#include ../../../examples/chapter6/06_worker_pool_or_goroutine_per_task/after/batch.go:errgroup}}
 ```
 
-沒有 channel，沒有關閉順序要記。`SetLimit(limit)` 讓 `g.Go` 在已有 `limit` 個任務時等到有人結束；每個 goroutine 只寫自己索引的那一格，所以結果保持順序，也沒有 data race（結果收集的做法本章〈fan-out / fan-in 的取捨〉會談）。before 與 after 的外部行為相同，同一組測試兩邊都通過，差別只有套件的 import 路徑。
+沒有 channel，沒有關閉順序要記。上限就是一行 `SetLimit`，`limit` 小於 1 時回傳 `ErrInvalidLimit`，寫法和上一集相同；每個 goroutine 只寫自己索引的那一格，所以結果保持順序，也沒有 data race（結果收集的做法本章〈[fan-out / fan-in 的取捨](05_fan_out_fan_in.md)〉談過）。before 與 after 的外部行為相同，同一組測試兩邊都通過，差別只有套件的 import 路徑。
 
 上限用 `synctest` 驗證，不靠真的等：7 個任務、每個「花」一秒、上限 3，同時執行數的最大值必須是 3，經過的時間必須剛好 3 秒。`synctest` 的規則見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉。
 
@@ -79,21 +79,21 @@ repro.FetchAll(...)
 worker pool 不是沒有用處，只是理由不在「限制同時幾個」。第一種：每個 worker 要持有建立成本高的東西，例如自己的連線或緩衝區。每個任務一個 goroutine 的話，要嘛每個任務都重新建立一次，要嘛得另外做一個連線的池子，那就是 worker pool 換個名字。第二種：來源沒有盡頭，只有 `ctx` 能讓它停：
 
 ```go,ignore
-{{#include ../../../examples/chapter6/06_worker_pool_or_goroutine_per_task/after/pool.go:consume}}
+{{#include ../../../examples/chapter6/06_worker_pool_or_goroutine_per_task/after/pool/pool.go:consume}}
 ```
 
-連線在 worker 一開始建立一次，工作做完才關。測試證明建立的連線數等於 worker 數，不是工作數；`ctx` 結束時所有連線都關閉：
+`Consume` 放在自己的套件 `pool`，不放進 `batch`。連線在 worker 一開始建立一次，工作做完才關；`workers` 小於 1 時回傳 `ErrInvalidWorkers`，不會默默什麼都不做就回傳。測試證明建立的連線數等於 worker 數，不是工作數；`ctx` 結束時所有連線都關閉：
 
 ```go,ignore
-{{#include ../../../examples/chapter6/06_worker_pool_or_goroutine_per_task/after/pool_test.go:once}}
-```
-
-```go,ignore
-{{#include ../../../examples/chapter6/06_worker_pool_or_goroutine_per_task/after/pool_test.go:endless}}
+{{#include ../../../examples/chapter6/06_worker_pool_or_goroutine_per_task/after/pool/pool_test.go:once}}
 ```
 
 ```go,ignore
-{{#include ../../../examples/chapter6/06_worker_pool_or_goroutine_per_task/after/example_test.go:consume}}
+{{#include ../../../examples/chapter6/06_worker_pool_or_goroutine_per_task/after/pool/pool_test.go:endless}}
+```
+
+```go,ignore
+{{#include ../../../examples/chapter6/06_worker_pool_or_goroutine_per_task/after/pool/example_test.go:consume}}
 ```
 
 `Consume` 一樣用 `errgroup`，不用自己管 `WaitGroup`。
