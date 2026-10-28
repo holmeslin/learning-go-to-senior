@@ -18,11 +18,11 @@
 {{#include ../../../examples/chapter7/07_pgo/before/rules/rules.go:tally}}
 ```
 
-規則到執行時才知道，編譯器看不出 `rule` 是哪個型別，只能走介面呼叫，`Match` 的內容也無法 inline 進迴圈。完整程式碼在 `examples/chapter7/07_pgo/before/`（`main` 套件加 `rules` 套件）。
+規則到執行時才知道，編譯器看不出 `rule` 是哪個型別，只能走介面呼叫，`Match` 的內容也無法 inline 進迴圈。`Tally` 標了 `//go:noinline`：不標的話，有 PGO 時 benchmark 的迴圈會把整個 `Tally` inline 進去（`-gcflags=-m` 會出現 `inlining call to rules.Tally`），量到的就不再是實際執行檔裡 `main` 呼叫的那個 `Tally`。完整程式碼在 `examples/chapter7/07_pgo/before/`（`main` 套件加 `rules` 套件）。
 
 ## 問題在哪
 
-這不是配置問題。`-benchmem` 顯示兩種規則都是 0 allocs/op，成本花在每筆紀錄一次的間接呼叫。輸出省略了 `pkg:`、`PASS` 與 `ok` 行。
+這不是配置問題：`-benchmem` 顯示兩種規則都是 0 allocs/op。輸出省略了 `pkg:`、`PASS` 與 `ok` 行。
 
 執行結果（某一次）：
 
@@ -31,11 +31,11 @@ $ go test -run='^$' -bench=. -benchmem ./examples/chapter7/07_pgo/before/rules
 goos: darwin
 goarch: arm64
 cpu: Apple M4 Max
-BenchmarkTally/rule=path_prefix-14         	    3608	    328538 ns/op	       0 B/op	       0 allocs/op
-BenchmarkTally/rule=server_error-14        	   10000	    103209 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTally/rule=path_prefix-14         	    3499	    336789 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTally/rule=server_error-14        	   10000	    103566 ns/op	       0 B/op	       0 allocs/op
 ```
 
-這是基準線，不是錯誤。這個呼叫值不值得省，要看 profile 怎麼說。
+這是基準線，不是錯誤。時間花在哪、這個呼叫值不值得省，要看 profile 怎麼說。
 
 ## 較好的做法
 
@@ -50,41 +50,54 @@ go test -run='^$' -bench='Tally/rule=server_error' -benchtime=2s \
   -cpuprofile=examples/chapter7/07_pgo/after/default.pgo -o /dev/null ./examples/chapter7/07_pgo/after/rules
 ```
 
-`default.pgo` 就是一般的 CPU profile，大約 1 KB，commit 進 repo；程式或負載改了，就重跑這兩行。讀它用 `go tool pprof -top -nodecount=2 examples/chapter7/07_pgo/after/default.pgo`，輸出省略了 `Time:`、`Duration:` 這幾行。
+`default.pgo` 就是一般的 CPU profile，大約 1 KB，commit 進 repo；程式或負載改了，就重跑這兩行。讀它用 `go tool pprof -top -nodecount=2 examples/chapter7/07_pgo/after/default.pgo`，輸出省略了 `Time:` 與 `Dropped` 兩行。
 
 執行結果（某一次）：
 
 ```text
 File: rules.test
 Type: cpu
-Showing nodes accounting for 2270ms, 98.70% of 2300ms total
-Showing top 2 nodes out of 6
+Duration: 2.52s, Total samples = 2120ms (83.98%)
+Showing nodes accounting for 2070ms, 97.64% of 2120ms total
+Showing top 2 nodes out of 7
       flat  flat%   sum%        cum   cum%
-    1680ms 73.04% 73.04%     2300ms   100%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/07_pgo/after/rules.Tally
-     590ms 25.65% 98.70%      610ms 26.52%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/07_pgo/after/rules.(*ServerError).Match
+    1340ms 63.21% 63.21%     2100ms 99.06%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/07_pgo/after/rules.Tally
+     730ms 34.43% 97.64%      750ms 35.38%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/07_pgo/after/rules.(*ServerError).Match
 ```
 
-一行的 `Match` 自己占了一份，代表它是一次真的呼叫，沒有被 inline。
+`Match` 那一行沒有 `(inline)` 標記（pprof 會把被 inline 的函式標成 `(inline)`），它是一次真的呼叫。再用 `-list` 看時間在 `Tally` 的哪一行，輸出省略了 `Total` 行、函式標頭與沒有數字的行：
 
-**二、確認 profile 真的被套用。** `go build` 預設是 `-pgo=auto`，會在 main 套件目錄找 `default.pgo`；`go test` 不會，上面的 profile 放在 `after/`，所以測試要明講 `-pgo=`。確認用 `-gcflags=-m`，只留 PGO 做的決定（輸出省略了其他行）：
+執行結果（某一次）：
+
+```text
+$ go tool pprof -list='rules.Tally$' examples/chapter7/07_pgo/after/default.pgo
+     290ms      290ms     75:	for i := range reqs {
+     1.05s      1.81s     76:		if rule.Match(&reqs[i]) {
+```
+
+幾乎都在 `rule.Match` 那一行：每筆紀錄一次介面呼叫，加上被呼叫的 `Match`。
+
+**二、確認 profile 真的被套用。** `go build` 預設是 `-pgo=auto`，會在 main 套件目錄找 `default.pgo`；`go test` 不會，上面的 profile 放在 `after/`，所以測試要明講 `-pgo=`。確認用 `-gcflags=-m`，只留 `Match` 相關的決定（輸出省略了其他行）；第三行用 `go test -c` 建出 benchmark 的測試執行檔，確認測試用的 `-pgo=` 也有套用：
 
 ```bash
-go build -o /dev/null -pgo=off -gcflags='github.com/holmeslin/...=-m' ./examples/chapter7/07_pgo/after 2>&1 | grep -E 'PGO|inlining call to \(\*ServerError\)'
-go build -o /dev/null -pgo=auto -gcflags='github.com/holmeslin/...=-m' ./examples/chapter7/07_pgo/after 2>&1 | grep -E 'PGO|inlining call to \(\*ServerError\)'
+go build -o /dev/null -pgo=off -gcflags='github.com/holmeslin/...=-m' ./examples/chapter7/07_pgo/after 2>&1 | grep -E 'PGO|can inline \(\*ServerError\)|inlining call to \(\*ServerError\)'
+go build -o /dev/null -pgo=auto -gcflags='github.com/holmeslin/...=-m' ./examples/chapter7/07_pgo/after 2>&1 | grep -E 'PGO|can inline \(\*ServerError\)|inlining call to \(\*ServerError\)'
+go test -c -o /dev/null -pgo=examples/chapter7/07_pgo/after/default.pgo -gcflags='github.com/holmeslin/...=-m' ./examples/chapter7/07_pgo/after/rules 2>&1 | grep -E 'PGO|can inline \(\*ServerError\)|inlining call to \(\*ServerError\)'
 ```
 
-第一行沒有輸出：沒有 profile，就沒有這兩種決定。第二行的輸出：
+第一行只輸出 `rules.go:65:6: can inline (*ServerError).Match`：`Match` 夠小，可以 inline，但沒有 profile，`Tally` 裡的 `rule.Match` 是介面呼叫，沒有去虛擬化，也就沒有 `inlining call to`。第二、三行的輸出相同：
 
 執行結果（某一次）：
 
 ```text
 examples/chapter7/07_pgo/after/rules/rules.go:76:16: PGO devirtualizing interface call rule.Match to (*ServerError).Match
+examples/chapter7/07_pgo/after/rules/rules.go:65:6: can inline (*ServerError).Match
 examples/chapter7/07_pgo/after/rules/rules.go:76:16: inlining call to (*ServerError).Match
 ```
 
 這就是 PGO 做的兩件事：profile 說這個呼叫幾乎都送給 `*ServerError`，編譯器就在前面加一個型別檢查，符合時改成直接呼叫（去虛擬化），再把這個熱點呼叫 inline 進迴圈。另外 `go version -m` 看建出的執行檔，會多一行 `build -pgo=…/default.pgo`。
 
-**三、比較有沒有 profile。** 同一份程式，只差 `-pgo`，各收十次樣本，再交給 `benchstat`（讀法見前述那集）：
+**三、比較有沒有 profile。** 同一份程式，只差 `-pgo`，各收十次樣本，再交給 `benchstat`（讀法本章〈[`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](02_b_loop_benchstat.md)〉談過）：
 
 ```bash
 go test -run='^$' -bench=. -count=10 -pgo=off ./examples/chapter7/07_pgo/after/rules > off.txt
@@ -102,9 +115,9 @@ goarch: arm64
 cpu: Apple M4 Max
                            │   off.txt    │               on.txt                │
                            │    sec/op    │   sec/op     vs base                │
-Tally/rule=path_prefix-14     327.0µ ± 1%   357.1µ ± 1%   +9.20% (p=0.000 n=10)
-Tally/rule=server_error-14   102.35µ ± 0%   79.86µ ± 1%  -21.98% (p=0.000 n=10)
-geomean                       182.9µ        168.9µ        -7.70%
+Tally/rule=path_prefix-14     331.1µ ± 1%   343.6µ ± 2%   +3.80% (p=0.000 n=10)
+Tally/rule=server_error-14   102.81µ ± 1%   81.28µ ± 0%  -20.94% (p=0.000 n=10)
+geomean                       184.5µ        167.1µ        -9.41%
 ```
 
 profile 裡的 `5xx` 規則，`benchstat` 判斷顯著變快（`-`、p 值遠小於 0.05）。profile 沒看到的路徑前綴規則沒有受惠，`benchstat` 這次的判斷甚至是變慢：去虛擬化只替 profile 裡最熱的對象，其他規則要多過一次型別檢查，才走回原本的介面呼叫。
