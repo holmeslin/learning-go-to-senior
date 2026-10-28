@@ -40,8 +40,11 @@
 
 # 第二部　測試
 
-- [測試策略]()
+- [測試策略](chapter5/README.md)
+    - [測什麼、不測什麼](chapter5/01_what_to_test.md)
+    - [表格驅動測試的邊界](chapter5/02_table_driven_boundary.md)
     - [fake、stub、mock 的選擇](chapter5/03_fake_stub_mock.md)
+    - [golden file](chapter5/06_golden_file.md)
 
 # 第三部　並行實務
 
