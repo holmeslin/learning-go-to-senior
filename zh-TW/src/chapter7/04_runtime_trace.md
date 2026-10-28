@@ -133,7 +133,7 @@ Showing top 4 nodes out of 12
 - **trace 比 profile 貴。** 它記錄每一個排程事件，檔案隨錄製的時間與 goroutine 數量成長：同一個 benchmark 錄 20 個 burst 約 5.5 萬位元組，錄 200 個約 46 萬位元組（`wc -c`，某一次），執行期間也有額外成本。所以只收短時間，`go test -trace` 搭配很小的 `-benchtime`。
 - **正式環境偶發的問題用 flight recorder。** 不可能一直錄 trace，`runtime/trace` 的 `FlightRecorder` 只在記憶體裡保留最近一小段，等到偵測到異常（例如某次請求特別慢）才用 `WriteTo` 存下來，見 [`runtime/trace` 文件](https://pkg.go.dev/runtime/trace)。在正式環境怎麼取得診斷資料，第 9 章〈`/debug/pprof` 與診斷端點〉會談。
 - **只要總量，不要時間軸，`-blockprofile` 更便宜。** 它取樣阻塞事件，和 trace 轉出的阻塞 profile 讀法一樣。鎖競爭怎麼量與怎麼縮小臨界區，本章〈常見熱點：配置、拷貝、鎖競爭〉會談。
-- **排程器的細節只點到為止。** 〈Scheduler latency profile〉與 `GOMAXPROCS` 對結果的影響，第 8 章〈排程器（GMP）怎麼看〉會談。
+- **排程器的細節只點到為止。** `GOMAXPROCS` 對結果的影響，第 8 章〈[排程器（GMP）怎麼看](../chapter8/01_scheduler_gmp.md)〉談過。
 - **before 的動機是對的。** 限制雜湊吃掉多少 CPU 是正當的需求，錯在把上限釘成 1。上限該是接近核心數的 N，寫法見第 6 章〈[`errgroup` 的並行上限](../chapter6/03_errgroup_limit.md)〉。
 
 ## 重點整理
