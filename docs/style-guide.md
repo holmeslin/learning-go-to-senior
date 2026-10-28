@@ -130,6 +130,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 - **before 套件本身無法編譯時**（例如 import cycle、從外部 import `internal`）：不建 `before` 目錄，以免 `go vet ./...` 讓建置流程失敗。改用套件結構圖（`text` 區塊或簡單的目錄樹）呈現 before，並以「編譯錯誤：」加 `text` 區塊貼出 Go 1.27 實際的錯誤訊息，可省略檔案路徑前綴。錯誤訊息由實作者在 repo 外的暫存目錄手動重現，不進建置流程。`after` 照常是有測試的多檔案範例。
 - **只有呼叫端壞掉時**（破壞相容性的修改、刪除舊名稱）：before 套件本身能編譯，照常建 `before` 目錄並用 anchor 引入。壞掉的呼叫端完整程式與它的編譯錯誤，用 `text` 區塊貼出（錯誤前標「編譯錯誤：」），錯誤裡的行號要和貼出的呼叫端一致，由實作者在 repo 外的暫存目錄以同一份呼叫端重現。
 - 書中的錯誤訊息、錯誤鏈與程式輸出，來自 `Example` 的 `// Output:`，用 anchor 連同 `// Output:` 註解一起 include（anchor 範圍要包含整個 `Example` 函式）。只有 `Example` 無法表達時才手動貼。
+- **整合測試**：需要真實資源的測試加上 `//go:build integration`，CI 以 `-tags integration` 編譯並執行。`integration` 是本書唯一的測試 tag；不要寫 `//go:build !integration`，否則帶 tag 時那些檔案會被漏掉。
 - 書中宣稱的行為（效能差距、錯誤訊息、競爭條件）要能被範例重現。效能數字要寫明量測方式與環境，不寫成保證。
 - 省略「改寫模式」三段的集可以沒有 `before`／`after`，但書中出現的 Go 程式碼仍然要走單檔範例或多檔案範例其中一條驗證路徑。
 
@@ -145,7 +146,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 - 以 Go 1.27 為準。Go 1.22 起迴圈變數每次迭代各一份；1.23 起有 range over func；1.26 起 `new(expr)`、`errors.AsType`；1.27 起泛型方法、struct literal 可用巢狀欄位選擇器、`encoding/json/v2`、`uuid` 套件。
 - 不要寫過時的網路說法（例如 Go 1.22 前的迴圈變數陷阱、`time.After` 在迴圈中洩漏）。
 - 不確定時用 `go doc <套件>.<名稱>` 或實際寫程式驗證，不要憑印象。
-- 完成後執行 `go run ./tools/checkcode zh-TW/src/<章節目錄>`，再執行 `go vet ./... && go test -race ./...`，全部通過才算完成。
+- 完成後執行 `go run ./tools/checkcode zh-TW/src/<章節目錄>`，再執行 `go vet ./... && go vet -tags integration ./... && go test -race -tags integration ./...`，全部通過才算完成。
 
 ## 完成一章時
 
