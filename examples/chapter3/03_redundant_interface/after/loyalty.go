@@ -97,8 +97,6 @@ func (s *Service) Earn(id string, spent int) (int, error) {
 	return m.Points, nil
 }
 
-// ANCHOR_END: service
-
 // Balance 回傳會員目前的點數，找不到會員時回傳 ErrNotFound。
 func (s *Service) Balance(id string) (int, error) {
 	m, err := s.store.Get(id)
@@ -107,3 +105,5 @@ func (s *Service) Balance(id string) (int, error) {
 	}
 	return m.Points, nil
 }
+
+// ANCHOR_END: service
