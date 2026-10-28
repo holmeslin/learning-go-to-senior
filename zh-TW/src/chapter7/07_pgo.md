@@ -6,7 +6,7 @@
 
 ## 情境
 
-`accesscount` 讀一批存取紀錄，依規則統計筆數與流量。規則是介面 `Rule`，有 `5xx`（狀態碼 500 以上）和 `path:/api/`（路徑前綴，忽略大小寫）兩種，規則在執行時由參數決定。它是監控用的工具，線上幾乎都是 `5xx`。benchmark 與 pprof 前作教過：〈[benchmark 與 `b.Loop`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/12_benchmark.html)〉、〈[`pprof`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/appendix2/d_pprof.html)〉；`benchstat` 的讀法本章〈`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信〉談過，怎麼從 benchmark 收 profile 本章〈`pprof`：先看 CPU 還是 heap〉談過。
+`accesscount` 讀一批存取紀錄，依規則統計筆數與流量。規則是介面 `Rule`，有 `5xx`（狀態碼 500 以上）和 `path:/api/`（路徑前綴，忽略大小寫）兩種，規則在執行時由參數決定。它是監控用的工具，線上幾乎都是 `5xx`。benchmark 與 pprof 前作教過：〈[benchmark 與 `b.Loop`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/12_benchmark.html)〉、〈[`pprof`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/appendix2/d_pprof.html)〉；`benchstat` 的讀法本章〈[`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](02_b_loop_benchstat.md)〉談過，怎麼從 benchmark 收 profile 本章〈[`pprof`：先看 CPU 還是 heap](03_pprof_cpu_or_heap.md)〉談過。
 
 熱點程式放在 `rules` 套件，`main` 只讀參數。因為 PGO 靠函式名稱對上 profile：從測試收到的 profile 裡，`main` 套件的函式帶完整的 import path，`go build` 建出的執行檔裡卻叫 `main.…`，對不上就不會套用。
 
