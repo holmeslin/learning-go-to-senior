@@ -44,6 +44,7 @@
     - [測什麼、不測什麼](chapter5/01_what_to_test.md)
     - [表格驅動測試的邊界](chapter5/02_table_driven_boundary.md)
     - [golden file](chapter5/06_golden_file.md)
+    - [要啟動真的 server，還是只測 handler](chapter5/09_server_or_handler.md)
 
 # 第三部　並行實務
 
