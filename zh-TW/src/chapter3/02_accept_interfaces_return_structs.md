@@ -63,7 +63,7 @@ func main() {
 {{#include ../../../examples/chapter3/02_accept_interfaces_return_structs/before/example_test.go:typednil}}
 ```
 
-`l == nil` 是 `false`。`New` 裡的 `l` 是 `*bufLogger`，`return l` 時被轉成 `Logger`，介面裡裝著「型別 `*bufLogger`、值為 nil 指標」，所以不等於 nil（原理見前作〈[nil 介面陷阱](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/11_nil_interface_trap.html)〉）。`if l != nil` 擋不住，`Log` 在 nil 指標上讀 `l.w`，就 panic。「先宣告具體型別的變數、依條件指派、最後統一 `return`」是建構函式裡常見的寫法；只要回傳型別是介面，編譯器不會提醒，`go vet` 也照樣通過。
+`l == nil` 是 `false`：`New` 把 nil 的 `*bufLogger` 轉成 `Logger` 回傳，成了不等於 nil 的介面（機制見前作〈[nil 介面陷阱](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/11_nil_interface_trap.html)〉），所以 `if l != nil` 擋不住，`Log` 在 nil 指標上讀 `l.w` 就 panic。這種寫法在建構函式裡很常見，編譯器不會提醒，`go vet` 也照樣通過。
 
 ## 較好的做法
 
@@ -99,7 +99,7 @@ before 要靠 nil 表示的「不記錄」，現在是：
 
 - 匯出的型別就是 API。欄位與方法一旦匯出就要維持；`Logger` 把欄位 `w` 留成不匯出，日後換掉緩衝的做法，呼叫端不受影響。第 1 章〈[什麼時候讓零值可用，什麼時候該強制用建構函式](../chapter1/06_zero_value_or_constructor.md)〉也是這個做法：匯出型別、不匯出欄位。
 - 呼叫端想在測試裡換掉 `*audit.Logger`，得在自己的套件宣告一個小介面，只放用到的方法，`*audit.Logger` 自動符合（本章〈[在使用端定義介面](01_define_interface_at_consumer.md)〉談過；測試替身怎麼選，第 5 章會談）。回傳 `*Logger` 之後，原本那個只有一種實作的 `Logger` 介面也用不到了，介面何時是多餘的，本章〈介面何時是多餘的〉會談。
-- 參數收介面，也收得進有型別的 nil：呼叫端傳 `(*os.File)(nil)`，`New` 裡的 `w == nil` 判斷不出來，所以文件寫明 `w` 不可為 nil。
+- 參數收介面，也收得進有型別的 nil：呼叫端傳 `(*os.File)(nil)`，介面就不等於 nil，`New` 即使檢查 `w == nil` 也擋不住，所以 `New` 不檢查，改在文件寫明 `w` 不可為 nil。
 
 回傳介面在這些情況下才是對的：
 

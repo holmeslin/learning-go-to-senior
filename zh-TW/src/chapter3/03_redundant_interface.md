@@ -8,7 +8,7 @@
 
 你在寫會員點數的套件 `loyalty`：消費每 10 元得 1 點，累積到 100 點升級成金卡，升級時要通知會員。會員資料放在記憶體裡，通知則要送到系統外面（寄信、呼叫 webhook）。
 
-review 時有人留言：「每個元件都該有介面，以後才能換實作，測試也才能 mock。」介面與隱式實作，前作〈[`interface`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/01_interface.html)〉與〈[隱式實作](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/02_implicit_implementation.html)〉已經講過，這集只談這個介面該不該存在。建構函式回傳介面本身的問題，本章〈接受介面、回傳 struct〉會談。
+review 時有人留言：「每個元件都該有介面，以後才能換實作，測試也才能 mock。」介面與隱式實作，前作〈[`interface`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/01_interface.html)〉與〈[隱式實作](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/02_implicit_implementation.html)〉已經講過，這集只談這個介面該不該存在。建構函式回傳介面本身的問題，本章〈[接受介面、回傳 struct](02_accept_interfaces_return_structs.md)〉談過。
 
 ## 常見寫法
 
@@ -79,13 +79,13 @@ review 時有人留言：「每個元件都該有介面，以後才能換實作�
 刪掉介面，是把「要不要換實作」的決定往後延，不是取消：
 
 - 測試的範圍變大了。`Service` 的測試也會跑到 `Store` 的程式，`Store` 壞了，`Service` 的測試跟著紅。對記憶體裡的 map，這通常是好事（兩邊接起來真的能動）；當 `Store` 變慢或有副作用，就不是了。
-- 哪天 `Store` 真的換成資料庫，那時再補介面，要多花一次重構。不過 Go 的介面是隱式實作，補介面不需要改任何實作：在 `loyalty` 裡宣告一個只含 `Get` 與 `Add` 的介面，`Service` 的欄位與 `NewService` 的參數改用它，`*Store` 自然滿足，呼叫端與測試都不用動（我們在暫存 module 實際試過，這集 after 的測試一行沒改就通過）。
+- 哪天 `Store` 真的換成資料庫，那時再補介面，要多花一次重構。不過 Go 的介面是隱式實作，補介面不需要改任何實作：在 `loyalty` 裡宣告一個只含 `Get` 與 `Add` 的介面，`Service` 的欄位與 `NewService` 的參數改用它。`*Store` 本來就有這兩個方法，所以自然滿足它；傳 `*Store` 進來的呼叫端與測試都不用動。
 - 如果某個呼叫端想替換 `Service`，同樣是由它在自己的套件宣告只含用到方法的小介面，`*Service` 一行都不用改；這個介面該放哪、該多大，本章〈[在使用端定義介面](01_define_interface_at_consumer.md)〉談過了。
 
 介面值得存在的情況：
 
 - **跨越 I/O 或行程邊界。** 資料庫、網路、檔案系統、時鐘、子行程，真的實作在測試裡慢、不穩，或有副作用，也很難隨時製造它的失敗。`Notifier` 就是這種介面；第 1 章〈[循環相依與依賴方向](../chapter1/07_import_cycle.md)〉裡的 `Notifier` 也是。
-- **已經有第二個實作。** 同時要寄 email 與簡訊，或 `Store` 同時有記憶體版與 SQL 版。這時介面描述的是兩者真正共同的事，不是猜的。
+- **已經有第二個實作。** 同時要寄 email 與簡訊，或 `Store` 同時有記憶體版與 SQL 版。這時介面描述的是兩者真正共同的事，不是猜的。它通常仍由使用端宣告；只有當介面本身就是提供者對外的約定（像多個實作共同遵守的那一份），才由提供者宣告。
 
 before 反而對的情況：`Store` 如果本來就是資料庫，它就在邊界上，介面該留。
 
