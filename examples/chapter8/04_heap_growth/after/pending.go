@@ -1,12 +1,12 @@
 package ingest
 
+// ANCHOR: pending
+
 // Delivery 是一筆等待送達的通知。
 type Delivery struct {
 	Endpoint string
 	Attempts int
 }
-
-// ANCHOR: pending
 
 // Pending 記住還沒送達的通知，送達後移除。
 type Pending struct {

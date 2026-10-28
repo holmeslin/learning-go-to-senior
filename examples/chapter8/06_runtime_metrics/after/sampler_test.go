@@ -16,7 +16,7 @@ func TestNamesExistWithScalarKind(t *testing.T) {
 	for _, d := range metrics.All() {
 		kinds[d.Name] = d.Kind
 	}
-	for _, name := range runtimestats.Names {
+	for _, name := range runtimestats.Names() {
 		want := metrics.KindUint64
 		if strings.HasSuffix(name, ":cpu-seconds") {
 			want = metrics.KindFloat64
@@ -28,6 +28,14 @@ func TestNamesExistWithScalarKind(t *testing.T) {
 }
 
 // ANCHOR_END: kinds
+
+func TestNamesReturnsFreshSlice(t *testing.T) {
+	first := runtimestats.Names()
+	first[0] = "changed by caller"
+	if got := runtimestats.Names()[0]; got == "changed by caller" {
+		t.Errorf("Names() shares its slice between calls: %q", got)
+	}
+}
 
 // ANCHOR: unsupported
 
@@ -52,13 +60,13 @@ func TestUnsupportedNamesAreSkipped(t *testing.T) {
 // ANCHOR_END: unsupported
 
 func TestReadFillsEveryName(t *testing.T) {
-	s := runtimestats.New(runtimestats.Names...)
+	s := runtimestats.New(runtimestats.Names()...)
 	if got := s.Unsupported(); len(got) != 0 {
 		t.Fatalf("Unsupported() = %v, want none", got)
 	}
 	dst := map[string]float64{}
 	s.Read(dst)
-	for _, name := range runtimestats.Names {
+	for _, name := range runtimestats.Names() {
 		if v, ok := dst[name]; !ok || v < 0 {
 			t.Errorf("%s = %v (present: %v), want a non-negative value", name, v, ok)
 		}
@@ -68,7 +76,7 @@ func TestReadFillsEveryName(t *testing.T) {
 // ANCHOR: allocs
 
 func TestReadReusesSamples(t *testing.T) {
-	s := runtimestats.New(runtimestats.Names...)
+	s := runtimestats.New(runtimestats.Names()...)
 	dst := map[string]float64{}
 	s.Read(dst) // 第一次讀會把 dst 填滿
 
