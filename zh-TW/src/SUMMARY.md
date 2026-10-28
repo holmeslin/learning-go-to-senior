@@ -82,6 +82,7 @@
     - [`GOMEMLIMIT` 與容器記憶體上限](chapter8/03_gomemlimit_container.md)
     - [`runtime/metrics`](chapter8/06_runtime_metrics.md)
     - [阻塞、syscall 與排程](chapter8/07_blocking_syscall_scheduling.md)
+    - [讀 GC trace](chapter8/08_read_gc_trace.md)
 
 # 第五部　上線與維運
 
