@@ -69,6 +69,7 @@
 # 第四部　效能
 
 - [效能調查流程]()
+    - [`pprof`：先看 CPU 還是 heap](chapter7/03_pprof_cpu_or_heap.md)
     - [什麼時候值得看逃逸分析](chapter7/06_when_to_check_escape_analysis.md)
     - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
 - [runtime]()
