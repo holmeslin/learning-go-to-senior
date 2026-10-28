@@ -97,7 +97,7 @@ FAIL
 
 - 不用改程式。`Do` 的簽章與實作 before 與 after 完全一樣，已經寫好的程式也能補測試。
 - 只適用於行程內、會 durably block 的程式。等真的 socket、`sync.Mutex`、系統呼叫都不算；連到別的行程或外部服務的程式，要先換成 `net.Pipe` 這類假連線。
-- 依賴 runtime 的特殊行為：bubble 有自己的限制（見前作〈[`testing/synctest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/19_synctest.html)〉），`synctest.Test` 要等 bubble 裡的 goroutine 全部結束才回來，卡住就失敗（怎麼抓洩漏，第 6 章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談）。
+- 依賴 runtime 的特殊行為：bubble 有自己的限制（見前作〈[`testing/synctest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/19_synctest.html)〉），`synctest.Test` 要等 bubble 裡的 goroutine 全部結束才回來，卡住就失敗（怎麼抓洩漏，第 6 章〈[goroutine 洩漏怎麼發生、怎麼在測試裡抓到](../chapter6/09_goroutine_leak.md)〉）。
 
 注入時鐘：
 
