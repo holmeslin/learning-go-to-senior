@@ -69,6 +69,7 @@
 # 第四部　效能
 
 - [效能調查流程]()
+    - [`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](chapter7/02_b_loop_benchstat.md)
 - [runtime]()
 
 # 第五部　上線與維運
