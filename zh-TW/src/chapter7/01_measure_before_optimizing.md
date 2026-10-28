@@ -43,7 +43,7 @@ goarch: arm64
 cpu: Apple M4 Max
       │ handrolled  │            simple             │
       │   sec/op    │   sec/op     vs base          │
-20000   155.5m ± 2%   155.7m ± 0%  ~ (p=0.853 n=10)
+20000   152.6m ± 2%   153.5m ± 1%  ~ (p=0.063 n=10)
 ```
 
 `~` 是 benchstat 判斷沒有顯著差異：手寫解析犧牲了可讀性，卻量不出好處。就算某次 benchstat 把幾個百分點的差距判成顯著，這個量級也解釋不了一批為什麼要花這麼久。時間花在別的地方。
@@ -58,13 +58,13 @@ go tool pprof -top -nodecount=4 before.test cpu.out
 執行結果（某一次）：
 
 ```text
-Duration: 3.53s, Total samples = 3.24s (91.70%)
+Duration: 3.23s, Total samples = 2910ms (90.14%)
       flat  flat%   sum%        cum   cum%
-     1.94s 59.88% 59.88%      1.94s 59.88%  runtime.memequal
-     0.91s 28.09% 87.96%      2.86s 88.27%  slices.Index[go.shape.[]string,go.shape.string] (inline)
-     0.25s  7.72% 95.68%      0.25s  7.72%  runtime.madvise
-     0.03s  0.93% 96.60%      2.97s 91.67%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/01_measure_before_optimizing/before.summarize
-Total: 3.24s
+    1870ms 64.26% 64.26%     1870ms 64.26%  runtime.memequal
+     640ms 21.99% 86.25%     2530ms 86.94%  slices.Index[go.shape.[]string,go.shape.string]
+     210ms  7.22% 93.47%      210ms  7.22%  runtime.madvise
+      40ms  1.37% 94.85%       40ms  1.37%  internal/runtime/atomic.(*UnsafePointer).Load
+Total: 2.91s
 ```
 
 `flat` 是函式自己花的時間，`cum` 連同它呼叫的函式；怎麼從排行榜挑出該改的那一層，本章〈`pprof`：先看 CPU 還是 heap〉會談。大部分時間在字串比對，來自 `slices.Index`，也就是 `slices.Contains`。用 `-list` 看是哪一行呼叫的，輸出只留迴圈開頭的幾行，省略了函式標頭（含檔案路徑）與其餘的行：
@@ -76,15 +76,15 @@ go tool pprof -list='before.summarize$' before.test cpu.out
 執行結果（某一次）：
 
 ```text
-         .          .    102:	for _, line := range lines {
-         .       10ms    103:		e, ok := parse(line)
+      10ms       10ms    102:	for _, line := range lines {
+         .          .    103:		e, ok := parse(line)
          .          .    104:		if !ok {
          .          .    105:			continue // 壞掉的行直接略過
          .          .    106:		}
-         .      2.86s    107:		if slices.Contains(seen, e.id) {
+         .      2.53s    107:		if slices.Contains(seen, e.id) {
 ```
 
-手寫解析所在的 `parse` 那一行只有零頭，大部分時間在 `seen`：它是 slice，每一行都從頭掃描，n 行要比對約 n²/2 次，批次越大越慢。
+手寫解析所在的 `parse` 那一行幾乎沒有時間，大部分時間在 `seen`：它是 slice，每一行都從頭掃描，n 行要比對約 n²/2 次，批次越大越慢。
 
 ## 較好的做法
 
@@ -101,7 +101,7 @@ go tool pprof -list='before.summarize$' before.test cpu.out
 {{#include ../../../examples/chapter7/01_measure_before_optimizing/after/logstat_test.go:same}}
 ```
 
-第五步，**再量一次**。after 的子 benchmark 也叫 `impl=simple`，名稱相同，`benchstat` 才能並排；`-filter` 讓 before 只留沒有手寫解析的那一列，比的就只有 `seen` 的改動；兩份檔案來自不同套件，`-ignore pkg` 避免它們被分成兩張表。第一次執行時 `go run` 會先下載 benchstat，輸出省略了下載訊息：
+第五步，**再量一次**。after 的子 benchmark 也叫 `impl=simple`，名稱相同，`benchstat` 才能並排；`-filter` 讓 before 只留沒有手寫解析的那一列，比的就只有 `seen` 的改動；兩份檔案來自不同套件，`-ignore pkg` 讓它們不被分成兩張表（細節本章〈`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信〉會談）。第一次執行時 `go run` 會先下載 benchstat，輸出省略了下載訊息：
 
 ```bash
 go test -run='^$' -bench=. -benchmem -count=10 ./examples/chapter7/01_measure_before_optimizing/after > after.txt
@@ -116,18 +116,18 @@ goarch: arm64
 cpu: Apple M4 Max
                                      │  before.txt   │              after.txt              │
                                      │    sec/op     │   sec/op     vs base                │
-Summarize/lines=20000/impl=simple-14   155.654m ± 0%   4.787m ± 2%  -96.92% (p=0.000 n=10)
+Summarize/lines=20000/impl=simple-14   153.499m ± 1%   4.757m ± 1%  -96.90% (p=0.000 n=10)
 
                                      │  before.txt  │              after.txt               │
                                      │     B/op     │     B/op      vs base                │
-Summarize/lines=20000/impl=simple-14   2.167Mi ± 0%   2.713Mi ± 0%  +25.20% (p=0.000 n=10)
+Summarize/lines=20000/impl=simple-14   2.175Mi ± 0%   2.715Mi ± 0%  +24.85% (p=0.000 n=10)
 
                                      │ before.txt  │             after.txt              │
                                      │  allocs/op  │  allocs/op   vs base               │
 Summarize/lines=20000/impl=simple-14   70.03k ± 0%   70.16k ± 0%  +0.18% (p=0.000 n=10)
 ```
 
-`sec/op` 顯著下降（p 值小、`n=10`），改善是真的；`B/op` 上升，是 map 的代價。配置次數幾乎沒變，用 `testing.AllocsPerRun` 斷言上限，時間不在測試裡斷言。`regexp` 內部用 `sync.Pool`，`-race` 下配置次數會有出入，所以不斷言精確次數：
+`sec/op` 顯著下降（p 值小、`n=10`），改善是真的；`B/op` 上升，是 map 的代價。配置次數幾乎沒變，用 `testing.AllocsPerRun` 斷言上限，時間不在測試裡斷言。`regexp` 內部用 `sync.Pool`，`-race` 下配置次數會有出入，所以斷言的是上限（每行少於 6 次，實際約 3.5 次），不斷言精確次數：
 
 ```go,ignore
 {{#include ../../../examples/chapter7/01_measure_before_optimizing/after/logstat_test.go:allocs}}

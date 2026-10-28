@@ -9,8 +9,6 @@ import (
 	logstats "github.com/holmeslin/learning-go-to-senior/examples/chapter7/03_pprof_cpu_or_heap/before"
 )
 
-// ANCHOR: bench
-
 func BenchmarkSummarize(b *testing.B) {
 	lines := sampleLines(2000)
 	for b.Loop() {
@@ -19,8 +17,6 @@ func BenchmarkSummarize(b *testing.B) {
 		}
 	}
 }
-
-// ANCHOR_END: bench
 
 // sampleLines 產生 n 行固定內容的 access log：五種路徑輪流出現，延遲與狀態碼由 i 決定。
 func sampleLines(n int) []string {

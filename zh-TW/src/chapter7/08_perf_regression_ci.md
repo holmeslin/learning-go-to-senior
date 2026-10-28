@@ -10,11 +10,11 @@
 
 ## 常見寫法
 
-CI 跑一次 benchmark，ns/op 超過門檻就失敗。門檻取本機某次結果（約 66 ns）的 1.5 倍，湊個整數 100：
+CI 跑一次 benchmark，ns/op 超過門檻就失敗。門檻取本機某次結果（約 61 ns）的 1.5 倍，湊個整數 90：
 
 ```yaml
 - run: go test -run='^$' -bench=Template ./... | tee bench.txt
-- run: awk '/^BenchmarkTemplate/ { if ($3 > 100) exit 1 }' bench.txt
+- run: awk '/^BenchmarkTemplate/ { if ($3 > 90) exit 1 }' bench.txt
 ```
 
 ```go,ignore
@@ -39,19 +39,19 @@ kill $(jobs -p)
 goos: darwin
 goarch: arm64
 cpu: Apple M4 Max
-BenchmarkTemplate-14    	12718030	        95.58 ns/op	      48 B/op	       1 allocs/op
-BenchmarkTemplate-14    	10450203	       135.9 ns/op	      48 B/op	       1 allocs/op
-BenchmarkTemplate-14    	 8419665	       144.9 ns/op	      48 B/op	       1 allocs/op
-BenchmarkTemplate-14    	 8727076	       121.0 ns/op	      48 B/op	       1 allocs/op
-BenchmarkTemplate-14    	 9303310	       135.0 ns/op	      48 B/op	       1 allocs/op
-BenchmarkTemplate-14    	 9483279	       114.3 ns/op	      48 B/op	       1 allocs/op
-BenchmarkTemplate-14    	15475882	        99.65 ns/op	      48 B/op	       1 allocs/op
-BenchmarkTemplate-14    	12545958	       114.2 ns/op	      48 B/op	       1 allocs/op
-BenchmarkTemplate-14    	 8277645	       124.9 ns/op	      48 B/op	       1 allocs/op
-BenchmarkTemplate-14    	14447038	       110.5 ns/op	      48 B/op	       1 allocs/op
+BenchmarkTemplate-14    	 8009504	       159.1 ns/op	      48 B/op	       1 allocs/op
+BenchmarkTemplate-14    	 7433446	       161.3 ns/op	      48 B/op	       1 allocs/op
+BenchmarkTemplate-14    	 7637163	       164.5 ns/op	      48 B/op	       1 allocs/op
+BenchmarkTemplate-14    	 7277886	       162.5 ns/op	      48 B/op	       1 allocs/op
+BenchmarkTemplate-14    	 7573191	       163.5 ns/op	      48 B/op	       1 allocs/op
+BenchmarkTemplate-14    	 7371648	       157.3 ns/op	      48 B/op	       1 allocs/op
+BenchmarkTemplate-14    	 7509386	       163.9 ns/op	      48 B/op	       1 allocs/op
+BenchmarkTemplate-14    	 7957162	       162.8 ns/op	      48 B/op	       1 allocs/op
+BenchmarkTemplate-14    	 7583486	       160.3 ns/op	      48 B/op	       1 allocs/op
+BenchmarkTemplate-14    	 8259949	       154.6 ns/op	      48 B/op	       1 allocs/op
 ```
 
-輸出省略了 `pkg:` 行、`PASS` 與 `ok` 行。程式沒有變，配置次數每次都是 1，只有時間在跳，而且多數次超過 100 ns 的門檻：CI 變紅，但沒有任何一行程式有問題。把沒有鄰居時的十次結果存成 `quiet.txt`、這十次存成 `loaded.txt`，用 `benchstat` 比較（用法本章〈`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信〉談過）：
+輸出省略了 `pkg:` 行、`PASS` 與 `ok` 行。程式沒有變，配置次數每次都是 1，只有時間在跳，而且十次全部超過 90 ns 的門檻：CI 變紅，但沒有任何一行程式有問題。把沒有鄰居時的十次結果存成 `quiet.txt`、這十次存成 `loaded.txt`，用 `benchstat` 比較（用法本章〈[`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](02_b_loop_benchstat.md)〉談過）：
 
 執行結果（某一次）：
 
@@ -59,9 +59,9 @@ BenchmarkTemplate-14    	14447038	       110.5 ns/op	      48 B/op	       1 allo
 goos: darwin
 goarch: arm64
 cpu: Apple M4 Max
-            │  quiet.txt   │              loaded.txt               │
-            │    sec/op    │    sec/op      vs base                │
-Template-14   66.38n ± 16%   117.65n ± 16%  +77.25% (p=0.000 n=10)
+            │  quiet.txt  │              loaded.txt               │
+            │   sec/op    │    sec/op     vs base                 │
+Template-14   61.43n ± 3%   161.90n ± 3%  +163.57% (p=0.000 n=10)
 ```
 
 輸出省略了 `pkg:` 行，以及 `B/op` 與 `allocs/op` 兩張表，兩張表都是 `~`，沒有差異。差距大到 `benchstat` 判為顯著，而造成它的只是機器的忙碌程度。門檻要放到不誤報，就得高過這個雜訊，這時小幅的退步會從門檻底下溜過去；紅燈時好時壞，團隊就會開始重跑到過，最後把這一步關掉。這和第 5 章〈[不穩定（flaky）測試](../chapter5/10_flaky_tests.md)〉是同一個問題。
@@ -70,7 +70,7 @@ Template-14   66.38n ± 16%   117.65n ± 16%  +77.25% (p=0.000 n=10)
 
 依成本分三層，每層只擋它量得準的東西。
 
-**第一層，每次 CI：用 `AllocsPerRun` 擋配置次數。** 配置次數是確定的，與鄰居無關，`-race` 下也成立（`AllocsPerRun` 本章〈常見熱點：配置、拷貝、鎖競爭〉談過）：
+**第一層，每次 CI：用 `AllocsPerRun` 擋配置次數。** 配置次數是確定的，與鄰居無關，`-race` 下也成立（`AllocsPerRun` 本章〈[常見熱點：配置、拷貝、鎖競爭](05_common_hotspots.md)〉談過）：
 
 ```go,ignore
 {{#include ../../../examples/chapter7/08_perf_regression_ci/after/route_test.go:allocs}}
@@ -88,13 +88,13 @@ Template-14   66.38n ± 16%   117.65n ± 16%  +77.25% (p=0.000 n=10)
 
 ```text
 --- FAIL: TestTemplateAllocs (0.00s)
-    route_test.go:50: Template("/") allocs = 2, want at most 1
-    route_test.go:50: Template("/healthz") allocs = 2, want at most 1
-    route_test.go:50: Template("/users/7") allocs = 2, want at most 1
-    route_test.go:50: Template("/users/48213/orders/90177/items/3") allocs = 2, want at most 1
-    route_test.go:50: Template("/users/48213/profile") allocs = 2, want at most 1
-    route_test.go:50: Template("/v2/users/abc123/orders/") allocs = 2, want at most 1
-    route_test.go:50: Template("//1//2") allocs = 2, want at most 1
+    route_test.go:51: Template("/") allocs = 2, want at most 1
+    route_test.go:51: Template("/healthz") allocs = 2, want at most 1
+    route_test.go:51: Template("/users/7") allocs = 2, want at most 1
+    route_test.go:51: Template("/users/48213/orders/90177/items/3") allocs = 2, want at most 1
+    route_test.go:51: Template("/users/48213/profile") allocs = 2, want at most 1
+    route_test.go:51: Template("/v2/users/abc123/orders/") allocs = 2, want at most 1
+    route_test.go:51: Template("//1//2") allocs = 2, want at most 1
 FAIL
 ```
 

@@ -8,6 +8,8 @@ import (
 	before "github.com/holmeslin/learning-go-to-senior/examples/chapter7/06_when_to_check_escape_analysis/before"
 )
 
+// ANCHOR: same
+
 var lines = []string{
 	"GET /users/42 200",
 	"POST /orders 201",
@@ -22,8 +24,6 @@ var badLines = []string{
 	"GET /users/42 abc",
 	"GET /users/42 99",
 }
-
-// ANCHOR: same
 
 // 改寫前後必須得到一樣的結果，錯誤訊息也一樣。
 func TestRouteSameAsBefore(t *testing.T) {
