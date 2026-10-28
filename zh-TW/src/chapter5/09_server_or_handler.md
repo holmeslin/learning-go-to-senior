@@ -87,7 +87,7 @@ FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/09_server_or_h
 
 before 的寫法也不是沒有用處。零件各自有複雜邏輯時，單獨測 handler 函式或 middleware 是合理的，例如 `requireToken` 要比對多種 token 格式。但它不能取代測組好的 `http.Handler`，兩者看的是不同的 bug。
 
-`httptest.NewServer` 只監聽 loopback，不依賴外部服務，CI 可以直接跑。要連真實資源（資料庫、檔案）的整合測試怎麼和單元測試分開，本章〈整合測試與 build tags〉會談。
+`httptest.NewServer` 只監聽 loopback，不依賴外部服務，CI 可以直接跑。要連真實資源（資料庫、檔案）的整合測試怎麼和單元測試分開，本章〈[整合測試與 build tags](05_integration_tests_build_tags.md)〉談過。
 
 ## 重點整理
 
