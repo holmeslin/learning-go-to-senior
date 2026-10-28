@@ -49,7 +49,9 @@
 +	return -1
 ```
 
-在 repo 外把這個修改套用到 `before/set.go`，執行 `go test`（省略了每個測試與套件的耗時）：
+把這個修改套用到 `before/set.go`，執行 `go test`（輸出省略了每個測試與套件後面的耗時）。
+
+執行結果：
 
 ```text
 --- FAIL: TestAddKeepsInsertionOrder
@@ -60,6 +62,7 @@
     set_test.go:44: indexOf("go") = -1, want 1
 FAIL
 FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/01_what_to_test/before
+FAIL
 ```
 
 三個測試失敗，但沒有任何一個說得出使用者受到什麼影響：前兩個斷言「依插入順序存放」，這從來不是承諾，`List` 本來就排序；第三個手動塞了一份未排序的 `items`，新的內部做法恰好不接受這種狀態。沒壞的兩個，`TestListIsSorted` 透過 `List` 看結果，`TestAddStoresNormalizedTag` 則只是碰巧只有一個標籤。
@@ -80,13 +83,13 @@ FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/01_what_to_tes
 {{#include ../../../examples/chapter5/01_what_to_test/after/set_test.go:test}}
 ```
 
-`TestContainsNormalizesTags` 在 before 的實作上會失敗，修法是 `Contains` 先 `normalize` 再找。`Example` 同樣的呼叫，現在輸出一致：
+`TestContainsNormalizesTags` 抓得到 before 的 bug：`Contains("Go")` 沒有先 `normalize`，找不到存成 `go` 的標籤。修法是 `Contains` 先 `normalize` 再找。`Example` 同樣的呼叫，現在輸出一致：
 
 ```go,ignore
 {{#include ../../../examples/chapter5/01_what_to_test/after/example_test.go:example}}
 ```
 
-再把同一個重構套用到 `after/set.go`，同樣在 repo 外執行 `go test`：六個測試與 `Example` 全部通過。測試斷言的是 `List()` 與 `Contains()` 的結果，內部用 slice、map 還是排序後的 slice，它們都不在乎；每個失敗訊息都寫出「得到什麼、預期什麼」，哪個行為壞了一看就知道。外部套件還有一個好處：它想偷看內部也做不到，不必靠自律。
+`after/set.go` 的內部已經是重構之後的做法：排序插入加二分搜尋，`List` 不再排序，就是上面那三個修改再加上 `Contains` 的 `normalize`。同樣的六個測試與 `Example` 一個字都沒改，全部通過。測試斷言的是 `List()` 與 `Contains()` 的結果，內部用 slice、map 還是排序後的 slice，它們都不在乎；每個失敗訊息都寫出「得到什麼、預期什麼」，哪個行為壞了一看就知道。外部套件還有一個好處：它想偷看內部也做不到，不必靠自律。
 
 完整程式碼在 `examples/chapter5/01_what_to_test/after/`。匯出的名稱才是對使用者的承諾，這和第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉是同一件事：承諾以外的東西，應該可以隨時改。
 
@@ -102,7 +105,7 @@ FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/01_what_to_tes
 - **函式本身有複雜的演算法**，例如解析器的詞法分析、日期區間合併，邊界很多，而公開 API 每走一個邊界都要大費周章。
 - **它的輸入輸出就是穩定的契約**，不依賴任何物件的內部狀態，像 `func parseDuration(s string) (time.Duration, error)`。
 
-這種測試放在內部測試套件（`package tagset`，與外部測試同一個目錄），最好獨立一個檔案，讓人一看就知道它綁著實作。重構時它可能得跟著改，這是你選擇的成本。判斷方法：這個函式改名或換做法時，我希望這些測試壞嗎？如果答案是「不希望」，就該改測公開 API。注意 before 失敗的三個測試，恰好是依賴物件內部狀態的那種，不是上面那種純函式。
+這種測試放在內部測試套件（`package tagset`，與外部測試同一個目錄），最好獨立一個檔案，讓人一看就知道它綁著實作。重構時它可能得跟著改，這是你選擇的成本。判斷方法：這個函式改名或換做法時，這些測試該不該跟著壞？如果答案是「不該」，就該改測公開 API。注意 before 失敗的三個測試，恰好是依賴物件內部狀態的那種，不是上面那種純函式。
 
 有些東西則不值得測：
 

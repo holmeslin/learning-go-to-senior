@@ -1,15 +1,15 @@
-package retry_test
+package trial_test
 
 import (
 	"testing"
 	"time"
 
-	retry "github.com/holmeslin/learning-go-to-senior/examples/chapter5/08_synctest_or_clock/after"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter5/08_synctest_or_clock/after/trial"
 )
 
 // ANCHOR: trial
 
-func TestTrialActive(t *testing.T) {
+func TestPeriodActive(t *testing.T) {
 	taipei := time.FixedZone("CST", 8*3600)
 	end := time.Date(2026, 12, 31, 12, 0, 0, 0, taipei) // 試用到 12/31 當天結束
 	tests := []struct {
@@ -25,8 +25,8 @@ func TestTrialActive(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			trial := retry.Trial{End: end, Now: func() time.Time { return tt.now }}
-			if got := trial.Active(); got != tt.want {
+			p := trial.Period{End: end, Now: func() time.Time { return tt.now }}
+			if got := p.Active(); got != tt.want {
 				t.Errorf("Active() at %v = %t, want %t", tt.now, got, tt.want)
 			}
 		})

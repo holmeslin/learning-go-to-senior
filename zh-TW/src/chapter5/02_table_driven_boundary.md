@@ -36,7 +36,9 @@
 
 最危險的是零值。第 8 列「低消不足不消耗單次券」寫了 `wantUsed: 0`，看起來在斷言「次數是 0」，但 `checkUsed` 沒設，次數根本沒被檢查，只驗證了那次兌換回傳 `ErrMinSpend`。`wantUsed: 0` 與沒寫完全一樣，編譯器與 `go vet` 都不會提醒。
 
-把這個疏漏變成真的 bug：在 `Redeem` 裡把 `b.used[key]++` 搬到檢查低消之前。被拒絕的兌換也算一次，客人湊不到低消，單次券就白白用掉了。before 的測試照過（輸出省略了耗時）：
+把這個疏漏變成真的 bug：在 `Redeem` 裡把 `b.used[key]++` 搬到檢查低消之前。被拒絕的兌換也算一次，客人湊不到低消，單次券就白白用掉了。把這個修改套用到 `before/coupon.go`，執行 `go test`，測試照過（輸出省略了套件後面的耗時）。
+
+執行結果：
 
 ```text
 ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter5/02_table_driven_boundary/before
@@ -62,13 +64,16 @@ ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter5/02_table_drive
 {{#include ../../../examples/chapter5/02_table_driven_boundary/after/redeem_test.go:stateful}}
 ```
 
-before 漏掉的檢查在這裡是明寫的斷言：被拒絕之後再用 500 兌換要成功，`Used` 也要是 1。同樣的 bug 套上去，只有這個測試失敗，名稱就是失敗的規格（輸出省略了耗時）：
+before 漏掉的檢查在這裡是明寫的斷言：被拒絕之後再用 500 兌換要成功，`Used` 也要是 1。同樣的 bug 套用到 `after/coupon.go`，只有這個測試失敗，名稱就是失敗的規格（輸出省略了每個測試與套件後面的耗時）。
+
+執行結果：
 
 ```text
 --- FAIL: TestRejectedRedeemKeepsSingleUseCoupon
     redeem_test.go:95: Redeem(500) after a rejection = 0, redeem WELCOME20: used up; want 400, nil
 FAIL
 FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/02_table_driven_boundary/after
+FAIL
 ```
 
 `newBook()` 每個測試各建一本，沒有共用的可變狀態。before 的九列在 after 裡逐案都有對應：金額四列、拒絕兩列、單次券、被拒絕不消耗、記一次使用。完整程式碼在 `examples/chapter5/02_table_driven_boundary/after/`。

@@ -6,24 +6,23 @@ import (
 	"sync"
 )
 
-// Server 保存筆記，並提供讀取與刪除的 HTTP 端點。
-type Server struct {
+// service 保存筆記，getNote 與 deleteNote 是讀取與刪除的 handler 函式。
+type service struct {
 	token string
 	mu    sync.Mutex
 	notes map[string]string
 }
 
-// NewServer 建立一個 Server。刪除請求必須帶 "Authorization: Bearer <token>"。
-// 它會複製 notes，之後修改傳入的 map 不影響 Server。
-func NewServer(token string, notes map[string]string) *Server {
-	s := &Server{token: token, notes: map[string]string{}}
+// newService 建立一個 service，並複製 notes，之後修改傳入的 map 不影響它。
+func newService(token string, notes map[string]string) *service {
+	s := &service{token: token, notes: map[string]string{}}
 	for id, text := range notes {
 		s.notes[id] = text
 	}
 	return s
 }
 
-func (s *Server) getNote(w http.ResponseWriter, r *http.Request) {
+func (s *service) getNote(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	text, ok := s.notes[r.PathValue("id")]
 	s.mu.Unlock()
@@ -34,7 +33,7 @@ func (s *Server) getNote(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(text))
 }
 
-func (s *Server) deleteNote(w http.ResponseWriter, r *http.Request) {
+func (s *service) deleteNote(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	delete(s.notes, r.PathValue("id"))
 	s.mu.Unlock()
@@ -51,8 +50,10 @@ func requireToken(token string, next http.Handler) http.Handler {
 	})
 }
 
-// Handler 回傳組好的路由：讀取公開，刪除要先通過 token 檢查。
-func (s *Server) Handler() http.Handler {
+// NewHandler 回傳組好的 http.Handler：讀取公開，刪除要帶 "Authorization: Bearer <token>"。
+// 它會複製 notes，之後修改傳入的 map 不影響 Handler。
+func NewHandler(token string, notes map[string]string) http.Handler {
+	s := newService(token, notes)
 	// ANCHOR: routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /notes/{id}", s.getNote)

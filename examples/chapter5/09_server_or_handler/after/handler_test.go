@@ -14,7 +14,7 @@ const token = "s3cret"
 
 // newHandler 每次呼叫都建一個全新的 Handler，測試之間不共用狀態。
 func newHandler() http.Handler {
-	return notes.NewServer(token, map[string]string{"1": "buy milk"}).Handler()
+	return notes.NewHandler(token, map[string]string{"1": "buy milk"})
 }
 
 // ANCHOR: table
@@ -80,11 +80,11 @@ func TestClientGet(t *testing.T) {
 	defer srv.Close()
 	c := &notes.Client{BaseURL: srv.URL, HTTP: srv.Client()}
 
-	got, err := c.Get(context.Background(), "1")
+	got, err := c.Get(t.Context(), "1")
 	if err != nil || got != "buy milk" {
 		t.Errorf("Get(1) = %q, %v; want %q, nil", got, err, "buy milk")
 	}
-	if _, err := c.Get(context.Background(), "9"); !errors.Is(err, notes.ErrNotFound) {
+	if _, err := c.Get(t.Context(), "9"); !errors.Is(err, notes.ErrNotFound) {
 		t.Errorf("Get(9) error = %v, want %v", err, notes.ErrNotFound)
 	}
 }
@@ -98,7 +98,7 @@ func TestClientGetCanceled(t *testing.T) {
 	defer srv.Close()
 	c := &notes.Client{BaseURL: srv.URL, HTTP: srv.Client()}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	errc := make(chan error, 1)
 	go func() {
 		_, err := c.Get(ctx, "1")

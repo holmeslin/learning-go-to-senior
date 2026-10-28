@@ -9,7 +9,7 @@ import (
 // ANCHOR: test
 
 func TestGetNote(t *testing.T) {
-	s := NewServer("s3cret", map[string]string{"1": "buy milk"})
+	s := newService("s3cret", map[string]string{"1": "buy milk"})
 	req := httptest.NewRequest(http.MethodGet, "/notes/1", nil)
 	req.SetPathValue("id", "1")
 	rec := httptest.NewRecorder()
@@ -22,7 +22,7 @@ func TestGetNote(t *testing.T) {
 }
 
 func TestDeleteNote(t *testing.T) {
-	s := NewServer("s3cret", map[string]string{"1": "buy milk"})
+	s := newService("s3cret", map[string]string{"1": "buy milk"})
 	req := httptest.NewRequest(http.MethodDelete, "/notes/1", nil)
 	req.SetPathValue("id", "1")
 	rec := httptest.NewRecorder()

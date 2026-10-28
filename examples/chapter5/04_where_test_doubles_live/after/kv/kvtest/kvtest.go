@@ -1,6 +1,5 @@
-// Package kvtest provides a fake for package kv and a contract test that
-// any store, real or fake, must pass. It plays the same role for kv as
-// net/http/httptest does for net/http and testing/fstest does for io/fs.
+// Package kvtest 提供 kv 套件的 fake，以及任何 store（真的或 fake）都要通過的契約測試。
+// 它之於 kv，就像 net/http/httptest 之於 net/http、testing/fstest 之於 io/fs。
 package kvtest
 
 import (
@@ -11,7 +10,7 @@ import (
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter5/04_where_test_doubles_live/after/kv"
 )
 
-// Store is the behavior TestStore checks.
+// Store 是 TestStore 檢查的行為；它只是 TestStore 的參數型別，使用端不需要 import 它。
 type Store interface {
 	Put(key, value string) error
 	Get(key string) (string, error)
@@ -19,19 +18,19 @@ type Store interface {
 
 // ANCHOR: fake
 
-// Fake is an in-memory Store that follows the same rules as kv.DirStore.
-// It is safe for concurrent use.
+// Fake 是放在記憶體裡的 Store，規則和 kv.DirStore 一樣。
+// 可以同時被多個 goroutine 使用。
 type Fake struct {
 	mu     sync.Mutex
 	values map[string]string
 }
 
-// NewFake returns an empty Fake.
+// NewFake 回傳一個空的 Fake。
 func NewFake() *Fake {
 	return &Fake{values: map[string]string{}}
 }
 
-// Put stores value under key. It returns kv.ErrInvalidKey if key is not valid.
+// Put 把 value 存在 key 底下。key 不合規定時回傳 kv.ErrInvalidKey。
 func (f *Fake) Put(key, value string) error {
 	if !kv.ValidKey(key) {
 		return kv.ErrInvalidKey
@@ -42,8 +41,8 @@ func (f *Fake) Put(key, value string) error {
 	return nil
 }
 
-// Get returns the value under key. It returns kv.ErrInvalidKey if key is
-// not valid and kv.ErrNotFound if nothing is stored.
+// Get 回傳 key 底下的值。key 不合規定時回傳 kv.ErrInvalidKey，
+// 沒有值時回傳 kv.ErrNotFound。
 func (f *Fake) Get(key string) (string, error) {
 	if !kv.ValidKey(key) {
 		return "", kv.ErrInvalidKey
@@ -61,8 +60,8 @@ func (f *Fake) Get(key string) (string, error) {
 
 // ANCHOR: testfunc
 
-// TestStore runs the kv contract against stores made by newStore.
-// newStore is called once per subtest and must return an empty store.
+// TestStore 對 newStore 造出來的 store 執行 kv 的契約。
+// 每個子測試都會呼叫一次 newStore，它必須回傳空的 store。
 func TestStore(t *testing.T, newStore func(t *testing.T) Store) {
 	t.Run("get returns what put stored", func(t *testing.T) {
 		s := newStore(t)

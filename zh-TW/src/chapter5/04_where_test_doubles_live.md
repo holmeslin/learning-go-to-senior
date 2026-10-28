@@ -14,7 +14,7 @@
 {{#include ../../../examples/chapter5/04_where_test_doubles_live/before/kv/kv.go:validkey}}
 ```
 
-兩個使用端都在自己的套件宣告要用的介面（第 3 章〈[在使用端定義介面](../chapter3/01_define_interface_at_consumer.md)〉），測試時換上 fake。fake、stub、mock 怎麼選，本章〈fake、stub、mock 的選擇〉談過，這集只談替身放在哪裡。
+兩個使用端都在自己的套件宣告要用的介面（第 3 章〈[在使用端定義介面](../chapter3/01_define_interface_at_consumer.md)〉），測試時換上 fake。fake、stub、mock 怎麼選，本章〈[fake、stub、mock 的選擇](03_fake_stub_mock.md)〉談過，這集只談替身放在哪裡。
 
 ## 常見寫法
 
@@ -58,9 +58,9 @@ fake 說成功，真的 `DirStore` 拒絕。使用者標題裡一打斜線，每
 {{#include ../../../examples/chapter5/04_where_test_doubles_live/after/kv/kv_test.go:contract}}
 ```
 
-這兩個測試放在外部測試套件 `kv_test`：`kvtest` 要 import `kv`，內部測試套件再 import `kvtest` 會形成循環相依。我把 `Fake.Put` 裡的 key 檢查拿掉試過，`TestFake` 的四個 invalid key 案例立刻失敗。契約是 fake 與真實實作之間唯一的連結；`kv` 再加規則，就在契約加一項，兩邊一起失敗。
+這兩個測試放在外部測試套件 `kv_test`：`kvtest` 要 import `kv`，內部測試套件再 import `kvtest` 會形成循環相依。契約對四個不合規定的 key（空字串、`..`、`a/b`、`/a`）都要求 `Put` 回 `kv.ErrInvalidKey`，所以 `Fake.Put` 一旦少了 key 檢查，`TestFake` 的這四個 invalid key 案例就會失敗。契約是 fake 與真實實作之間唯一的連結；`kv` 再加規則，就在契約加一項，兩邊一起失敗。
 
-使用端直接用 `kvtest.NewFake()`。使用端的介面是隱式實作的，`*kvtest.Fake` 不需要任何共用的介面。有了可信的 fake，過去沒人想到要測的案例，現在一行就寫得出來：
+使用端直接用 `kvtest.NewFake()`。使用端的介面是隱式實作的，`*kvtest.Fake` 同時滿足 `notes.Store` 與 `drafts.Store`，兩個使用端不必 import 任何共用的介面；`kvtest.Store` 只是 `TestStore` 的參數型別，用來描述契約檢查的行為。有了可信的 fake，過去沒人想到要測的案例，現在一行就寫得出來：
 
 ```go,ignore
 {{#include ../../../examples/chapter5/04_where_test_doubles_live/after/notes/notes_test.go:test}}
@@ -82,7 +82,7 @@ fake 說成功，真的 `DirStore` 拒絕。使用者標題裡一打斜線，每
 
 ## 取捨
 
-- **`kvtest` 是公開 API。** `Fake`、`TestStore` 的名稱與行為都是提供者的承諾：改了名字、收緊契約，所有使用端的測試跟著受影響（第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉）。契約也只涵蓋列出來的案例，沒列的差異照樣沒人發現。
+- **`kvtest` 是公開 API。** `Fake`、`Store`、`TestStore` 的名稱與行為都是提供者的承諾：改了名字、收緊契約，所有使用端的測試跟著受影響（第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉）。契約也只涵蓋列出來的案例，沒列的差異照樣沒人發現。
 - **只有同一個 module 的套件在用，放進 `internal/`。** 例如 `internal/kvtest`，不必對外承諾（第 1 章〈[什麼時候用 `internal`，什麼時候該公開](../chapter1/03_internal_or_public.md)〉）。要給別的 module 用，才放在公開路徑。
 - **不要把替身放在正式程式的套件裡**，例如 `kv.NewFake`。它會出現在 `kv` 的公開 API 與 `go doc` 裡，使用者以為那是支援的功能，正式程式碼也可能開始 import 它。獨立的 `kvtest` 讓「這是測試用的」寫在套件名稱上。
 - **before 在這些情況下是對的**：只有一個使用端、依賴很簡單，在自己的測試檔裡抄一份 fake 或寫個 stub，比維護一個公開套件划算。依賴本來就快又穩，直接用真的，連替身都不用（第 3 章〈[介面何時是多餘的](../chapter3/03_redundant_interface.md)〉）。
@@ -93,6 +93,6 @@ fake 說成功，真的 `DirStore` 拒絕。使用者標題裡一打斜線，每
 
 - 同一個依賴的 fake 抄在多個套件裡，沒有東西把它們和真實實作連在一起，規則一變就各自走樣，測試照過。
 - 多個使用端共用的 fake，由提供者放在 `xxxtest` 套件（比照 `httptest`、`fstest`），並用提供者自己的契約測試，對 fake 與真實實作各跑一次。
-- 只要固定回答、或要模擬依賴失敗時，在使用端寫小 stub；使用端自己宣告介面，所以不需要共用的介面。
+- 只要固定回答、或要模擬依賴失敗時，在使用端寫小 stub；使用端自己宣告介面，不必 import 提供者的介面。
 - 測試用套件是要維護的公開 API；只有同一個 module 用，放進 `internal/`。
 - 不要把替身放進正式程式的套件。
