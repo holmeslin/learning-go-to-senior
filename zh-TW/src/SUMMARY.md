@@ -70,6 +70,8 @@
 
 - [效能調查流程]()
     - [常見熱點：配置、拷貝、鎖競爭](chapter7/05_common_hotspots.md)
+    - [什麼時候值得看逃逸分析](chapter7/06_when_to_check_escape_analysis.md)
+    - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
 - [runtime]()
 
 # 第五部　上線與維運
