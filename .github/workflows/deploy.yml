@@ -47,6 +47,10 @@ jobs:
         working-directory: zh-TW
         run: mdbook build
 
+      # 給 AI 助教用的原始檔：保留 repo 結構，include 的相對路徑才對得上 examples/
+      - name: Package sources for AI
+        run: zip -r -q zh-TW/book/go-senior-src.zip zh-TW/src examples go.mod go.sum -x '*.DS_Store'
+
       - name: Assemble site
         run: |
           mkdir -p public
