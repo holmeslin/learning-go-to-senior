@@ -52,7 +52,7 @@ BenchmarkFilter-14        	    9838	    123668 ns/op	   73883 B/op	    2875 allo
 
 三個數字都不能信。
 
-**結果沒人用。** `IsInternal` 不到 1 ns，差不多就是迴圈自己的成本。引數是常數、結果沒人用，函式被 inline 之後整段沒有副作用，編譯器可以直接刪掉；量到的是空迴圈。把迴圈換成 `for b.Loop()` 再量，數字會變大（這台機器上從約 0.24 ns 變成約 1.6 ns）。原因不是「不 inline」：`-gcflags=-m` 顯示 `b.Loop` 迴圈裡的 `IsInternal` 照樣被 inline。`go doc testing.B.Loop` 寫的是迴圈裡呼叫的引數、結果與賦值的變數會被保留，編譯器不能把迴圈本體整段刪掉。
+**結果沒人用。** `IsInternal` 不到 1 ns，差不多就是迴圈自己的成本。引數是常數、結果沒人用，函式被 inline 之後整段沒有副作用，編譯器可以直接刪掉；量到的是空迴圈。把迴圈換成 `for b.Loop()` 再量，數字會變大，因為呼叫不能再被整段刪掉。原因不是「不 inline」：`-gcflags=-m` 顯示 `b.Loop` 迴圈裡的 `IsInternal` 照樣被 inline。`go doc testing.B.Loop` 寫的是迴圈裡呼叫的引數、結果與賦值的變數會被保留，編譯器不能把迴圈本體整段刪掉。
 
 **計時範圍含準備工作。** `BenchmarkFilter` 每圈先產生 1000 個位址和 64 筆名單，`allocs/op` 高達兩千多次。`Filter` 本身只配置輸出的 slice 一次（`after` 的 `TestFilterAllocs` 對同樣寫法的 `FilterLinear` 斷言這件事），所以這一行的時間和配置幾乎都是準備工作的；改寫 `Filter` 之後，差異也會被準備工作稀釋。
 
