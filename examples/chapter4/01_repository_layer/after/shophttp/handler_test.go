@@ -9,8 +9,7 @@ import (
 )
 
 func TestGetOrder(t *testing.T) {
-	db := mustOpenDB(t.Name())
-	defer db.Close()
+	db := newTestDB(t)
 	seed(db, 7, "keyboard", "paid")
 	h := shophttp.NewHandler(order.NewStore(db))
 
@@ -31,8 +30,7 @@ func TestGetOrder(t *testing.T) {
 }
 
 func TestCloseAccount(t *testing.T) {
-	db := mustOpenDB(t.Name())
-	defer db.Close()
+	db := newTestDB(t)
 	seed(db, 1, "keyboard", "paid")
 	seed(db, 2, "mouse", "pending")
 	seed(db, 3, "cable", "shipped")
@@ -56,9 +54,11 @@ func TestCloseAccount(t *testing.T) {
 }
 
 func TestDatabaseFailureIsNotNotFound(t *testing.T) {
-	db := mustOpenDB(t.Name())
+	db := newTestDB(t)
 	h := shophttp.NewHandler(order.NewStore(db))
-	db.Close() // 資料庫關了，之後的查詢都會失敗
+	if err := db.Close(); err != nil { // 資料庫關了，之後的查詢都會失敗
+		t.Fatalf("close db: %v", err)
+	}
 
 	for _, path := range []string{"/orders/1", "/users/1/orders/open"} {
 		if got, want := call(h, http.MethodGet, path), "500 internal error"; got != want {

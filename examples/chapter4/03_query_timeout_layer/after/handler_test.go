@@ -19,7 +19,7 @@ func serve(ctx context.Context, h http.Handler) *httptest.ResponseRecorder {
 	return rec
 }
 
-func TestHandler_ok(t *testing.T) {
+func TestHandlerOK(t *testing.T) {
 	h := orders.NewHandler(orders.NewStore(newDB(t), time.Hour), time.Minute)
 
 	rec := serve(t.Context(), h)
@@ -29,7 +29,7 @@ func TestHandler_ok(t *testing.T) {
 }
 
 // 邊界設的 deadline 會往下傳：資料庫忙碌時，handler 在自己的 deadline 回 504。
-func TestHandler_deadline(t *testing.T) {
+func TestHandlerDeadline(t *testing.T) {
 	db := newDB(t)
 	busy(t, db)
 	h := orders.NewHandler(orders.NewStore(db, time.Hour), 100*time.Millisecond)
@@ -40,7 +40,7 @@ func TestHandler_deadline(t *testing.T) {
 }
 
 // 使用者已經離開（請求的 context 取消）：查詢不跑，也沒有人需要回應。
-func TestHandler_clientGone(t *testing.T) {
+func TestHandlerClientGone(t *testing.T) {
 	h := orders.NewHandler(orders.NewStore(newDB(t), time.Hour), time.Minute)
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -51,7 +51,7 @@ func TestHandler_clientGone(t *testing.T) {
 }
 
 // 其他錯誤回 500，細節只進日誌。
-func TestHandler_failure(t *testing.T) {
+func TestHandlerFailure(t *testing.T) {
 	log.SetOutput(io.Discard)
 	t.Cleanup(func() { log.SetOutput(os.Stderr) })
 

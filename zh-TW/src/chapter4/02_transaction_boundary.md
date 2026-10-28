@@ -10,7 +10,7 @@
 
 `BeginTx`、`Commit`、`Rollback` 與 `defer tx.Rollback()` 的寫法，前作〈[交易](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/06_transaction.html)〉已經講過；`database/sql` 怎麼接 SQLite，前作〈[`sql.Open` 與 SQLite driver](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/01_open_sqlite.html)〉也講過。這集談的是：交易該開在哪一層。
 
-範例用 SQLite 的 in-memory 資料庫。`:memory:` 每條連線各是一個獨立的資料庫，連線池開出第二條連線就看不到資料表，所以 DSN 用具名的共享快取（`file:…?mode=memory&cache=shared`），每個 `Example` 與測試各用一個名字。
+範例用 SQLite 的 in-memory 資料庫，DSN 為什麼是具名的共享快取，本章〈[要不要有 repository 這一層](01_repository_layer.md)〉談過；每個 `Example` 與測試各用一個名字。
 
 ## 常見寫法
 

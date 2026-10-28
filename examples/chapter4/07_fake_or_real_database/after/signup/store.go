@@ -28,12 +28,13 @@ func NewSQLStore(db *sql.DB) *SQLStore {
 
 // ANCHOR: add
 
-// Add 新增一個信箱，實作 Store。違反唯一約束時，把 driver 的錯誤翻成 ErrEmailTaken。
+// Add 新增一個信箱，實作 Store。違反唯一約束時，把 driver 的錯誤翻成 ErrEmailTaken；
+// 其他錯誤原樣包裝，errors.Is 找得到它們（包含 ctx 被取消或逾時）。
 func (s *SQLStore) Add(ctx context.Context, email string) (User, error) {
 	res, err := s.db.ExecContext(ctx, `INSERT INTO users (email) VALUES (?)`, email)
 	if err != nil {
 		if e, ok := errors.AsType[*sqlite.Error](err); ok && e.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
-			return User{}, ErrEmailTaken
+			return User{}, fmt.Errorf("add %s: %w", email, ErrEmailTaken)
 		}
 		return User{}, fmt.Errorf("insert %s: %w", email, err)
 	}

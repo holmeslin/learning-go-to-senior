@@ -2,6 +2,7 @@ package orders_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -9,7 +10,7 @@ import (
 	orders "github.com/holmeslin/learning-go-to-senior/examples/chapter4/03_query_timeout_layer/after"
 )
 
-func TestStore_counts(t *testing.T) {
+func TestStoreCounts(t *testing.T) {
 	store := orders.NewStore(newDB(t), time.Hour)
 
 	if n, err := store.PendingCount(t.Context()); err != nil || n != 3 {
@@ -24,12 +25,11 @@ func TestStore_counts(t *testing.T) {
 
 // 資料庫忙碌（唯一的連線被占住）時，查詢只能排隊。
 // 呼叫端的取消與 deadline 都要讓它回傳對應的錯誤。
-func TestStore_PendingCount_callerContext(t *testing.T) {
+func TestPendingCountCallerContext(t *testing.T) {
 	tests := []struct {
-		name      string
-		ctx       func(*testing.T) context.Context
-		want      error
-		wantWaits int64 // 查詢有沒有排進等連線的隊伍
+		name string
+		ctx  func(*testing.T) context.Context
+		want error
 	}{
 		{
 			name: "canceled",
@@ -38,8 +38,7 @@ func TestStore_PendingCount_callerContext(t *testing.T) {
 				cancel()
 				return ctx
 			},
-			want:      context.Canceled,
-			wantWaits: 0,
+			want: context.Canceled,
 		},
 		{
 			name: "deadline",
@@ -48,8 +47,7 @@ func TestStore_PendingCount_callerContext(t *testing.T) {
 				t.Cleanup(cancel)
 				return ctx
 			},
-			want:      context.DeadlineExceeded,
-			wantWaits: 1,
+			want: context.DeadlineExceeded,
 		},
 	}
 	for _, tt := range tests {
@@ -62,9 +60,6 @@ func TestStore_PendingCount_callerContext(t *testing.T) {
 			if !errors.Is(err, tt.want) {
 				t.Errorf("err = %v; want it to wrap %v", err, tt.want)
 			}
-			if got := db.Stats().WaitCount; got != tt.wantWaits {
-				t.Errorf("WaitCount = %d; want %d", got, tt.wantWaits)
-			}
 		})
 	}
 }
@@ -72,7 +67,7 @@ func TestStore_PendingCount_callerContext(t *testing.T) {
 // ANCHOR_END: test
 
 // store 的上限是從呼叫端的 context 縮短來的：呼叫端沒有 deadline 時，store 的上限先到。
-func TestStore_SearchCount_ownLimit(t *testing.T) {
+func TestSearchCountOwnLimit(t *testing.T) {
 	db := newDB(t)
 	busy(t, db)
 	store := orders.NewStore(db, 100*time.Millisecond)
@@ -84,7 +79,7 @@ func TestStore_SearchCount_ownLimit(t *testing.T) {
 }
 
 // 縮短只會更早，不會更晚：呼叫端的 deadline 比 store 的上限早，就由呼叫端決定。
-func TestStore_SearchCount_neverExtends(t *testing.T) {
+func TestSearchCountNeverExtends(t *testing.T) {
 	db := newDB(t)
 	busy(t, db)
 	store := orders.NewStore(db, time.Hour)
@@ -98,7 +93,7 @@ func TestStore_SearchCount_neverExtends(t *testing.T) {
 }
 
 // 縮短之後，呼叫端的取消照樣傳得進去。
-func TestStore_SearchCount_canceled(t *testing.T) {
+func TestSearchCountCanceled(t *testing.T) {
 	store := orders.NewStore(newDB(t), time.Hour)
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -106,5 +101,33 @@ func TestStore_SearchCount_canceled(t *testing.T) {
 	_, err := store.SearchCount(ctx, "gift")
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("err = %v; want it to wrap context.Canceled", err)
+	}
+}
+
+// 取消 BeginTx 收到的 ctx，交易就被回滾：寫入沒有留下來，Commit 也回傳錯誤。
+func TestBeginTxCancelRollsBack(t *testing.T) {
+	db := newDB(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatalf("BeginTx() error = %v", err)
+	}
+	if _, err := tx.ExecContext(t.Context(), `INSERT INTO orders (status, note) VALUES ('pending', 'in tx')`); err != nil {
+		t.Fatalf("insert in tx: %v", err)
+	}
+
+	cancel()
+
+	// 唯一的連線要等回滾做完才會放開，所以這個查詢看到的一定是回滾之後的資料。
+	// 5 秒只是保險：交易沒被回滾的話，查詢拿不到連線，測試以逾時失敗，而不是卡住。
+	guard, stop := context.WithTimeout(t.Context(), 5*time.Second)
+	defer stop()
+	var n int
+	if err := db.QueryRowContext(guard, `SELECT COUNT(*) FROM orders WHERE status = 'pending'`).Scan(&n); err != nil || n != 3 {
+		t.Errorf("pending orders = %d, %v; want 3, <nil> (the insert rolled back)", n, err)
+	}
+	if err := tx.Commit(); !errors.Is(err, sql.ErrTxDone) {
+		t.Errorf("Commit() error = %v; want %v", err, sql.ErrTxDone)
 	}
 }

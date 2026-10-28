@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 
 	_ "modernc.org/sqlite"
 
@@ -20,17 +19,20 @@ func ExampleOpen_existingDatabase() {
 	// 正式環境的資料庫是第一版建的：users 還沒有 name。
 	prod, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 	defer prod.Close()
 	if _, err := prod.ExecContext(ctx, `CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE)`); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	// 第二版上線，照常啟動：IF NOT EXISTS 看到 users 已經存在，整句跳過，沒有任何錯誤。
 	db, err := userdb.Open(ctx, dsn)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 	defer db.Close()
 	fmt.Println("open: ok")

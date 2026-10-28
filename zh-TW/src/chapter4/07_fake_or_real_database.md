@@ -8,7 +8,7 @@
 
 行銷團隊要匯入一份邀請名單。`Invite` 把每個信箱註冊進 `users` 表：已經註冊過的略過，並告訴呼叫端略過了誰；其他錯誤就中止。`users.email` 有唯一約束，而且不分大小寫。
 
-`Service` 靠 `Store` 介面存取資料，介面宣告在使用端（第 3 章〈[在使用端定義介面](../chapter3/01_define_interface_at_consumer.md)〉）。`database/sql` 與 SQLite driver 怎麼用，前作〈[`sql.Open` 與 SQLite driver](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/01_open_sqlite.html)〉教過；store 這一層怎麼來，本章〈要不要有 repository 這一層〉談過。這集只談它們的測試。
+`Service` 靠 `Store` 介面存取資料，介面宣告在使用端（第 3 章〈[在使用端定義介面](../chapter3/01_define_interface_at_consumer.md)〉）。`database/sql` 與 SQLite driver 怎麼用，前作〈[`sql.Open` 與 SQLite driver](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/01_open_sqlite.html)〉教過；store 這一層怎麼來，本章〈[要不要有 repository 這一層](01_repository_layer.md)〉談過。這集只談它們的測試。
 
 ## 常見寫法
 
@@ -36,7 +36,7 @@
 
 ## 問題在哪
 
-同一份名單、同一個 `Invite`，分別接上 fake 與真的 SQLite。`// Output:` 是實際輸出，由 `go test` 逐字比對：
+同一份名單、同一個 `Invite`，分別接上 fake 與真的 SQLite。`// Output:` 是實際輸出，由 `go test` 逐字比對（錯誤訊息的文字來自 SQLite driver，版本鎖在 `go.mod`）：
 
 ```go,ignore
 {{#include ../../../examples/chapter4/07_fake_or_real_database/before/signup/example_test.go:example}}
@@ -53,17 +53,19 @@
 
 分三件事。
 
-**測 store 時，直接對真的資料庫跑。** 每個測試拿到一個全新的檔案資料庫（放在 `t.TempDir()` 底下，測試結束自動清掉），套用的是 `signup.Schema`，也就是部署用的那份 SQL，不是測試自己抄一份。各測試用各的檔案，並行也不會互相干擾。這裡只有一張表，一份 SQL 就夠；有了編號的 migration（本章〈[migration](06_migration.md)〉），這一行就換成正式環境啟動時跑的同一個 `Up`，測試從空資料庫一路套到最新版，migration 本身也跟著被測到。
+**測 store 時，直接對真的資料庫跑。** 每個測試拿到一個全新的檔案資料庫（放在 `t.TempDir()` 底下，測試結束自動清掉），套用的是 `signup.Schema`，也就是部署用的那份 SQL，不是測試自己抄一份。各測試用各的檔案，並行也不會互相干擾。這裡只有一張表，一份 SQL 就夠；有了編號的 migration（本章〈[migration](06_migration.md)〉），套用 schema 的這一行就換成正式環境啟動時呼叫的同一個 `migrate.Up`，測試從空資料庫一路套到最新版，migration 本身也跟著被測到。
 
 ```go,ignore
 {{#include ../../../examples/chapter4/07_fake_or_real_database/after/signup/store_test.go:db}}
 ```
 
-**把 driver 錯誤翻成領域錯誤。** 真的資料庫一被測，第一個失敗就是 before 看不到的那個。唯一約束的錯誤碼要在 `Add` 裡翻成 `ErrEmailTaken`（做法見第 2 章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](../chapter2/02_wrap_or_expose.md)〉）：
+**把 driver 錯誤翻成領域錯誤。** 真的資料庫一被測，第一個失敗就是 before 看不到的那個。唯一約束的錯誤碼要在 `Add` 裡翻成 `ErrEmailTaken`：
 
 ```go,ignore
 {{#include ../../../examples/chapter4/07_fake_or_real_database/after/signup/store.go:add}}
 ```
+
+和本章〈[要不要有 repository 這一層](01_repository_layer.md)〉談過的 `Find` 一樣，翻譯後的錯誤前面加上 `add <信箱>:` 的脈絡；翻不了的錯誤用 `%w` 原樣包住，`context.Canceled` 與逾時才仍然找得到。原因見第 2 章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](../chapter2/02_wrap_or_expose.md)〉。
 
 **fake 與真的 store 跑同一組契約測試。** 契約寫成一個函式，收一個「造出全新 store」的函式；fake 與 SQLite 各呼叫一次：
 

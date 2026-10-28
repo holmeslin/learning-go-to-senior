@@ -59,6 +59,31 @@ func ExampleStore_Find_smallPool() {
 
 // ANCHOR_END: small
 
+// ANCHOR: nested
+
+func ExampleStore_Find_nestedQuery() {
+	db := newDB(1) // 池子只有一條連線
+	defer db.Close()
+	store := orders.NewStore(db)
+
+	// match 裡又查了一次資料庫：Find 還在走訪 rows，唯一的連線在它手上。
+	var nested error
+	o, err := store.Find(context.Background(), func(o orders.Order) bool {
+		ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+		defer cancel()
+		var n int
+		nested = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM orders WHERE customer = ?", o.Customer).Scan(&n)
+		return true
+	})
+	fmt.Println(o.ID, err)
+	fmt.Println(nested)
+	// Output:
+	// 1 <nil>
+	// context deadline exceeded
+}
+
+// ANCHOR_END: nested
+
 // ANCHOR: unlimited
 
 func ExampleStore_Find_unlimitedPool() {

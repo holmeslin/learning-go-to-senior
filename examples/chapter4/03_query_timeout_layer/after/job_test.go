@@ -18,7 +18,7 @@ func TestRunPendingJob(t *testing.T) {
 }
 
 // 背景工作沒有請求可以繼承，deadline 是它自己設的。
-func TestRunPendingJob_ownDeadline(t *testing.T) {
+func TestRunPendingJobOwnDeadline(t *testing.T) {
 	db := newDB(t)
 	busy(t, db)
 	store := orders.NewStore(db, time.Hour)
@@ -30,7 +30,7 @@ func TestRunPendingJob_ownDeadline(t *testing.T) {
 }
 
 // 整個程式關機時（上層的 context 取消），進行中的工作跟著停。
-func TestRunPendingJob_shutdown(t *testing.T) {
+func TestRunPendingJobShutdown(t *testing.T) {
 	store := orders.NewStore(newDB(t), time.Hour)
 
 	ctx, cancel := context.WithCancel(t.Context())

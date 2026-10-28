@@ -13,8 +13,7 @@ import (
 // ANCHOR: test
 
 func TestFindTranslatesNoRows(t *testing.T) {
-	db := mustOpenDB(t.Name())
-	defer db.Close()
+	db := newTestDB(t)
 
 	_, err := order.NewStore(db).Find(context.Background(), 99)
 
@@ -29,8 +28,7 @@ func TestFindTranslatesNoRows(t *testing.T) {
 // ANCHOR_END: test
 
 func TestFindReturnsOrder(t *testing.T) {
-	db := mustOpenDB(t.Name())
-	defer db.Close()
+	db := newTestDB(t)
 	seed(db, 7, "keyboard", "paid")
 
 	got, err := order.NewStore(db).Find(context.Background(), 1)
@@ -43,8 +41,7 @@ func TestFindReturnsOrder(t *testing.T) {
 }
 
 func TestOpenOrdersForSkipsShippedAndOtherUsers(t *testing.T) {
-	db := mustOpenDB(t.Name())
-	defer db.Close()
+	db := newTestDB(t)
 	seed(db, 1, "keyboard", "paid")
 	seed(db, 1, "mouse", "pending")
 	seed(db, 1, "cable", "shipped")
@@ -64,8 +61,7 @@ func TestOpenOrdersForSkipsShippedAndOtherUsers(t *testing.T) {
 }
 
 func TestOpenOrdersForNoOrders(t *testing.T) {
-	db := mustOpenDB(t.Name())
-	defer db.Close()
+	db := newTestDB(t)
 
 	got, err := order.NewStore(db).OpenOrdersFor(context.Background(), 1)
 
@@ -78,9 +74,11 @@ func TestOpenOrdersForNoOrders(t *testing.T) {
 }
 
 func TestOtherFailuresAreNotNotFound(t *testing.T) {
-	db := mustOpenDB(t.Name())
+	db := newTestDB(t)
 	store := order.NewStore(db)
-	db.Close() // 資料庫關了，之後的查詢都會失敗
+	if err := db.Close(); err != nil { // 資料庫關了，之後的查詢都會失敗
+		t.Fatalf("close db: %v", err)
+	}
 
 	_, findErr := store.Find(context.Background(), 1)
 	_, openErr := store.OpenOrdersFor(context.Background(), 1)
@@ -96,8 +94,7 @@ func TestOtherFailuresAreNotNotFound(t *testing.T) {
 }
 
 func TestCanceledContextIsKept(t *testing.T) {
-	db := mustOpenDB(t.Name())
-	defer db.Close()
+	db := newTestDB(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 

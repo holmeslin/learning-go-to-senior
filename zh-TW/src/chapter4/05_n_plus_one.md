@@ -14,7 +14,7 @@
 
 `Query`、`Rows` 的用法，前作〈[`Query` 與 `Rows`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/04_query_rows.html)〉已經講過，`?` 佔位符見〈[`Exec`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/02_exec.html)〉。這集談的是查詢怎麼分配，不是 API。
 
-`Store` 只依賴一個只有 `QueryContext` 的小介面（介面宣告在使用端，見第 3 章〈[在使用端定義介面](../chapter3/01_define_interface_at_consumer.md)〉）。`*sql.DB` 與 `*sql.Tx` 都符合，為什麼這樣設計，本章〈交易邊界放在哪裡〉談過；這集用它的另一個好處：包住它，就數得出查詢次數。
+`Store` 只依賴一個只有 `QueryContext` 的小介面（介面宣告在使用端，見第 3 章〈[在使用端定義介面](../chapter3/01_define_interface_at_consumer.md)〉）。`*sql.DB` 與 `*sql.Tx` 都符合，為什麼這樣設計，本章〈[交易邊界放在哪裡](02_transaction_boundary.md)〉談過；這集用它的另一個好處：包住它，就數得出查詢次數。
 
 ```go,ignore
 {{#include ../../../examples/chapter4/05_n_plus_one/before/orders.go:querier}}
@@ -32,7 +32,7 @@
 {{#include ../../../examples/chapter4/05_n_plus_one/before/orders.go:itemsof}}
 ```
 
-每個函式只做一件事，`rows` 有關閉、錯誤有處理，讀起來沒什麼好挑的。`RecentOrders` 先把清單讀完，才開始逐筆查；邊走訪 `rows` 邊查，會同時占住兩條連線，本章〈連線池要設多大、設錯會怎樣〉談過。完整程式碼在 `examples/chapter4/05_n_plus_one/before/`。
+每個函式只做一件事，`rows` 有關閉、錯誤有處理，讀起來沒什麼好挑的。`RecentOrders` 先把清單讀完，才開始逐筆查；邊走訪 `rows` 邊查，會同時占住兩條連線，本章〈[連線池要設多大、設錯會怎樣](04_pool_size.md)〉談過。完整程式碼在 `examples/chapter4/05_n_plus_one/before/`。
 
 ## 問題在哪
 
@@ -76,14 +76,14 @@
 {{#include ../../../examples/chapter4/05_n_plus_one/after/example_test.go:example}}
 ```
 
-不論取幾張，都是兩次。`orders_test.go` 鎖住三件事：組裝結果正確（包含沒有品項的訂單，以及品項的順序）、`limit` 以外的訂單品項不會混進來、查詢次數不隨訂單數成長（0 張訂單 1 次，1 張與 25 張都是 2 次）。完整程式碼在 `examples/chapter4/05_n_plus_one/after/`。
+不論取幾張，都是兩次。`orders_test.go` 鎖住四件事：組裝結果正確（包含沒有品項的訂單，以及品項的順序）、`limit` 以外的訂單品項不會混進來、查詢次數不隨訂單數成長（0 張訂單 1 次，1 張與 25 張都是 2 次）、`limit` 超出範圍時在查詢之前就回傳錯誤。完整程式碼在 `examples/chapter4/05_n_plus_one/after/`。
 
 ## 取捨
 
 兩次查詢不是白拿的：
 
 - **自己組裝，程式碼變長。** 分組、接回、空清單的處理，都是 before 不用寫的。
-- **`IN` 的參數有上限。** SQLite 的預設上限，3.32.0 以後是 32766，更早是 999（見 [SQLite 的限制說明](https://www.sqlite.org/limits.html)）；別的資料庫各有各的數字。清單可能很長時，要分批（`slices.Chunk`），查詢次數變成「批數 + 1」，仍然遠少於 `1 + N`，只是不再是常數。像這裡的 `limit` 由呼叫端決定、通常是一頁的筆數，不太會碰到。
+- **`IN` 的參數有上限。** SQLite 的預設上限，3.32.0 以後是 32766，更早是 999（見 [SQLite 的限制說明](https://www.sqlite.org/limits.html)）；別的資料庫各有各的數字。清單可能很長時，要分批（`slices.Chunk`），查詢次數變成「批數 + 1」，仍然遠少於 `1 + N`，只是不再是常數。這裡選擇不分批：`RecentOrders` 拒絕小於 1 或超過 `MaxRecentLimit`（1000，遠低於 32766）的 `limit`，「最多只查兩次」才站得住；代價是呼叫端想要更多筆時得自己分頁。
 - **也可以用 `JOIN`。** `orders LEFT JOIN order_items` 一次就取回，連第二次查詢都省了。代價是每個品項一列，訂單的欄位在每一列重複，欄位寬或品項多時傳輸量變大；沒有品項的訂單要用 `LEFT JOIN` 才不會消失，它的品項欄位是 `NULL`，要用 `sql.Null*` 或指標去掃（前作〈[`NULL` 處理](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/07_null.html)〉）；而且 `LIMIT` 限制的是 JOIN 之後的「列」，不是訂單數，要取最近 10 張訂單得改寫成子查詢。
 
 N+1 在這些情況下反而是合理的：

@@ -35,7 +35,7 @@ handler 沒有做錯什麼，它老實地把請求的 context 交了下去：
 ```
 
 - 第一行：`ctx` 已經取消，查詢照跑，還回傳 3。使用者早就走了，這次查詢是白做的。
-- 第二行：資料庫忙碌時，取消的 `ctx` 一樣排進等連線的隊伍（`WaitCount` 是 1），要等到 store 自己的上限才放棄。錯誤是 store 自己的 `context deadline exceeded`，不是呼叫端的 `context canceled`，handler 分不出「使用者走了」和「資料庫真的太慢」。
+- 第二行：資料庫忙碌時，取消的 `ctx` 一樣不起作用，查詢撐到 store 自己的上限才放棄。錯誤是 store 自己的 `context deadline exceeded`，不是呼叫端的 `context canceled`，handler 分不出「使用者走了」和「資料庫真的太慢」。
 - 上限是固定的。範例為了跑得快設 100 毫秒，實際服務可能是 5 秒：請求只剩 1 秒預算時，查詢仍然可以等 5 秒；呼叫端想等得更久，也沒有辦法。多次查詢的上限還會一個接一個疊上去，這類預算的算法，第 10 章〈逾時預算〉會談。
 
 更常見的版本連這個固定逾時都沒有：用 `db.QueryRow`，文件寫明它內部用 `context.Background`，永遠不會取消。
@@ -60,7 +60,7 @@ deadline 由邊界決定。handler 在 `r.Context()` 上加 deadline，一起往
 {{#include ../../../examples/chapter4/03_query_timeout_layer/after/example_test.go:example}}
 ```
 
-取消的查詢連隊都不排（`WaitCount` 0）；排隊中的查詢在呼叫端的 deadline 放棄，不必等任何固定上限。測試放在外部套件，用表格把這兩種情況與預期錯誤寫在一起：
+取消的 `ctx` 讓查詢立刻以 `context canceled` 結束；呼叫端的 deadline 一到，查詢就放棄，不必等任何固定上限。測試放在外部套件，用表格把這兩種情況與預期錯誤寫在一起：
 
 ```go,ignore
 {{#include ../../../examples/chapter4/03_query_timeout_layer/after/store_test.go:test}}
@@ -72,9 +72,9 @@ deadline 由邊界決定。handler 在 `r.Context()` 上加 deadline，一起往
 {{#include ../../../examples/chapter4/03_query_timeout_layer/after/store.go:search}}
 ```
 
-`WithTimeout` 取較早的那個：呼叫端的 deadline 更早就聽呼叫端的，呼叫端取消，縮短過的 context 也跟著取消（文件寫明 `WithDeadline` 的結果不會晚於父 context）。`store_test.go` 的另外三個測試分別驗證：呼叫端沒有 deadline 時 store 的上限先到、呼叫端的 deadline 更早時不會被延長、取消照樣傳得進去。
+`WithTimeout` 取較早的那個：呼叫端的 deadline 更早就聽呼叫端的，呼叫端取消，縮短過的 context 也跟著取消（文件寫明 `WithDeadline` 的結果不會晚於父 context）。`store_test.go` 裡針對 `SearchCount` 的三個測試分別驗證：呼叫端沒有 deadline 時 store 的上限先到、呼叫端的 deadline 更早時不會被延長、取消照樣傳得進去。
 
-交易也沒有自己的逾時。本章〈[交易邊界放在哪裡](02_transaction_boundary.md)〉的用例用收到的 `ctx` 呼叫 `BeginTx`；文件寫明這個 context 管到交易結束，取消時 `database/sql` 會回滾交易。所以邊界的 deadline 同時是整個交易的上限，不必另外設。要讓某個交易更短，就像 `SearchCount` 那樣在 `ctx` 上縮短，再交給 `BeginTx`。
+交易也沒有自己的逾時。本章〈[交易邊界放在哪裡](02_transaction_boundary.md)〉的用例用收到的 `ctx` 呼叫 `BeginTx`；文件寫明這個 context 管到交易結束，取消時 `database/sql` 會回滾交易（`TestBeginTxCancelRollsBack`：取消之後，交易裡的寫入沒有留下來，`Commit` 回傳 `sql.ErrTxDone`）。所以邊界的 deadline 同時是整個交易的上限，不必另外設。要讓某個交易更短，就像 `SearchCount` 那樣在 `ctx` 上縮短，再交給 `BeginTx`。
 
 完整程式碼在 `examples/chapter4/03_query_timeout_layer/after/`。
 
@@ -99,7 +99,7 @@ before 在這些情況下反而可以接受：
 
 ## 重點整理
 
-- store 在 `context.Background()` 上自己設逾時，呼叫端的取消與 deadline 就傳不進查詢：查詢照跑、照排隊，錯誤也分不出是誰放棄。
+- store 在 `context.Background()` 上自己設逾時，呼叫端的取消與 deadline 就傳不進查詢：查詢照跑，錯誤也分不出是誰放棄。
 - deadline 由邊界設：handler 在 `r.Context()` 上加，背景工作從程式的 context 往下加；store 只用收到的 `ctx`。
 - 資料層需要更緊的上限時，在收到的 `ctx` 上縮短；`WithTimeout` 只會更早，不會延長，取消也照樣傳得進去。
 - 背景工作沒有請求可以繼承，要自己設 deadline；跨服務的逾時預算，第 10 章〈逾時預算〉會談。

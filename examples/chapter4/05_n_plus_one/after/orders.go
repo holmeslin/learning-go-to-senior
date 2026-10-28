@@ -37,9 +37,17 @@ func NewStore(q Querier) *Store { return &Store{q: q} }
 
 // ANCHOR: recent
 
+// MaxRecentLimit 是 RecentOrders 接受的 limit 上限，遠低於 SQLite 的參數上限（32766），
+// 所以第二次查詢的 IN 一定放得下。
+const MaxRecentLimit = 1000
+
 // RecentOrders 回傳最近的 limit 張訂單（編號大的在前），每張帶著自己的品項。
-// 不論有幾張訂單，最多只查兩次。
+// limit 必須介於 1 與 MaxRecentLimit 之間，否則回傳錯誤、不查詢；
+// 在這個前提下，不論有幾張訂單，最多只查兩次。
 func (s *Store) RecentOrders(ctx context.Context, limit int) ([]Order, error) {
+	if limit < 1 || limit > MaxRecentLimit {
+		return nil, fmt.Errorf("recent orders: limit %d out of range 1..%d", limit, MaxRecentLimit)
+	}
 	orders, err := s.listOrders(ctx, limit)
 	if err != nil {
 		return nil, err

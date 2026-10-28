@@ -62,6 +62,24 @@ func TestRecentOrdersRespectsLimit(t *testing.T) {
 	}
 }
 
+// limit 超出範圍就在查詢之前拒絕：「最多只查兩次」靠這個前提成立，
+// 也避開 IN 的參數上限；SQLite 的負數 LIMIT 代表不設上限，所以小於 1 也要擋。
+func TestRecentOrdersRejectsLimitOutOfRange(t *testing.T) {
+	db := newDB(t, seed)
+	for _, limit := range []int{orders.MaxRecentLimit + 1, 0, -1} {
+		q := &countingQuerier{Querier: db}
+
+		_, err := orders.NewStore(q).RecentOrders(context.Background(), limit)
+
+		if err == nil {
+			t.Errorf("RecentOrders(limit=%d) error = nil; want an error", limit)
+		}
+		if q.n != 0 {
+			t.Errorf("RecentOrders(limit=%d) ran %d queries; want none", limit, q.n)
+		}
+	}
+}
+
 // 查詢次數不隨訂單數成長；沒有訂單時不送第二次查詢（空的 IN () 不是標準 SQL）。
 func TestRecentOrdersQueryCount(t *testing.T) {
 	for _, tc := range []struct {
@@ -84,7 +102,7 @@ func TestRecentOrdersQueryCount(t *testing.T) {
 			}
 
 			q := &countingQuerier{Querier: db}
-			got, err := orders.NewStore(q).RecentOrders(context.Background(), 1000)
+			got, err := orders.NewStore(q).RecentOrders(context.Background(), orders.MaxRecentLimit)
 			if err != nil {
 				t.Fatal(err)
 			}
