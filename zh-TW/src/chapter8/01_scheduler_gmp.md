@@ -35,13 +35,13 @@ runtime 的排程器有三種角色：
 ```text
 $ go build -o burst_before ./examples/chapter8/01_scheduler_gmp/before/burst
 $ GODEBUG=schedtrace=100 ./burst_before >/dev/null
-SCHED 113ms: gomaxprocs=14 idleprocs=0 threads=15 spinningthreads=0 needspinning=1 idlethreads=0 runqueue=5676 [ 54 74 32 53 47 251 26 72 67 16 56 72 117 0 ]
-SCHED 224ms: gomaxprocs=14 idleprocs=0 threads=15 spinningthreads=0 needspinning=1 idlethreads=0 runqueue=4953 [ 125 109 100 122 37 30 124 115 105 27 61 102 3 38 ]
+SCHED 106ms: gomaxprocs=14 idleprocs=0 threads=15 spinningthreads=0 needspinning=1 idlethreads=0 runqueue=4321 [ 82 63 52 13 112 11 41 111 23 119 47 38 29 95 ]
+SCHED 214ms: gomaxprocs=14 idleprocs=0 threads=15 spinningthreads=0 needspinning=1 idlethreads=0 runqueue=5523 [ 96 109 67 14 4 93 11 35 43 101 108 105 34 124 ]
 ```
 
 - `gomaxprocs=14`：P 的數量。`idleprocs=0`：沒有閒著的 P，CPU 已經被用滿。
 - `threads=15`：M 的數量，可以比 P 多，這集不展開。
-- `runqueue=5676`：全域佇列裡等著的 G。方括號裡是 14 個 P 各自的本地佇列長度，長度從 0 到兩百多不等，多數 P 的本地佇列都不是空的。
+- `runqueue=4321`：全域佇列裡等著的 G。方括號裡是 14 個 P 各自的本地佇列長度，這次是 4 到 124 之間，每個 P 的本地佇列都不是空的。
 
 `idleprocs=0` 是重點：CPU 已經滿了，排隊的 goroutine 不可能讓它更滿，多開的只是在等。每個等待中的 goroutine 還占著自己的堆疊。`after` 做同樣的事，佇列是這樣：
 
@@ -49,8 +49,8 @@ SCHED 224ms: gomaxprocs=14 idleprocs=0 threads=15 spinningthreads=0 needspinning
 
 ```text
 $ GODEBUG=schedtrace=100 ./burst_after >/dev/null
-SCHED 125ms: gomaxprocs=14 idleprocs=0 threads=15 spinningthreads=0 needspinning=1 idlethreads=0 runqueue=0 [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]
-SCHED 216ms: gomaxprocs=14 idleprocs=0 threads=15 spinningthreads=0 needspinning=1 idlethreads=0 runqueue=0 [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]
+SCHED 110ms: gomaxprocs=14 idleprocs=0 threads=15 spinningthreads=0 needspinning=1 idlethreads=0 runqueue=0 [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]
+SCHED 220ms: gomaxprocs=14 idleprocs=0 threads=15 spinningthreads=0 needspinning=1 idlethreads=0 runqueue=0 [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]
 ```
 
 兩邊的 `idleprocs` 都是 0，只有佇列長度不同。多開的 goroutine 有沒有換到吞吐量，要用 `benchstat` 看。兩個目錄的 `pkg:` 不同，所以加 `-ignore pkg`（第 7 章〈[`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](../chapter7/02_b_loop_benchstat.md)〉談過）；`Sum/blobs=N` 是一批 N 個 16 KiB 的 blob，表頭的 `-14` 是這台機器的 `GOMAXPROCS`。
@@ -64,14 +64,14 @@ $ go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e -ign
 goos: darwin
 goarch: arm64
 cpu: Apple M4 Max
-                    │    before    │                after                 │
-                    │    sec/op    │    sec/op     vs base                │
-Sum/blobs=1000-14     690.0µ ± 15%   794.3µ ± 21%        ~ (p=0.190 n=10)
-Sum/blobs=100000-14   78.13m ± 71%   61.23m ± 10%  -21.62% (p=0.019 n=10)
-geomean               7.342m         6.974m         -5.01%
+                    │   before    │                after                │
+                    │   sec/op    │   sec/op     vs base                │
+Sum/blobs=1000-14     623.4µ ± 2%   554.5µ ± 2%  -11.05% (p=0.000 n=10)
+Sum/blobs=100000-14   56.01m ± 1%   49.08m ± 1%  -12.38% (p=0.000 n=10)
+geomean               5.909m        5.217m       -11.72%
 ```
 
-要看的是 `before` 有沒有因為並行數多而比較快：沒有。`blobs=1000` 判為 `~`，`blobs=100000` 反而是 `after` 較快。`±` 很大的欄位（這次 `before` 的 71%）不穩，只能看方向，不能把百分比當結論。
+要看的是 `before` 有沒有因為並行數多而比較快：沒有。兩種大小 `after` 都比較快，約 11% 與 12%（`vs base` 欄），`±` 只有 1% 到 2%，`p=0.000`，benchstat 判定差異顯著。多開的 goroutine 沒有換到吞吐量，反而慢一些；具體的百分比會隨機器變，要看的是方向。
 
 ## 較好的做法
 
@@ -84,7 +84,7 @@ CPU 密集的工作，並行數對齊 P 的數量：開 `runtime.GOMAXPROCS(0)` 
 
 `GOMAXPROCS(0)` 只讀不改，回傳目前的值。這和第 6 章〈[什麼時候需要 worker pool，什麼時候每個任務一個 goroutine 就夠](../chapter6/06_worker_pool_or_goroutine_per_task.md)〉的判斷不衝突：那一集的上限由下游的容量決定，這裡由 CPU 決定。用 `errgroup` 的 `SetLimit(runtime.GOMAXPROCS(0))` 效果相同，這集只用標準庫。
 
-測試要證明並行數「跟著」`GOMAXPROCS`，而不是剛好等於這台機器的值：把它設成 1、2、4，同時執行的 `fn` 的最大值必須分別是 1、2、4。`synctest` 的假時鐘讓每個 `fn` 都「睡」一秒而不用真的等（第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉談過）。測試改了全域設定，所以用 `t.Cleanup` 還原，也不呼叫 `t.Parallel`；呼叫 `GOMAXPROCS` 還會關掉 runtime 的自動調整，只該出現在測試裡，細節本章〈容器內的 `GOMAXPROCS`〉會談：
+測試要證明並行數「跟著」`GOMAXPROCS`，而不是剛好等於這台機器的值：把它設成 1、2、4，同時執行的 `fn` 的最大值必須分別是 1、2、4。每個 `fn` 都卡在一個 channel 上，`synctest.Wait` 在所有 goroutine 都卡住時回來，這時數同時卡住的 `fn` 有幾個，再放行（第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉談過）。測試改了全域設定，所以用 `t.Cleanup` 還原，也不呼叫 `t.Parallel`；呼叫 `GOMAXPROCS` 還會關掉 runtime 的自動調整，只該出現在測試裡，細節本章〈容器內的 `GOMAXPROCS`〉會談：
 
 ```go,ignore
 {{#include ../../../examples/chapter8/01_scheduler_gmp/after/sum_test.go:follows}}

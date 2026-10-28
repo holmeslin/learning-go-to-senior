@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 	"testing/synctest"
-	"time"
 
 	blobsum "github.com/holmeslin/learning-go-to-senior/examples/chapter8/01_scheduler_gmp/after"
 	before "github.com/holmeslin/learning-go-to-senior/examples/chapter8/01_scheduler_gmp/before"
@@ -39,18 +38,33 @@ func TestForEachFollowsGOMAXPROCS(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
 				var mu sync.Mutex
 				inflight, peak := 0, 0
-				blobsum.ForEach(procs*4, func(int) {
-					mu.Lock()
-					inflight++
-					peak = max(peak, inflight)
-					mu.Unlock()
+				release := make(chan struct{})
+				done := make(chan struct{})
+				go func() {
+					defer close(done)
+					blobsum.ForEach(procs*4, func(int) {
+						mu.Lock()
+						inflight++
+						peak = max(peak, inflight)
+						mu.Unlock()
 
-					time.Sleep(time.Second) // bubble 內的假時鐘，不會真的等
+						<-release // 真的阻塞，直到測試放行
 
-					mu.Lock()
-					inflight--
-					mu.Unlock()
-				})
+						mu.Lock()
+						inflight--
+						mu.Unlock()
+					})
+				}()
+
+				synctest.Wait() // 全部卡住了：每個 worker 各卡在一個 fn，其餘編號沒人領
+				mu.Lock()
+				if inflight != procs {
+					t.Errorf("fn in flight while blocked = %d, want %d", inflight, procs)
+				}
+				mu.Unlock()
+
+				close(release)
+				<-done
 				if peak != procs {
 					t.Errorf("peak concurrency = %d, want %d", peak, procs)
 				}
