@@ -34,7 +34,8 @@ jobs:
         run: go run ./tools/checkcode zh-TW/src
 
       - name: Vet and test
-        run: go vet ./... && go test -race ./...
+        # 帶 integration tag，加了 //go:build integration 的整合測試才會被編譯與執行
+        run: go vet ./... && go vet -tags integration ./... && go test -race -tags integration ./...
 
       - name: Check no ANCHOR in go doc
         run: |
