@@ -68,7 +68,8 @@
 
 # 第四部　效能
 
-- [效能調查流程]()
+- [效能調查流程](chapter7/README.md)
+    - [先量測，再最佳化](chapter7/01_measure_before_optimizing.md)
 - [runtime]()
 
 # 第五部　上線與維運
