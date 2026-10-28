@@ -22,6 +22,17 @@ func reference(path string) string {
 
 // ANCHOR_END: reference
 
+func TestTemplateMatchesReference(t *testing.T) {
+	for _, p := range paths {
+		if got, want := route.Template(p), reference(p); got != want {
+			t.Errorf("Template(%q) = %q, want %q", p, got, want)
+		}
+	}
+}
+
+// ANCHOR: allocs
+
+// paths 涵蓋空字串、根路徑、一般路徑與連續斜線。
 var paths = []string{
 	"",
 	"/",
@@ -32,16 +43,6 @@ var paths = []string{
 	"/v2/users/abc123/orders/",
 	"//1//2",
 }
-
-func TestTemplateMatchesReference(t *testing.T) {
-	for _, p := range paths {
-		if got, want := route.Template(p), reference(p); got != want {
-			t.Errorf("Template(%q) = %q, want %q", p, got, want)
-		}
-	}
-}
-
-// ANCHOR: allocs
 
 func TestTemplateAllocs(t *testing.T) {
 	for _, p := range paths {
