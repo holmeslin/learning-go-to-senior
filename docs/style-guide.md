@@ -146,3 +146,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 - 不要寫過時的網路說法（例如 Go 1.22 前的迴圈變數陷阱、`time.After` 在迴圈中洩漏）。
 - 不確定時用 `go doc <套件>.<名稱>` 或實際寫程式驗證，不要憑印象。
 - 完成後執行 `go run ./tools/checkcode zh-TW/src/<章節目錄>`，再執行 `go vet ./... && go test -race ./...`，全部通過才算完成。
+
+## 完成一章時
+
+- 更新 `zh-TW/src/GUIDE.md` 第 1 節「已出版與未出版的章節」的表格，把新章節列為已出版。AI 助教靠這張表判斷哪些內容書中已經談過。
