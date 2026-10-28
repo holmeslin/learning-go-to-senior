@@ -26,23 +26,30 @@ profile 從 `BenchmarkSummarize`（`b.Loop`，2000 行輸入在迴圈外準備�
 go test -run='^$' -bench=Summarize -benchmem -cpuprofile=cpu.out -memprofile=mem.out -o before.test ./examples/chapter7/03_pprof_cpu_or_heap/before
 ```
 
-先照直覺讀 CPU profile。這集每一份 `go tool pprof` 的輸出都省略了 `Time`、`Duration`、`Showing`、`Dropped` 這幾行：
+這個指令因為有 `-benchmem`，也印出 benchmark 的結果，輸出省略了 `pkg:` 行與最後的 `PASS`、`ok` 行：
 
 執行結果（某一次）：
 
 ```text
-$ go tool pprof -top -nodecount=5 before.test cpu.out
-File: before.test
-Type: cpu
-      flat  flat%   sum%        cum   cum%
-     620ms 26.50% 26.50%      620ms 26.50%  runtime.pthread_cond_wait
-     370ms 15.81% 42.31%      370ms 15.81%  runtime.usleep
-     310ms 13.25% 55.56%      310ms 13.25%  runtime.madvise
-     260ms 11.11% 66.67%      260ms 11.11%  runtime.kevent
-     230ms  9.83% 76.50%      230ms  9.83%  runtime.pthread_cond_signal
+goos: darwin
+goarch: arm64
+cpu: Apple M4 Max
+BenchmarkSummarize-14    	    1243	    959659 ns/op	 8265939 B/op	    4057 allocs/op
 ```
 
-前幾名全是 runtime 內部的函式（執行緒的休眠與喚醒、把記憶體還給作業系統的 `madvise`），沒有一個是 `logstats` 的。看得出 runtime 很忙，卻沒說誰造成的；函式名稱隨作業系統而異，結論相同。原因在於 CPU profile 回答「時間花在哪」，GC 的成本不會記在配置者名下。照這份排行榜去「最佳化」，只會改到不相干的地方。
+輸入只有 2000 行，每次呼叫卻配置約 8 MB、4057 次，平均每行約 4 KB、2 次。先照直覺讀 CPU profile。這集每一份 `go tool pprof` 的輸出都省略了 `File`、`Type`、`Time`、`Duration`、`Showing`、`Dropped` 這幾行：
+
+執行結果（某一次）：
+
+```text
+$ go tool pprof -top -nodecount=3 before.test cpu.out
+      flat  flat%   sum%        cum   cum%
+     540ms 25.12% 25.12%      540ms 25.12%  runtime.pthread_cond_wait
+     390ms 18.14% 43.26%      390ms 18.14%  runtime.usleep
+     270ms 12.56% 55.81%      270ms 12.56%  runtime.kevent
+```
+
+前幾名全是 runtime 內部的函式（執行緒的休眠與喚醒、事件輪詢），沒有一個是 `logstats` 的。看得出 runtime 很忙，卻沒說誰造成的。這份輸出在 macOS 上收，函式名稱是 macOS 的，其他平台沒有量過。GC 的工作量跟著配置量走，上面每次呼叫 8 MB 的配置很可能和 runtime 忙碌有關；CPU profile 只說時間花在哪個函式，heap profile 才記是哪個函式在配置。照這份排行榜去「最佳化」，只會改到不相干的地方。
 
 ## 較好的做法
 
@@ -53,46 +60,41 @@ Type: cpu
 執行結果（某一次）：
 
 ```text
-$ go tool pprof -sample_index=inuse_space -top -nodecount=3 before.test mem.out
-File: before.test
-Type: inuse_space
+$ go tool pprof -sample_index=inuse_space -top -nodecount=2 before.test mem.out
       flat  flat%   sum%        cum   cum%
- 2051.23kB 80.01% 80.01%  2051.23kB 80.01%  runtime.mallocgc
-  512.50kB 19.99%   100%   512.50kB 19.99%  hash/crc32.simpleMakeTable (inline)
-         0     0%   100%   512.50kB 19.99%  hash/crc32.init
+ 2562.16kB 83.34% 83.34%  3074.16kB   100%  runtime.mallocgc
+  512.01kB 16.66%   100%   512.01kB 16.66%  runtime.mallocgcSmallScanNoHeaderSC2
 ```
 
-只有幾 MB，來源是 runtime 與標準庫自己的初始化，沒有 `logstats`：沒有洩漏。症狀是配置得太快，不是留得太久，改看 `alloc_space`，並用 `-cum` 依累計排序：
+只有約 3 MB，全是 runtime 自己的配置，沒有 `logstats`：沒有洩漏。症狀是配置得太快，不是留得太久，改看 `alloc_space`，並用 `-cum` 依累計排序：
 
 執行結果（某一次）：
 
 ```text
 $ go tool pprof -sample_index=alloc_space -top -cum -nodecount=8 before.test mem.out
-File: before.test
-Type: alloc_space
       flat  flat%   sum%        cum   cum%
-    0.04GB  0.43%  0.43%     8.61GB 99.94%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/03_pprof_cpu_or_heap/before.Summarize
-         0     0%  0.43%     8.61GB 99.94%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/03_pprof_cpu_or_heap/before_test.BenchmarkSummarize
-         0     0%  0.43%     8.61GB 99.94%  testing.(*B).run1.func1
-         0     0%  0.43%     8.61GB 99.94%  testing.(*B).runN
-         0     0%  0.43%     8.58GB 99.51%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/03_pprof_cpu_or_heap/before.normalize
-         0     0%  0.43%     8.54GB 99.06%  bytes.(*Buffer).Grow (inline)
-         0     0%  0.43%     8.54GB 99.06%  bytes.(*Buffer).grow
-    8.54GB 99.06% 99.49%     8.54GB 99.06%  bytes.growSlice
+    0.05GB  0.49%  0.49%     9.56GB 99.95%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/03_pprof_cpu_or_heap/before.Summarize
+         0     0%  0.49%     9.56GB 99.95%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/03_pprof_cpu_or_heap/before_test.BenchmarkSummarize
+         0     0%  0.49%     9.56GB 99.95%  testing.(*B).run1.func1
+         0     0%  0.49%     9.56GB 99.95%  testing.(*B).runN
+         0     0%  0.49%     9.52GB 99.46%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/03_pprof_cpu_or_heap/before.normalize
+         0     0%  0.49%     9.48GB 99.13%  bytes.(*Buffer).Grow (inline)
+         0     0%  0.49%     9.48GB 99.13%  bytes.(*Buffer).grow
+    9.48GB 99.13% 99.62%     9.48GB 99.13%  bytes.growSlice
 ```
 
-flat 是函式自己配置的，cum 連同它呼叫的函式一起算。flat 最大的是 `bytes.growSlice`，占 99%，但它是標準庫，不能改。往上看 cum：`Buffer.Grow` 也是標準庫，再往上第一個自己寫的函式是 `normalize`，flat 是 0、cum 99.51%，配置全發生在它呼叫的東西裡。`Summarize` 的 cum 雖然是 100%，但 flat 只有 0.43%，差的全在下一層的 `normalize`。該改的是 `normalize` 這一層。用 `-list` 找出是哪一行（省略了 `ROUTINE` 行的檔案路徑、`Total` 行與沒有數字的原始碼行，行號是 `before/logstats.go` 的行號）：
+flat 是函式自己配置的，cum 連同它呼叫的函式一起算。flat 最大的是 `bytes.growSlice`，占 99%，但它是標準庫，不能改。往上看 cum：`Buffer.Grow` 也是標準庫，再往上第一個自己寫的函式是 `normalize`，flat 是 0、cum 99.46%，配置全發生在它呼叫的東西裡。`Summarize` 的 cum 雖然是 100%，但 flat 只有 0.49%，差的全在下一層的 `normalize`。該改的是 `normalize` 這一層。用 `-list` 找出是哪一行（省略了 `ROUTINE` 行的檔案路徑、`Total` 行與沒有數字的原始碼行，行號是 `before/logstats.go` 的行號）：
 
 執行結果（某一次）：
 
 ```text
 $ go tool pprof -sample_index=alloc_space -list='before.normalize' before.test mem.out
 ROUTINE ======================== .../before.normalize in .../before/logstats.go
-         0     8.58GB (flat, cum) 99.51% of Total
+         0     9.52GB (flat, cum) 99.46% of Total
          .          .     68:func normalize(path string) string {
          .          .     69:	var b bytes.Buffer
-         .     8.54GB     70:	b.Grow(maxPathLen)
-         .       40MB     82:	return b.String()
+         .     9.48GB     70:	b.Grow(maxPathLen)
+         .       32MB     82:	return b.String()
 ```
 
 罪魁是每一行都預留 4096 位元組、卻只用幾十位元組。修正只動這一件事：緩衝區由 `Summarize` 持有，每行重複使用；`string(key)` 只用來查 map 時，編譯器不會複製，只有第一次看到新路徑才配置：
@@ -101,14 +103,15 @@ ROUTINE ======================== .../before.normalize in .../before/logstats.go
 {{#include ../../../examples/chapter7/03_pprof_cpu_or_heap/after/logstats.go:summarize}}
 ```
 
-after 的測試先保證行為沒變，再鎖住配置次數。`AllocsPerRun` 斷言的是確定的結果，不是時間：
+after 的測試先保證行為沒變，再設配置次數的上限；這條路徑沒有 `sync.Pool`，次數是確定的，所以 `AllocsPerRun` 可以斷言，上限比實測的 65 寬一些。斷言的是配置次數，不是時間；`sampleLines` 是上面 benchmark 用的輸入產生器：
 
 ```go,ignore
+{{#include ../../../examples/chapter7/03_pprof_cpu_or_heap/after/bench_test.go:lines}}
 {{#include ../../../examples/chapter7/03_pprof_cpu_or_heap/after/logstats_test.go:same}}
 {{#include ../../../examples/chapter7/03_pprof_cpu_or_heap/after/logstats_test.go:allocs}}
 ```
 
-before 與 after 各收 `-count=10`，輸出存成 `before.txt`、`after.txt`，再比較。`-ignore pkg` 讓兩個套件路徑不同的結果排在同一張表；`benchstat` 怎麼讀，本章〈`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信〉談過。
+before 與 after 各收 `-count=10`，輸出存成 `before.txt`、`after.txt`，再比較。兩份檔案來自不同套件，所以加 `-ignore pkg`；`benchstat` 怎麼讀、`-ignore pkg` 的用意，本章〈[`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](02_b_loop_benchstat.md)〉談過。
 
 執行結果（某一次）：
 
@@ -119,11 +122,11 @@ goarch: arm64
 cpu: Apple M4 Max
              │ before.txt  │              after.txt              │
              │   sec/op    │   sec/op     vs base                │
-Summarize-14   952.5µ ± 5%   198.8µ ± 4%  -79.13% (p=0.000 n=10)
+Summarize-14   776.5µ ± 1%   187.9µ ± 1%  -75.80% (p=0.000 n=10)
 
              │   before.txt   │              after.txt               │
              │      B/op      │     B/op      vs base                │
-Summarize-14   8072.19Ki ± 0%   41.02Ki ± 0%  -99.49% (p=0.000 n=10)
+Summarize-14   8072.20Ki ± 0%   41.02Ki ± 0%  -99.49% (p=0.000 n=10)
 
              │  before.txt  │             after.txt              │
              │  allocs/op   │ allocs/op   vs base                │
@@ -136,10 +139,8 @@ Summarize-14   4057.00 ± 0%   65.00 ± 0%  -98.40% (p=0.000 n=10)
 
 - profile 只反映 benchmark 打到的路徑與輸入。輸入和實際流量差太多，就會看錯地方；正式環境怎麼收 profile，第 9 章〈`/debug/pprof` 與診斷端點〉會談。
 - heap profile 是取樣（預設平均每配置 512 KiB 記錄一次），適合找大戶，不適合算精確的次數；精確的次數用 `AllocsPerRun`。
-- `alloc_space` 大不代表一定要改，只有症狀指向配置速率才值得動；GC 怎麼調，第 8 章〈什麼時候該調 `GOGC`，什麼時候別動〉會談。
-- 修正把緩衝區交給 `Summarize` 持有，換來比較不直覺的 `appendNormalized(dst, ...)`。常見的配置寫法與修正，本章〈常見熱點：配置、拷貝、鎖競爭〉會談。
-
-before 在什麼情況下是對的？`normalize` 只在啟動時呼叫幾次，或每次處理的行數很少時，多預留 4 KiB 不會有任何症狀，這時簡單的寫法就夠，不需要打開 profile。
+- `alloc_space` 大不代表一定要改，只有症狀指向配置速率才值得動；GC 怎麼調，第 8 章〈什麼時候該調 `GOGC`，什麼時候別動〉會談。修正把緩衝區交給 `Summarize` 持有，換來比較不直覺的 `appendNormalized(dst, ...)`。常見的配置寫法與修正，本章〈常見熱點：配置、拷貝、鎖競爭〉會談。
+- before 在什麼情況下是對的？`normalize` 只在啟動時呼叫幾次，或每次處理的行數很少時，多預留 4 KiB 不會有任何症狀，這時簡單的寫法就夠，不需要打開 profile。
 
 ## 重點整理
 

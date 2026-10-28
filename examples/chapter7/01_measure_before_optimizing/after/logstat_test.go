@@ -31,13 +31,13 @@ func ExampleSummarize() {
 
 // ANCHOR_END: example
 
+// ANCHOR: same
+
 // malformed 是壞掉的行：欄位數不對、狀態碼或毫秒不是數字、位數太多、多餘的空白。
 var malformed = []string{
 	"", "r1", "r1 GET /x 200", "r1 GET /x 200 5 extra", "r1 GET /x abc 5", "r1 GET /x 200 -5",
 	"r1 GET /x 200 1234567890", "r1  GET /x 200 5", "r1 GET /x 2_0 5", "r1 GET /x +200 5",
 }
-
-// ANCHOR: same
 
 // sameStats 比較兩個套件各自的 RouteStat；兩個型別的欄位完全相同，可以直接轉換。
 func sameStats(got []logstat.RouteStat, want []before.RouteStat) bool {

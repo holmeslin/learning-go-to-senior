@@ -8,8 +8,6 @@ import (
 	logstats "github.com/holmeslin/learning-go-to-senior/examples/chapter7/03_pprof_cpu_or_heap/after"
 )
 
-// ANCHOR: example
-
 func ExampleSummarize() {
 	stats, err := logstats.Summarize([]string{
 		"2026-10-28T10:00:00Z GET /api/users/42 200 12",
@@ -29,5 +27,3 @@ func ExampleSummarize() {
 	// /api/users/:id count=3 errors=1 p95=80ms last=10:00:02
 	// /healthz count=1 errors=0 p95=1ms last=10:00:03
 }
-
-// ANCHOR_END: example

@@ -9,8 +9,6 @@ import (
 	logstats "github.com/holmeslin/learning-go-to-senior/examples/chapter7/03_pprof_cpu_or_heap/after"
 )
 
-// ANCHOR: bench
-
 func BenchmarkSummarize(b *testing.B) {
 	lines := sampleLines(2000)
 	for b.Loop() {
@@ -19,8 +17,6 @@ func BenchmarkSummarize(b *testing.B) {
 		}
 	}
 }
-
-// ANCHOR_END: bench
 
 // ANCHOR: lines
 
