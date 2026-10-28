@@ -21,8 +21,8 @@ func do(h http.Handler, method, path, auth string) int {
 
 // ANCHOR: example
 
-func ExampleServer_Handler() {
-	h := notes.NewServer("s3cret", map[string]string{"1": "buy milk"}).Handler()
+func ExampleNewHandler() {
+	h := notes.NewHandler("s3cret", map[string]string{"1": "buy milk"})
 	fmt.Println("GET /notes/1 =", do(h, "GET", "/notes/1", ""))
 	fmt.Println("DELETE /notes/1 without token =", do(h, "DELETE", "/notes/1", ""))
 	// Output:
