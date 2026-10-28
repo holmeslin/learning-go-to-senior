@@ -51,7 +51,7 @@
 {{#include ../../../examples/chapter3/07_di_without_framework/after/signup/signup.go:register}}
 ```
 
-`Register` 的邏輯和 before 一樣，差別只在 `store` 與 `mailer` 從哪裡來：現在是 `Service` 的欄位，讀建構函式的簽名就知道它需要什麼。`Mailer` 是 `Service` 在自己這一端宣告的小介面，只有用到的 `Send`；`Store` 沒有介面，直接用具體型別，不是每個相依都得配一個介面（本章〈介面何時是多餘的〉談過）。第 1 章〈[循環相依與依賴方向](../chapter1/07_import_cycle.md)〉的 `order.Place` 把 `Notifier` 當參數傳入，是同一個做法的函式版。
+`Register` 的邏輯和 before 一樣，差別只在 `store` 與 `mailer` 從哪裡來：現在是 `Service` 的欄位，讀建構函式的簽名就知道它需要什麼。`Mailer` 是 `Service` 在自己這一端宣告的小介面，只有用到的 `Send`；`Store` 沒有介面，直接用具體型別，不是每個相依都得配一個介面（本章〈[介面何時是多餘的](03_redundant_interface.md)〉談過）。第 1 章〈[循環相依與依賴方向](../chapter1/07_import_cycle.md)〉的 `order.Place` 把 `Notifier` 當參數傳入，是同一個做法的函式版。
 
 接線只發生在 `main`：
 

@@ -60,7 +60,7 @@
 {{#include ../../../examples/chapter3/06_embedding_or_delegation/after/visits.go:audited}}
 ```
 
-現在 `Audited` 得自己實作 `Store` 的每個方法。少寫一個（例如 `Reset`），把它當 `Store` 用時就是編譯錯誤，不會等到線上才發現漏了稽核：
+現在 `Audited` 得自己實作 `Store` 的每個方法。它沒有嵌入 `Store`，方法集合就只有自己寫的這幾個，所以 `Store` 日後多一個方法、`Audited` 沒跟上時，下面這種「當 `Store` 用」的地方會編譯不過，漏了稽核在編譯時就會被指出來：
 
 ```go,ignore
 {{#include ../../../examples/chapter3/06_embedding_or_delegation/after/example_test.go:audited}}
@@ -68,7 +68,7 @@
 
 完整程式碼與測試在 `examples/chapter3/06_embedding_or_delegation/after/`。測試涵蓋三件事：`Counter` 不再是 `sync.Locker`、也沒有 `TryLock`；並行呼叫 `Incr` 不會漏算（搭配 `-race`）；`Audited` 的每個寫入方法都留下紀錄，也確實轉給底下的 `Store`。
 
-委派不會讓 nil 消失：傳 `nil` 給 `NewAudited` 還是會 panic，`visits.Audited{}` 這樣的零值也不能用（取捨見第 1 章〈[什麼時候讓零值可用，什麼時候該強制用建構函式](../chapter1/06_zero_value_or_constructor.md)〉）。差別在於漏傳 `store` 變成少一個參數的編譯錯誤，不再是執行時才發現。
+委派不會讓 nil 消失：`NewAudited` 收到 `nil` 時，欄位 `store` 是 nil 介面，第一次轉呼給它就會 panic；套件外也還是寫得出 `&visits.Audited{}`，照樣能編譯，欄位全是零值，同樣不能用（取捨見第 1 章〈[什麼時候讓零值可用，什麼時候該強制用建構函式](../chapter1/06_zero_value_or_constructor.md)〉）。建構函式只能讓漏設變得顯眼，擋不住：`NewAudited` 少傳參數會編譯不過，傳 `nil` 或直接寫 `&visits.Audited{}` 則不會，所以文件寫明 `store` 與 `log` 不可為 nil。
 
 ## 取捨
 
@@ -81,9 +81,8 @@
 
 - 外層型別未匯出，也沒有被匯出的函式回傳到套件外。方法集合沒人看得到，`c.Lock()` 比 `c.mu.Lock()` 短，也沒有人會依賴它。
 - 確實要保留完整的方法集合。標準庫的 `sort.Reverse` 內部是未匯出的 `reverse`，嵌入 `sort.Interface` 只覆寫 `Less`；它一定經由 `Reverse` 建立，欄位不會漏設。`bufio.ReadWriter` 嵌入 `*Reader` 與 `*Writer`，就是要兩邊的方法都有。
-- 測試替身偷懶時：嵌入介面、只實作用到的方法，沒實作的一被呼叫就 panic，在測試裡這反而能立刻看到。測試替身怎麼選、放哪裡，第 5 章會談。
 
-包裝 `http.ResponseWriter` 這類型別時，嵌入與委派都要小心：包裝後只剩 `ResponseWriter` 介面的三個方法，底下的值即使還實作了 `http.Flusher`，包起來之後型別斷言就拿不到。標準庫的做法是包裝型別提供 `Unwrap() http.ResponseWriter`，呼叫端改用 `http.NewResponseController`，它會順著 `Unwrap` 找到底下的值：
+包裝 `http.ResponseWriter` 時，嵌入與委派都要小心：包裝後只剩 `ResponseWriter` 介面的方法，底下的值即使實作了 `http.Flusher`，型別斷言也拿不到；補一個 `Unwrap`，呼叫端改用 `http.NewResponseController`，就會順著它找到底下的值：
 
 ```go,ignore
 {{#include ../../../examples/chapter3/06_embedding_or_delegation/after/example_test.go:flusher}}
@@ -95,4 +94,4 @@
 - 匯出的型別嵌入 `sync.Mutex`，外面就能直接 `Lock`，鎖不再是實作細節；把鎖放在未匯出的欄位。
 - 嵌入介面只覆寫部分方法，沒覆寫的會默默穿過去，欄位沒設就在呼叫時 panic；明確委派讓每個方法都是一個決定，漏寫編譯器會講。
 - 未匯出的型別、確實要保留完整方法集合的包裝，嵌入是對的。
-- 包裝 `http.ResponseWriter` 會遺失 `http.Flusher` 這類可選介面；提供 `Unwrap`，並用 `http.NewResponseController`。
+- 包裝 `http.ResponseWriter` 會遺失 `http.Flusher` 這類可選介面，要靠 `Unwrap` 補回來。
