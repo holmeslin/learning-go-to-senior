@@ -32,7 +32,7 @@ func TestHandler_ok(t *testing.T) {
 func TestHandler_deadline(t *testing.T) {
 	db := newDB(t)
 	busy(t, db)
-	h := orders.NewHandler(orders.NewStore(db, time.Hour), 10*time.Millisecond)
+	h := orders.NewHandler(orders.NewStore(db, time.Hour), 100*time.Millisecond)
 
 	if rec := serve(t.Context(), h); rec.Code != http.StatusGatewayTimeout {
 		t.Errorf("code = %d; want %d", rec.Code, http.StatusGatewayTimeout)

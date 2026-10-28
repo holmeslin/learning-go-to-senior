@@ -23,7 +23,7 @@ func TestRunPendingJob_ownDeadline(t *testing.T) {
 	busy(t, db)
 	store := orders.NewStore(db, time.Hour)
 
-	_, err := orders.RunPendingJob(t.Context(), store, 10*time.Millisecond)
+	_, err := orders.RunPendingJob(t.Context(), store, 100*time.Millisecond)
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("err = %v; want it to wrap context.DeadlineExceeded", err)
 	}

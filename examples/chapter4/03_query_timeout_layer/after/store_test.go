@@ -44,7 +44,7 @@ func TestStore_PendingCount_callerContext(t *testing.T) {
 		{
 			name: "deadline",
 			ctx: func(t *testing.T) context.Context {
-				ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
+				ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 				t.Cleanup(cancel)
 				return ctx
 			},
@@ -75,7 +75,7 @@ func TestStore_PendingCount_callerContext(t *testing.T) {
 func TestStore_SearchCount_ownLimit(t *testing.T) {
 	db := newDB(t)
 	busy(t, db)
-	store := orders.NewStore(db, 10*time.Millisecond)
+	store := orders.NewStore(db, 100*time.Millisecond)
 
 	_, err := store.SearchCount(t.Context(), "gift")
 	if !errors.Is(err, context.DeadlineExceeded) {
@@ -89,7 +89,7 @@ func TestStore_SearchCount_neverExtends(t *testing.T) {
 	busy(t, db)
 	store := orders.NewStore(db, time.Hour)
 
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
 	_, err := store.SearchCount(ctx, "gift")
 	if !errors.Is(err, context.DeadlineExceeded) {
