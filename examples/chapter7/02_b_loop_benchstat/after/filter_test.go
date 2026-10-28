@@ -15,9 +15,6 @@ func ExampleFilter() {
 	// Output: [10.0.0.1 10.0.0.2]
 }
 
-// sink 接住結果，讓 AllocsPerRun 量到的函式呼叫不會被當成沒人用的程式碼。
-var sink []string
-
 func TestFilterMatchesLinear(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -46,6 +43,9 @@ func TestFilterMatchesLinear(t *testing.T) {
 }
 
 // ANCHOR: allocs
+
+// sink 接住結果，讓 AllocsPerRun 量到的函式呼叫不會被當成沒人用的程式碼。
+var sink []string
 
 func TestFilterAllocs(t *testing.T) {
 	blocklist := addrs("192.0.2", 64)
