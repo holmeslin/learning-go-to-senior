@@ -69,6 +69,7 @@
 # 第四部　效能
 
 - [效能調查流程]()
+    - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
 - [runtime]()
 
 # 第五部　上線與維運
