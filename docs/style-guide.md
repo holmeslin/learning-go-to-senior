@@ -139,6 +139,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
   - `benchstat` 一律寫成固定版本的 `go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e`，不加進 `go.mod`。
   - benchmark 用 `b.Loop`，準備工作放在迴圈外。CI 以 `-benchtime=1x` 讓每個 benchmark 跑一次。
   - profile 與 trace 檔不進 repo；唯一例外是 PGO 用的 `default.pgo`，放在 main 套件旁。
+  - 最佳化的 after 可以 import 同集的 before 當比對基準（oracle），證明改寫前後結果一致。
 - 省略「改寫模式」三段的集可以沒有 `before`／`after`，但書中出現的 Go 程式碼仍然要走單檔範例或多檔案範例其中一條驗證路徑。
 
 ## 第三方套件
