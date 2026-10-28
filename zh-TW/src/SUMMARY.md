@@ -55,7 +55,8 @@
 
 # 第三部　並行實務
 
-- [結構化並行]()
+- [結構化並行](chapter6/README.md)
+    - [goroutine 的生命週期歸誰管](chapter6/01_goroutine_ownership.md)
 
 # 第四部　效能
 
