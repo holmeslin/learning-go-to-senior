@@ -3,13 +3,14 @@ package commands_test
 import (
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	commands "github.com/holmeslin/learning-go-to-senior/examples/chapter5/10_flaky_tests/after"
 )
 
 // echo 是唯讀的測試資料：不會被任何測試修改，可以放心共用。
-func echo(args []string) string { return "echo: " + args[0] }
+func echo(args []string) string { return strings.Join(append([]string{"echo:"}, args...), " ") }
 
 // ANCHOR: test
 
@@ -41,6 +42,18 @@ func TestRun(t *testing.T) {
 }
 
 // ANCHOR_END: test
+
+func TestRunWithoutArgs(t *testing.T) {
+	r := commands.New()
+	if err := r.Register("echo", echo); err != nil {
+		t.Fatalf("Register(%q) error = %v, want nil", "echo", err)
+	}
+
+	got, err := r.Run("echo")
+	if err != nil || got != "echo:" {
+		t.Errorf("Run(%q) = %q, %v; want %q, nil", "echo", got, err, "echo:")
+	}
+}
 
 func TestRunUnknown(t *testing.T) {
 	_, err := commands.New().Run("echo", "hi")
