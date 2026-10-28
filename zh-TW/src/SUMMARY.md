@@ -70,6 +70,12 @@
 
 - [效能調查流程](chapter7/README.md)
     - [先量測，再最佳化](chapter7/01_measure_before_optimizing.md)
+    - [`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](chapter7/02_b_loop_benchstat.md)
+    - [`pprof`：先看 CPU 還是 heap](chapter7/03_pprof_cpu_or_heap.md)
+    - [`runtime/trace`](chapter7/04_runtime_trace.md)
+    - [常見熱點：配置、拷貝、鎖競爭](chapter7/05_common_hotspots.md)
+    - [什麼時候值得看逃逸分析](chapter7/06_when_to_check_escape_analysis.md)
+    - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
 - [runtime]()
 
 # 第五部　上線與維運
