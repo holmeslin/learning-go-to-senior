@@ -41,6 +41,7 @@
 # 第二部　測試
 
 - [測試策略]()
+    - [表格驅動測試的邊界](chapter5/02_table_driven_boundary.md)
 
 # 第三部　並行實務
 
