@@ -53,7 +53,7 @@ runtime 只講到「足以做出判斷」的深度，不是要你去讀 Go 的�
 範例分成兩種：
 
 - **單檔範例**：直接寫在書裡，是完整的 Go 程式，可以複製到電腦上用 `go run` 執行。
-- **多檔案範例**：放在 [GitHub repo](https://github.com/holmeslin/learning-go-to-senior) 的 `examples/` 目錄，按章、集分資料夾，每集再分 `before` 與 `after` 兩個子目錄，分別是「常見寫法」與「較好的做法」。書中引用的程式碼就是這些檔案的片段。`examples/` 會隨著第 1 章的第一個範例一起加入。
+- **多檔案範例**：放在 [GitHub repo](https://github.com/holmeslin/learning-go-to-senior) 的 `examples/` 目錄，按章、集分資料夾，每集再分 `before` 與 `after` 兩個子目錄，分別是「常見寫法」與「較好的做法」。書中引用的程式碼就是這些檔案的片段。
 
 把 repo 抓下來（需要 Go 1.27），在專案根目錄執行：
 
@@ -62,6 +62,14 @@ go test -race ./...
 ```
 
 就能一次跑完所有多檔案範例的測試。只想看某一集的話，把 `./...` 換成那一集的目錄即可。有「常見寫法」與「較好的做法」的集，`before` 的程式碼保證能編譯並通過 `go vet`，`after` 的程式碼一定附有測試。
+
+## 搭配 AI 學習
+
+想討論某一集的判斷、把書中的做法套用到自己工作上的程式碼，或想要練習題時，可以請 AI 幫忙。下載本書的原始檔壓縮檔：
+
+> `go-senior-src.zip`：<https://holmeslin.github.io/learning-go-to-senior/zh-TW/go-senior-src.zip>
+
+壓縮檔裡有全書的原始檔與所有範例程式碼。把整個壓縮檔上傳給 AI，跟它說「請先閱讀壓縮檔裡的 `zh-TW/src/GUIDE.md` 再回答我」，再提出你的問題。問題和某一集有關時，順便說你在讀哪一集。這樣 AI 會以書中的判斷為準，並且把取捨講清楚，而不是只丟給你一個「標準答案」。建議使用能力較好的 AI 模型。
 
 ---
 
