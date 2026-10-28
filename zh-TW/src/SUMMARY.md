@@ -46,6 +46,7 @@
     - [測試替身放在哪裡](chapter5/04_where_test_doubles_live.md)
     - [整合測試與 build tags](chapter5/05_integration_tests_build_tags.md)
     - [golden file](chapter5/06_golden_file.md)
+    - [覆蓋率的意義與限制](chapter5/11_coverage_meaning_limits.md)
 
 # 第三部　並行實務
 
