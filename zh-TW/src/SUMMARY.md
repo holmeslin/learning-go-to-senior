@@ -79,6 +79,7 @@
     - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
 - [runtime]()
     - [`GOMEMLIMIT` 與容器記憶體上限](chapter8/03_gomemlimit_container.md)
+    - [`runtime/metrics`](chapter8/06_runtime_metrics.md)
 
 # 第五部　上線與維運
 
