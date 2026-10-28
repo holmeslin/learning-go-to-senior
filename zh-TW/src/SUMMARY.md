@@ -30,6 +30,7 @@
     - [什麼時候用嵌入，什麼時候該明確委派](chapter3/06_embedding_or_delegation.md)
     - [不用框架的相依注入](chapter3/07_di_without_framework.md)
 - [資料存取的設計]()
+    - [測試資料層：fake 與真實資料庫](chapter4/07_fake_or_real_database.md)
 
 # 第二部　測試
 
