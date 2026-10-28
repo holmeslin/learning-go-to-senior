@@ -90,8 +90,8 @@ func TestFetchAllRejectsBadLimit(t *testing.T) {
 		return "", nil
 	}
 	for _, limit := range []int{0, -1} {
-		if _, err := batch.FetchAll(t.Context(), ids(3), limit, fetch); err == nil {
-			t.Errorf("FetchAll(limit=%d) error = nil, want error", limit)
+		if _, err := batch.FetchAll(t.Context(), ids(3), limit, fetch); !errors.Is(err, batch.ErrInvalidLimit) {
+			t.Errorf("FetchAll(limit=%d) error = %v, want %v", limit, err, batch.ErrInvalidLimit)
 		}
 	}
 }

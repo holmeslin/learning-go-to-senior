@@ -8,6 +8,9 @@ import (
 	"sync"
 )
 
+// ErrInvalidLimit 表示 limit 小於 1。
+var ErrInvalidLimit = errors.New("limit must be at least 1")
+
 // Fetch 取得 id 對應的頁面標題。ctx 結束時應盡快回傳。
 type Fetch func(ctx context.Context, id int) (string, error)
 
@@ -15,10 +18,10 @@ type Fetch func(ctx context.Context, id int) (string, error)
 
 // FetchAll 對 ids 裡的每個 id 呼叫 fetch，同一時間最多 limit 個，
 // 回傳與 ids 同順序的結果。第一個錯誤會取消傳給 fetch 的 ctx，並成為回傳的錯誤。
-// limit 小於 1 時回傳錯誤。
+// limit 小於 1 時回傳 ErrInvalidLimit。
 func FetchAll(ctx context.Context, ids []int, limit int, fetch Fetch) ([]string, error) {
 	if limit < 1 {
-		return nil, errors.New("limit must be at least 1")
+		return nil, ErrInvalidLimit
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
