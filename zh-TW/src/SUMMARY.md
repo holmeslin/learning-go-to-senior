@@ -77,7 +77,8 @@
     - [什麼時候值得看逃逸分析](chapter7/06_when_to_check_escape_analysis.md)
     - [PGO](chapter7/07_pgo.md)
     - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
-- [runtime]()
+- [runtime](chapter8/README.md)
+    - [排程器（GMP）怎麼看](chapter8/01_scheduler_gmp.md)
 
 # 第五部　上線與維運
 
