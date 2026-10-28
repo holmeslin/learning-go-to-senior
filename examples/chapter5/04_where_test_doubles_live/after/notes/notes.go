@@ -1,4 +1,4 @@
-// Package notes keeps plain-text notes in a key-value store.
+// Package notes 把純文字筆記存在 key-value 儲存裡。
 package notes
 
 import (
@@ -8,13 +8,13 @@ import (
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter5/04_where_test_doubles_live/after/kv"
 )
 
-// Store is the part of a key-value store that notes needs.
+// Store 是 notes 需要的那一小部分 key-value 儲存。
 type Store interface {
 	Put(key, value string) error
 	Get(key string) (string, error)
 }
 
-// Append adds line at the end of the note called title, creating the note if needed.
+// Append 把 line 接在名為 title 的筆記後面；筆記不存在就建立它。
 func Append(s Store, title, line string) error {
 	body, err := s.Get(title)
 	if err != nil && !errors.Is(err, kv.ErrNotFound) {
