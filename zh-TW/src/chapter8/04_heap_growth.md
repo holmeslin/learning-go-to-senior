@@ -50,7 +50,7 @@ before cache    live heap    81.9 MiB
 $ go run ./examples/chapter8/04_heap_growth/after/demo -case=seen -mode=before
 before seen     live heap   125.3 MiB
 $ go run ./examples/chapter8/04_heap_growth/after/demo -case=pending -mode=before
-before pending  live heap    80.3 MiB
+before pending  live heap    80.4 MiB
 ```
 
 cache 放了 50 萬個客戶，一筆都沒被丟掉。seen 收了 2000 筆 64 KiB 的通知，2000 塊緩衝區全部還活著，只為了留 2000 個 16 位元組的代號。pending 尖峰時有 100 萬筆，之後只剩 1000 筆，空間卻還在。這三種都不是 GC 的問題：記憶體一直有人指著，GC 再跑也回收不了。
@@ -109,12 +109,12 @@ docker run --rm --cpus=4 --memory=1g -v "$PWD:/w:ro" golang:1.27-alpine /w/demo-
 執行結果（某一次）：
 
 ```text
-holding 256 MiB             live  256.1  free    0.1  released    7.2  VmRSS 259.6 MiB
-after runtime.GC()          live    0.1  free  256.1  released    7.1  VmRSS 259.6 MiB
-after debug.FreeOSMemory()  live    0.1  free    1.5  released  261.7  VmRSS 5.1 MiB
+holding 256 MiB             live  256.1  free    0.2  released    3.1  VmRSS 259.6 MiB
+after runtime.GC()          live    0.1  free  256.2  released    3.1  VmRSS 259.7 MiB
+after debug.FreeOSMemory()  live    0.1  free    0.0  released  259.2  VmRSS 3.5 MiB
 ```
 
-GC 之後 `live` 幾乎歸零，原本占用的量全變成 `free`，VmRSS 幾乎沒變；`FreeOSMemory` 之後 `released` 變大、VmRSS 才降下來。所以看監控要分開看：`live` 持續上升才是程式碼的問題；RSS 高而 `live` 低，通常是 `free` 還沒還。runtime 在設了記憶體上限時會更積極歸還，本章〈[`GOMEMLIMIT` 與容器記憶體上限](03_gomemlimit_container.md)〉談過。
+GC 之後 `live` 幾乎歸零，原本占用的量全變成 `free`，VmRSS 幾乎沒變；`FreeOSMemory` 之後 `released` 變大、VmRSS 才降下來。所以看監控要分開看：`live` 持續上升才是程式碼的問題；RSS 高而 `live` 低，通常是 `free` 還沒還。`go doc runtime/debug.SetMemoryLimit` 寫設了記憶體上限時，runtime 會「more aggressively」把記憶體還給作業系統；上限怎麼設，本章〈[`GOMEMLIMIT` 與容器記憶體上限](03_gomemlimit_container.md)〉談過。
 
 ## 取捨
 
