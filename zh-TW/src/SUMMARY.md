@@ -40,7 +40,8 @@
 
 # 第二部　測試
 
-- [測試策略]()
+- [測試策略](chapter5/README.md)
+    - [測什麼、不測什麼](chapter5/01_what_to_test.md)
 
 # 第三部　並行實務
 
