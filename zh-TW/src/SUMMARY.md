@@ -42,6 +42,7 @@
 
 - [測試策略](chapter5/README.md)
     - [測什麼、不測什麼](chapter5/01_what_to_test.md)
+    - [表格驅動測試的邊界](chapter5/02_table_driven_boundary.md)
 
 # 第三部　並行實務
 
