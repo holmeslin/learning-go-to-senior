@@ -36,7 +36,7 @@ $ go test -run='^$' -bench=. -benchmem ./examples/chapter7/06_when_to_check_esca
 goos: darwin
 goarch: arm64
 cpu: Apple M4 Max
-BenchmarkRoute-14    	 9504381	       126.5 ns/op	     272 B/op	       8 allocs/op
+BenchmarkRoute-14    	10564197	       111.5 ns/op	     272 B/op	       8 allocs/op
 ```
 
 每個 op 處理四行，8 次配置，等於每一行 2 次。配置是這個熱點的成本，這時才值得問「為什麼配置」。如果 `allocs/op` 是 0，看 `-m` 沒有意義。
@@ -56,7 +56,7 @@ route.go:55:16: string(buf) escapes to heap
 
 - `&Entry{...} escapes to heap`：`ParseLine` 回傳指標，`Entry` 得比這次呼叫活得久，只能放在 heap。
 - `string(buf) escapes to heap`：`Route` 回傳字串，字串的內容同樣要活過呼叫。
-- `make(...) does not escape`：緩衝區本身留在 stack，這一行不是成本。
+- `make(...) does not escape`：緩衝區本身沒有逃逸，這一行不是成本。但容量是執行期才算出來的，Go 1.27 只有容量不超過 32 位元組時放在 stack（另外以 `AllocsPerRun` 量過：32 位元組零次配置，33 位元組起一次）；這四行的緩衝區都在 32 位元組以內，所以沒有算進那 2 次。
 
 省略的行裡還有 `status escapes to heap`，那是 `fmt.Errorf` 的參數轉成 `any`，只發生在錯誤路徑，不在熱點上。
 
@@ -106,18 +106,20 @@ route.go:54:15: append escapes to heap
 
 `append escapes to heap` 仍然出現，因為 `dst` 的容量不夠時，`append` 必須配置新的陣列。`-m` 回答「可能逃逸」，不回答「每次都配置」；容量夠的時候一次也不配置，這件事由 `AllocsPerRun` 的測試回答。呼叫端要重複使用緩衝區才有效，傳 `nil` 進去就回到每次配置（`Route` 包裝就是這樣）。
 
-`BenchmarkRoute` 在 after 的寫法相同，只是重複使用 `buf`。兩邊各收 `-count=10`，輸出存成 `old.txt`、`new.txt`（用 `grep -v '^pkg:'` 去掉 `pkg:` 行，否則 `benchstat` 會把兩個套件當成不同組態，分開列表），再比較：
+`BenchmarkRoute` 在 after 的寫法相同，只是重複使用 `buf`。兩邊各收 `-count=10`，輸出存成 `old.txt`、`new.txt`，再用 `-ignore pkg` 比較；輸出沒有 `pkg:` 行：
 
 執行結果（某一次）：
 
 ```text
-$ go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e old.txt new.txt
+$ go test -run='^$' -bench=. -benchmem -count=10 ./examples/chapter7/06_when_to_check_escape_analysis/before > old.txt
+$ go test -run='^$' -bench=. -benchmem -count=10 ./examples/chapter7/06_when_to_check_escape_analysis/after > new.txt
+$ go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e -ignore pkg old.txt new.txt
 goos: darwin
 goarch: arm64
 cpu: Apple M4 Max
-         │    old.txt    │               new.txt               │
-         │    sec/op     │   sec/op     vs base                │
-Route-14   138.75n ± 12%   68.86n ± 6%  -50.37% (p=0.000 n=10)
+         │   old.txt    │               new.txt               │
+         │    sec/op    │   sec/op     vs base                │
+Route-14   111.05n ± 1%   63.39n ± 0%  -42.92% (p=0.000 n=10)
 
          │  old.txt   │              new.txt              │
          │    B/op    │   B/op    vs base                 │
@@ -128,14 +130,14 @@ Route-14   272.0 ± 0%   0.0 ± 0%  -100.00% (p=0.000 n=10)
 Route-14   8.000 ± 0%   0.000 ± 0%  -100.00% (p=0.000 n=10)
 ```
 
-`benchstat` 的判斷是三項都有顯著差異（`p=0.000`），時間下降、`B/op` 與 `allocs/op` 歸零。數字換一台機器會不同，可以信的是方向。`benchstat` 怎麼讀，本章〈`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信〉談過。
+`benchstat` 的判斷是三項都有顯著差異（`p=0.000`），時間下降、`B/op` 與 `allocs/op` 歸零。數字換一台機器會不同，可以信的是方向。`benchstat` 怎麼讀、`-ignore pkg` 的用意，本章〈[`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](02_b_loop_benchstat.md)〉談過。
 
 ## 取捨
 
-- **只在熱點上做。** 沒有量測指出配置之前，不需要跑 `-m`；多數函式的配置不影響結果，改成 append 式 API 只會讓呼叫端多管一個緩衝區。找出迴圈裡的配置與拷貝，本章〈常見熱點：配置、拷貝、鎖競爭〉談過。
+- **只在熱點上做。** 沒有量測指出配置之前，不需要跑 `-m`；多數函式的配置不影響結果，改成 append 式 API 只會讓呼叫端多管一個緩衝區。找出迴圈裡的配置與拷貝，本章〈[常見熱點：配置、拷貝、鎖競爭](05_common_hotspots.md)〉談過。
 - **逃逸的決定隨編譯器版本改變。** 上面的 `-m` 輸出是 Go 1.27 的結果；升級之後，同一段程式的決定可能不同，所以別把輸出當成永遠成立的事實。`AllocsPerRun` 的測試就是為這件事留的：升級後如果某個熱點又開始配置，測試會失敗。
 - **為了少一次配置把 API 改彆扭，通常不值得。** `AppendRoute` 可以接受，因為 `Append` 是標準庫看得懂的慣例，而且 `Route` 還在。如果要呼叫端預先備好一堆輸出參數或物件才能呼叫，換來的那一點時間多半不值得。
-- **其他常見原因讀法相同。** 值存進介面（像上面的 `status`）、閉包捕捉變數、大小不固定的 slice，都是找 `escapes to heap` 那一行，再問「結果為什麼要活過這次呼叫」。
+- **其他常見原因讀法相同。** 值存進介面（像上面的 `status`）、閉包捕捉變數、容量執行期才知道的 slice（`-m` 可能說 `does not escape`，像上面的 `make`，但 Go 1.27 只有小的放在 stack），都是找 `escapes to heap` 那一行，再問「結果為什麼要活過這次呼叫」。
 - **before 在多數時候是對的。** 不在熱路徑、配置不是瓶頸時，回傳指標與回傳字串最好讀。
 
 ## 重點整理
