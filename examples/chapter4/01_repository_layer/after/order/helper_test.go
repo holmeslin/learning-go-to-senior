@@ -2,6 +2,7 @@ package order_test
 
 import (
 	"database/sql"
+	"testing"
 
 	_ "modernc.org/sqlite"
 )
@@ -25,6 +26,18 @@ func mustOpenDB(name string) *sql.DB {
 		db.Close()
 		panic(err)
 	}
+	return db
+}
+
+// newTestDB 是測試用的 mustOpenDB：測試結束時關閉資料庫並檢查錯誤。
+func newTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+	db := mustOpenDB(t.Name())
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("close db: %v", err)
+		}
+	})
 	return db
 }
 

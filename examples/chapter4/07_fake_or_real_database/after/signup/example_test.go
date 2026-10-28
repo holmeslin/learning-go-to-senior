@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	_ "modernc.org/sqlite"
-
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter4/07_fake_or_real_database/after/signup"
 )
 

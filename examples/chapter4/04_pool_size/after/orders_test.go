@@ -10,6 +10,18 @@ import (
 	orders "github.com/holmeslin/learning-go-to-senior/examples/chapter4/04_pool_size/after"
 )
 
+// newTestDB 是測試用的 newDB：測試結束時關閉資料庫並檢查錯誤。
+func newTestDB(t *testing.T, maxOpen int) *sql.DB {
+	t.Helper()
+	db := newDB(maxOpen)
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("close db: %v", err)
+		}
+	})
+	return db
+}
+
 // guard 讓「連線沒歸還」的 bug 以逾時失敗收場，而不是讓測試卡住。
 // 正常情況下沒有任何呼叫會等到它，所以它的長短不影響結果。
 const guard = 5 * time.Second
@@ -31,8 +43,7 @@ func TestFindReturnsConnection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			db := newDB(1)
-			defer db.Close()
+			db := newTestDB(t, 1)
 			if tt.seed != "" {
 				if _, err := db.Exec(tt.seed); err != nil {
 					t.Fatalf("seed: %v", err)
@@ -58,8 +69,7 @@ func TestFindReturnsConnection(t *testing.T) {
 
 func TestFindReportsNotFound(t *testing.T) {
 	t.Parallel()
-	db := newDB(1)
-	defer db.Close()
+	db := newTestDB(t, 1)
 
 	_, err := orders.NewStore(db).Find(context.Background(), func(orders.Order) bool { return false })
 
@@ -82,8 +92,7 @@ func TestOpenRejectsUnlimitedPool(t *testing.T) {
 
 func TestOpenSetsPool(t *testing.T) {
 	t.Parallel()
-	db := newDB(3)
-	defer db.Close()
+	db := newTestDB(t, 3)
 	if got := db.Stats().MaxOpenConnections; got != 3 {
 		t.Errorf("MaxOpenConnections = %d, want 3", got)
 	}

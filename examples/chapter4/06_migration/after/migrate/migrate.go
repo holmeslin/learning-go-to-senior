@@ -29,7 +29,8 @@ type migration struct {
 // 檔名必須是「編號_說明.sql」，編號不可重複。每個檔案和它在 schema_migrations 的紀錄
 // 在同一個交易裡：失敗的檔案不留任何痕跡，先前已套用的仍然有效。沒有新檔案時什麼都不做。
 //
-// shortcut: 沒有鎖，兩個程序同時啟動會搶著套用同一個檔案；有多個副本時再補。
+// Up 沒有加鎖：兩個行程同時啟動時，可能都讀到「還沒套用」而去套用同一個檔案，
+// 所以有多個副本時，要在部署流程裡讓 migration 只跑一次。
 func Up(ctx context.Context, db *sql.DB, fsys fs.FS) ([]string, error) {
 	todo, err := load(fsys)
 	if err != nil {

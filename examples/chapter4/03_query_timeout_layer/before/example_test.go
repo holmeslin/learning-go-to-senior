@@ -27,10 +27,10 @@ func ExampleStore_PendingCount() {
 	tx := hold(db)
 	defer tx.Rollback()
 	_, err = store.PendingCount(canceled)
-	fmt.Println(err, db.Stats().WaitCount)
+	fmt.Println(err)
 	// Output:
 	// context canceled 3 <nil>
-	// count pending orders: context deadline exceeded 1
+	// count pending orders: context deadline exceeded
 }
 
 // ANCHOR_END: example

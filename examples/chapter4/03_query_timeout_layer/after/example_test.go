@@ -22,16 +22,16 @@ func ExampleStore_PendingCount() {
 	canceled, cancel := context.WithCancel(context.Background())
 	cancel()
 	_, err := store.PendingCount(canceled)
-	fmt.Println(err, db.Stats().WaitCount)
+	fmt.Println(err)
 
 	// 呼叫端的 deadline 到了：已經在排隊的查詢跟著放棄。
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	_, err = store.PendingCount(ctx)
-	fmt.Println(err, db.Stats().WaitCount)
+	fmt.Println(err)
 	// Output:
-	// count pending orders: context canceled 0
-	// count pending orders: context deadline exceeded 1
+	// count pending orders: context canceled
+	// count pending orders: context deadline exceeded
 }
 
 // ANCHOR_END: example

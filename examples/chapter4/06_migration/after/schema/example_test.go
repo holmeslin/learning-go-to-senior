@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io/fs"
-	"log"
 	"testing/fstest"
 
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter4/06_migration/after/migrate"
@@ -20,7 +19,7 @@ func release1() fs.FS {
 	for _, name := range []string{"001_create_users.sql", "002_create_audit_log.sql"} {
 		data, err := schema.FS.ReadFile(name)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		files[name] = &fstest.MapFile{Data: data}
 	}
@@ -35,7 +34,8 @@ func Example() {
 	ctx := context.Background()
 	db, err := sql.Open("sqlite", "file:schema_example?mode=memory&cache=shared")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 	defer db.Close()
 
@@ -53,7 +53,8 @@ func Example() {
 
 	var version int
 	if err := db.QueryRowContext(ctx, `SELECT max(version) FROM schema_migrations`).Scan(&version); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 	cols, err := columns(ctx, db, "users")
 	fmt.Println("version:", version)

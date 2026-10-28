@@ -88,7 +88,7 @@ after/
 {{#include ../../../examples/chapter4/01_repository_layer/after/order/store_test.go:test}}
 ```
 
-這些測試直接對真的 SQLite 跑。`:memory:` 在每條連線上都是各自獨立的資料庫，連線池多開一條連線就會看到空的資料庫，所以測試用具名的共享快取 `file:<名稱>?mode=memory&cache=shared`，每個測試各用一個名稱。為什麼要對真的資料庫測，本章〈測試資料層：fake 與真實資料庫〉會談。
+這些測試直接對真的 SQLite 跑。`:memory:` 在每條連線上都是各自獨立的資料庫，連線池多開一條連線就會看到空的資料庫，所以測試用具名的共享快取 `file:<名稱>?mode=memory&cache=shared`，每個測試各用一個名稱（本章後面用記憶體資料庫的範例都這樣做，不再重複說明）。為什麼要對真的資料庫測，本章〈測試資料層：fake 與真實資料庫〉會談。
 
 現在 handler 不碰 SQL，關閉帳號只問 `OpenOrdersFor`，同樣的情境結果就對了：
 
