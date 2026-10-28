@@ -8,7 +8,7 @@
 
 你寫了一個 `audit` 套件，把稽核事件寫到檔案。寫入先經過緩衝，所以除了 `Log` 之外還有 `Flush`：寫完要呼叫它，緩衝區裡的紀錄才會真的送出去。別的服務與它們的測試都會用這個套件。
 
-介面與隱式實作，前作〈[`interface`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/01_interface.html)〉與〈[隱式實作](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/02_implicit_implementation.html)〉已經講過。這集只談函式簽名的兩端；介面該宣告在哪個套件，本章〈在使用端定義介面〉談過，這集不重複。
+介面與隱式實作，前作〈[`interface`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/01_interface.html)〉與〈[隱式實作](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/02_implicit_implementation.html)〉已經講過。這集只談函式簽名的兩端；介面該宣告在哪個套件，本章〈[在使用端定義介面](01_define_interface_at_consumer.md)〉談過，這集不重複。
 
 ## 常見寫法
 
@@ -98,7 +98,7 @@ before 要靠 nil 表示的「不記錄」，現在是：
 回傳具體型別有代價：
 
 - 匯出的型別就是 API。欄位與方法一旦匯出就要維持；`Logger` 把欄位 `w` 留成不匯出，日後換掉緩衝的做法，呼叫端不受影響。第 1 章〈[什麼時候讓零值可用，什麼時候該強制用建構函式](../chapter1/06_zero_value_or_constructor.md)〉也是這個做法：匯出型別、不匯出欄位。
-- 呼叫端想在測試裡換掉 `*audit.Logger`，得在自己的套件宣告一個小介面，只放用到的方法，`*audit.Logger` 自動符合（本章〈在使用端定義介面〉談過；測試替身怎麼選，第 5 章會談）。回傳 `*Logger` 之後，原本那個只有一種實作的 `Logger` 介面也用不到了，介面何時是多餘的，本章〈介面何時是多餘的〉會談。
+- 呼叫端想在測試裡換掉 `*audit.Logger`，得在自己的套件宣告一個小介面，只放用到的方法，`*audit.Logger` 自動符合（本章〈[在使用端定義介面](01_define_interface_at_consumer.md)〉談過；測試替身怎麼選，第 5 章會談）。回傳 `*Logger` 之後，原本那個只有一種實作的 `Logger` 介面也用不到了，介面何時是多餘的，本章〈介面何時是多餘的〉會談。
 - 參數收介面，也收得進有型別的 nil：呼叫端傳 `(*os.File)(nil)`，`New` 裡的 `w == nil` 判斷不出來，所以文件寫明 `w` 不可為 nil。
 
 回傳介面在這些情況下才是對的：
