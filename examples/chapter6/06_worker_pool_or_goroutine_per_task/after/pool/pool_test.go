@@ -1,4 +1,4 @@
-package batch_test
+package pool_test
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	batch "github.com/holmeslin/learning-go-to-senior/examples/chapter6/06_worker_pool_or_goroutine_per_task/after"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter6/06_worker_pool_or_goroutine_per_task/after/pool"
 )
 
 // conn 是測試用的連線。handled 沒有加鎖：一條連線只屬於一個 worker，
@@ -46,7 +46,7 @@ func TestConsumeDialsOncePerWorker(t *testing.T) {
 	}
 	close(jobs)
 
-	if err := batch.Consume(t.Context(), 3, s.dial, jobs, handle); err != nil {
+	if err := pool.Consume(t.Context(), 3, s.dial, jobs, handle); err != nil {
 		t.Fatalf("Consume() error = %v", err)
 	}
 	if got := s.dials.Load(); got != 3 {
@@ -83,7 +83,7 @@ func TestConsumeStopsWhenContextEnds(t *testing.T) {
 	}()
 
 	var count atomic.Int32
-	err := batch.Consume(ctx, 3, s.dial, jobs, func(ctx context.Context, c *conn, job int) error {
+	err := pool.Consume(ctx, 3, s.dial, jobs, func(ctx context.Context, c *conn, job int) error {
 		if count.Add(1) == 20 {
 			cancel() // 處理到第 20 個工作時結束，不用靠時間
 		}
@@ -97,8 +97,9 @@ func TestConsumeStopsWhenContextEnds(t *testing.T) {
 	if dials, closes := s.dials.Load(), s.closes.Load(); closes != dials {
 		t.Errorf("closes = %d, want %d (every dialed conn is closed)", closes, dials)
 	}
-	if got := s.handled.Load(); got < 20 {
-		t.Errorf("handled = %d, want at least 20", got)
+	// 計數與處理在同一個呼叫裡完成：每個開始的工作都處理完，數字一定相等。
+	if got, want := s.handled.Load(), count.Load(); got != want {
+		t.Errorf("handled = %d, want %d (every job that started was handled)", got, want)
 	}
 }
 
@@ -114,11 +115,25 @@ func TestConsumeDialError(t *testing.T) {
 		return &conn{stats: &s}, nil
 	}
 
-	err := batch.Consume(t.Context(), 2, dial, make(chan int), handle)
+	err := pool.Consume(t.Context(), 2, dial, make(chan int), handle)
 	if !errors.Is(err, errDial) {
 		t.Errorf("Consume() error = %v, want %v", err, errDial)
 	}
 	if got := s.closes.Load(); got != 1 {
 		t.Errorf("closes = %d, want 1 (the conn that was dialed)", got)
+	}
+}
+
+func TestConsumeRejectsBadWorkers(t *testing.T) {
+	var s stats
+	for _, workers := range []int{0, -1} {
+		// 沒有檢查的話，0 個 worker 什麼都不做就回傳 nil，工作原封不動留在 jobs 裡。
+		err := pool.Consume(t.Context(), workers, s.dial, make(chan int), handle)
+		if !errors.Is(err, pool.ErrInvalidWorkers) {
+			t.Errorf("Consume(workers=%d) = %v, want %v", workers, err, pool.ErrInvalidWorkers)
+		}
+	}
+	if got := s.dials.Load(); got != 0 {
+		t.Errorf("dials = %d, want 0 with an invalid worker count", got)
 	}
 }

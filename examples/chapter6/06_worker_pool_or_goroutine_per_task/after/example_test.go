@@ -20,21 +20,3 @@ func ExampleFetchAll() {
 }
 
 // ANCHOR_END: example
-
-// ANCHOR: consume
-
-func ExampleConsume() {
-	var s stats
-	jobs := make(chan int, 10)
-	for i := range 10 {
-		jobs <- i
-	}
-	close(jobs)
-
-	err := batch.Consume(context.Background(), 3, s.dial, jobs, handle)
-	fmt.Printf("dials=%d handled=%d err=%v\n", s.dials.Load(), s.handled.Load(), err)
-	// Output:
-	// dials=3 handled=10 err=<nil>
-}
-
-// ANCHOR_END: consume

@@ -21,8 +21,6 @@ func ids(n int) []int {
 	return out
 }
 
-// ANCHOR: order
-
 func TestFetchAllKeepsOrder(t *testing.T) {
 	fetch := func(ctx context.Context, id int) (string, error) {
 		return fmt.Sprintf("page-%d", id), nil
@@ -39,8 +37,6 @@ func TestFetchAllKeepsOrder(t *testing.T) {
 		t.Errorf("FetchAll() = %v, want %v", got, want)
 	}
 }
-
-// ANCHOR_END: order
 
 // ANCHOR: limit
 
@@ -102,8 +98,8 @@ func TestFetchAllRejectsBadLimit(t *testing.T) {
 		return "", nil
 	}
 	for _, limit := range []int{0, -1} {
-		if _, err := batch.FetchAll(t.Context(), ids(3), limit, fetch); err == nil {
-			t.Errorf("FetchAll(limit=%d) error = nil, want error", limit)
+		if _, err := batch.FetchAll(t.Context(), ids(3), limit, fetch); !errors.Is(err, batch.ErrInvalidLimit) {
+			t.Errorf("FetchAll(limit=%d) error = %v, want %v", limit, err, batch.ErrInvalidLimit)
 		}
 	}
 }
