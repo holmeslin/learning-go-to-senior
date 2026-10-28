@@ -30,6 +30,7 @@
     - [什麼時候用嵌入，什麼時候該明確委派](chapter3/06_embedding_or_delegation.md)
     - [不用框架的相依注入](chapter3/07_di_without_framework.md)
 - [資料存取的設計]()
+    - [migration](chapter4/06_migration.md)
 
 # 第二部　測試
 
