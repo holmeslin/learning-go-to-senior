@@ -6,7 +6,7 @@
 
 ## 情境
 
-登入服務用 PBKDF2（標準庫 `crypto/pbkdf2`）雜湊密碼。尖峰時登入的延遲一路升高，監控上整台機器卻只用到一兩顆核心。`go test -bench` 與 `pprof` 的基本用法前作教過：〈[benchmark 與 `b.Loop`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/12_benchmark.html)〉、〈[`pprof`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/appendix2/d_pprof.html)〉；`benchstat` 與從 benchmark 收 CPU profile，本章〈`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信〉與〈`pprof`：先看 CPU 還是 heap〉談過。這集談 CPU profile 看不到的那一半。
+登入服務用 PBKDF2（標準庫 `crypto/pbkdf2`）雜湊密碼。尖峰時登入的延遲一路升高，監控上整台機器卻只用到一兩顆核心。`go test -bench` 與 `pprof` 的基本用法前作教過：〈[benchmark 與 `b.Loop`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/12_benchmark.html)〉、〈[`pprof`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/appendix2/d_pprof.html)〉；`benchstat` 本章〈`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信〉談過，從 benchmark 收 CPU profile 本章〈[`pprof`：先看 CPU 還是 heap](03_pprof_cpu_or_heap.md)〉談過。這集談 CPU profile 看不到的那一半。
 
 ## 常見寫法
 
