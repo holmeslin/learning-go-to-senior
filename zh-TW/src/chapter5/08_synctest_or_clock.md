@@ -30,7 +30,9 @@
 
 最慢的路徑沒有測試。三次嘗試都逾時，要 30 + 1 + 30 + 2 + 30 = 93 秒；沒人願意讓 `go test ./...` 多等一分半，於是 `Sleep` 之後的行為全憑讀程式確認。
 
-這不是理論上的風險。把等待那段 `select` 換成 `time.Sleep(p.Backoff << (i - 1))`：`ctx` 只剩 10 秒，卻要等滿退避時間，「立刻放棄」的承諾就破了。before 的測試照過（輸出省略了耗時）：
+這不是理論上的風險。把等待那段 `select` 換成 `time.Sleep(p.Backoff << (i - 1))`：`ctx` 只剩 10 秒，卻要等滿退避時間，「立刻放棄」的承諾就破了。把這個修改套用到 `before/retry.go` 再執行 `go test`，before 的測試照過，因為它們都不經過等待那一段（輸出省略了套件後面的耗時）。
+
+執行結果：
 
 ```text
 ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter5/08_synctest_or_clock/before
@@ -46,7 +48,7 @@ ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter5/08_synctest_or
 {{#include ../../../examples/chapter5/08_synctest_or_clock/after/retry_test.go:timeout}}
 ```
 
-`synctest.Sleep(d)` 等於 `time.Sleep(d)` 加 `synctest.Wait()`，適合「走到某個時間點，看程式停在哪裡」：
+要「走到某個時間點，看程式停在哪裡」，用前作〈[`testing/synctest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/19_synctest.html)〉教過的 `synctest.Sleep`：
 
 ```go,ignore
 {{#include ../../../examples/chapter5/08_synctest_or_clock/after/retry_test.go:backoff}}
@@ -58,14 +60,17 @@ ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter5/08_synctest_or
 {{#include ../../../examples/chapter5/08_synctest_or_clock/after/retry_test.go:cancel}}
 ```
 
-把 `select` 換成 `time.Sleep`，只有這個測試失敗，而且說得出差在哪（輸出省略了耗時）：
+把 `after/retry.go` 的 `select` 換成 `time.Sleep`，只有這個測試失敗，而且說得出差在哪（輸出省略了每個測試與套件後面的耗時）。
+
+執行結果：
 
 ```text
---- FAIL: TestDoStopsWhenContextEnds (0.00s)
+--- FAIL: TestDoStopsWhenContextEnds
     retry_test.go:92: Do() = after 3 attempts: not ready, want context.DeadlineExceeded
     retry_test.go:95: Do() returned after 3m0s, want 10s
 FAIL
 FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/08_synctest_or_clock/after
+FAIL
 ```
 
 **程式在等網路 I/O。** 依 `testing/synctest` 文件，阻塞在 socket 讀寫上的 goroutine 不算 durably blocked，因為它可能被 bubble 外的事件叫醒。所以在 bubble 裡對真的 loopback 連線發請求，bubble 不會閒置，時間也不會因為它在等而往前跳。文件建議改用 `net.Pipe`：它在行程內，兩端都是 bubble 裡的 goroutine，可以被 durably block，連線的 deadline 也走 bubble 的時鐘：
@@ -77,14 +82,14 @@ FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/08_synctest_or
 做法二：注入時鐘。時間本身是業務資料時，例如「試用到 12/31 當天結束」，問題不是等，而是「現在是哪一刻」。bubble 的時鐘固定從 2000-01-01 開始、只會往前走；要測 2026 年底與時區邊界，得先睡過二十幾年，也沒辦法把時鐘撥回去。把 `Now` 注入，每個案例直接指定那一刻（建構函式注入的做法見第 3 章〈[不用框架的相依注入](../chapter3/07_di_without_framework.md)〉）：
 
 ```go,ignore
-{{#include ../../../examples/chapter5/08_synctest_or_clock/after/trial.go:trial}}
+{{#include ../../../examples/chapter5/08_synctest_or_clock/after/trial/trial.go:trial}}
 ```
 
 ```go,ignore
-{{#include ../../../examples/chapter5/08_synctest_or_clock/after/trial_test.go:trial}}
+{{#include ../../../examples/chapter5/08_synctest_or_clock/after/trial/trial_test.go:trial}}
 ```
 
-每個案例各自帶一個 `Now`，沒有共用的可變狀態。完整程式碼在 `examples/chapter5/08_synctest_or_clock/after/`。
+每個案例各自帶一個 `Now`，沒有共用的可變狀態。完整程式碼在 `examples/chapter5/08_synctest_or_clock/after/`，這一段放在自己的 `trial` 套件。
 
 ## 取捨
 
@@ -92,7 +97,7 @@ FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/08_synctest_or
 
 - 不用改程式。`Do` 的簽章與實作 before 與 after 完全一樣，已經寫好的程式也能補測試。
 - 只適用於行程內、會 durably block 的程式。等真的 socket、`sync.Mutex`、系統呼叫都不算；連到別的行程或外部服務的程式，要先換成 `net.Pipe` 這類假連線。
-- 依賴 runtime 的特殊行為：bubble 裡不能呼叫 `t.Run`、`t.Parallel`；`synctest.Test` 要等 bubble 裡的 goroutine 全部結束才回來，卡住就失敗（怎麼抓洩漏，第 6 章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談）。
+- 依賴 runtime 的特殊行為：bubble 有自己的限制（見前作〈[`testing/synctest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/19_synctest.html)〉），`synctest.Test` 要等 bubble 裡的 goroutine 全部結束才回來，卡住就失敗（怎麼抓洩漏，第 6 章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談）。
 
 注入時鐘：
 

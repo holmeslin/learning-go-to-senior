@@ -1,10 +1,7 @@
 // Package split 把一筆金額依權重的比例分成幾份，例如幾個人分攤一張帳單。
 package split
 
-import (
-	"errors"
-	"fmt"
-)
+import "errors"
 
 var (
 	// ErrNoWeights 表示沒有給任何權重。
@@ -23,7 +20,7 @@ func Split(total int, weights ...int) ([]int, error) {
 		return nil, ErrNoWeights
 	}
 	if total < 0 {
-		return nil, fmt.Errorf("split %d: %w", total, ErrNegativeTotal)
+		return nil, ErrNegativeTotal
 	}
 	sum := 0
 	for _, w := range weights {

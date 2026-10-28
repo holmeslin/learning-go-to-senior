@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// maxRun 是 Decode 接受的單一連續長度上限，避免惡意輸入要求配置巨大的記憶體。
+// maxRun 是 Decode 接受的單一連續長度上限（1 << 20，約一百萬），避免惡意輸入要求配置巨大的記憶體。
 const maxRun = 1 << 20
 
 // ANCHOR: encode
@@ -29,7 +29,8 @@ func Encode(s string) string {
 
 // ANCHOR_END: encode
 
-// Decode 還原 Encode 的結果。格式不對時回傳錯誤。
+// Decode 還原 Encode 的結果。格式不對，或單一連續長度超過 maxRun 時回傳錯誤；
+// 所以「編碼再解碼得到原字串」只對單一連續段不超過 maxRun 的字串成立。
 func Decode(s string) (string, error) {
 	var b strings.Builder
 	for i := 0; i < len(s); {
