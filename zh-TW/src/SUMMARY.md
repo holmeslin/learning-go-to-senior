@@ -24,6 +24,7 @@
 - [抽象的取捨](chapter3/README.md)
     - [在使用端定義介面](chapter3/01_define_interface_at_consumer.md)
     - [接受介面、回傳 struct](chapter3/02_accept_interfaces_return_structs.md)
+    - [過早抽象的代價](chapter3/05_premature_abstraction.md)
     - [什麼時候用嵌入，什麼時候該明確委派](chapter3/06_embedding_or_delegation.md)
 - [資料存取的設計]()
 
