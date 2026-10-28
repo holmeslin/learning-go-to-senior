@@ -32,6 +32,7 @@
 - [資料存取的設計](chapter4/README.md)
     - [要不要有 repository 這一層](chapter4/01_repository_layer.md)
     - [交易邊界放在哪裡](chapter4/02_transaction_boundary.md)
+    - [查詢逾時該設在哪一層](chapter4/03_query_timeout_layer.md)
     - [連線池要設多大、設錯會怎樣](chapter4/04_pool_size.md)
     - [N+1 與查詢組裝](chapter4/05_n_plus_one.md)
     - [migration](chapter4/06_migration.md)
