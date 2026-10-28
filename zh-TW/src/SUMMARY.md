@@ -79,6 +79,7 @@
     - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
 - [runtime]()
     - [什麼時候該調 `GOGC`，什麼時候別動](chapter8/02_when_to_tune_gogc.md)
+    - [`GOMEMLIMIT` 與容器記憶體上限](chapter8/03_gomemlimit_container.md)
     - [`runtime/metrics`](chapter8/06_runtime_metrics.md)
     - [阻塞、syscall 與排程](chapter8/07_blocking_syscall_scheduling.md)
 
