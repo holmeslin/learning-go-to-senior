@@ -56,6 +56,7 @@
 # 第三部　並行實務
 
 - [結構化並行]()
+    - [什麼時候需要 worker pool，什麼時候每個任務一個 goroutine 就夠](chapter6/06_worker_pool_or_goroutine_per_task.md)
 
 # 第四部　效能
 
