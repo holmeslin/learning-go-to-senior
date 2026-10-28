@@ -75,6 +75,7 @@
     - [`runtime/trace`](chapter7/04_runtime_trace.md)
     - [常見熱點：配置、拷貝、鎖競爭](chapter7/05_common_hotspots.md)
     - [什麼時候值得看逃逸分析](chapter7/06_when_to_check_escape_analysis.md)
+    - [PGO](chapter7/07_pgo.md)
     - [把效能回歸擋在 CI 之外](chapter7/08_perf_regression_ci.md)
 - [runtime]()
 
