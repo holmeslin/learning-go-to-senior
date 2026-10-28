@@ -16,7 +16,7 @@ var ErrInvalidLimit = errors.New("limit must be at least 1")
 
 // ReadAll 對 sources 的每一個來源呼叫 read，回傳讀到的位元組總數與第一個錯誤。
 // 同時進行的 read 不超過 limit；limit 小於 1 時回傳 ErrInvalidLimit。
-func ReadAll[S any](ctx context.Context, sources []S, limit int, read func(context.Context, S) (int, error)) (int, error) {
+func ReadAll(ctx context.Context, sources []int, limit int, read func(context.Context, int) (int, error)) (int, error) {
 	if limit < 1 {
 		return 0, ErrInvalidLimit
 	}
