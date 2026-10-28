@@ -6,7 +6,11 @@
 
 ## 情境
 
-下單服務的 `Place` 做三件事：向目錄查每一列商品的單價、把訂單存檔、存檔成功後寄一封確認信。三個依賴 `Catalog`、`Store`、`Mailer` 都是使用端宣告的小介面（第 3 章〈[在使用端定義介面](../chapter3/01_define_interface_at_consumer.md)〉），由建構函式注入（第 3 章〈[不用框架的相依注入](../chapter3/07_di_without_framework.md)〉）。測試不想連真的目錄、資料庫與 SMTP，所以要替身。
+下單服務的 `Place` 做三件事：向目錄查每一列商品的單價、把訂單存檔、存檔成功後寄一封確認信。三個依賴 `Catalog`、`Store`、`Mailer` 都是使用端宣告的小介面（第 3 章〈[在使用端定義介面](../chapter3/01_define_interface_at_consumer.md)〉），由建構函式注入（第 3 章〈[不用框架的相依注入](../chapter3/07_di_without_framework.md)〉）。測試不想連真的目錄、資料庫與 SMTP，所以要替身：
+
+```go,ignore
+{{#include ../../../examples/chapter5/03_fake_stub_mock/before/orders/orders.go:deps}}
+```
 
 三種替身的差別在測試怎麼用它：
 
@@ -83,7 +87,7 @@
 {{#include ../../../examples/chapter5/03_fake_stub_mock/after/orders/orders_test.go:interaction}}
 ```
 
-這兩個測試只斷言重要的部分：恰好一封、寄給客戶、主旨提到訂單編號；以及存檔失敗時一封都不寄。它們不管呼叫的順序，也不管主旨怎麼寫。重構前後的行為一樣，同一組測試兩個版本都過：
+這兩個測試只斷言重要的部分：恰好一封、寄給客戶、主旨提到訂單編號；以及存檔失敗時一封都不寄。它們不管呼叫的順序，也不管主旨的完整字句。重構前後的行為一樣，同一組測試兩個版本都過：
 
 ```go,ignore
 {{#include ../../../examples/chapter5/03_fake_stub_mock/after/orders/example_test.go:example}}
