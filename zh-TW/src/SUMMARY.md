@@ -31,6 +31,7 @@
     - [不用框架的相依注入](chapter3/07_di_without_framework.md)
 - [資料存取的設計](chapter4/README.md)
     - [要不要有 repository 這一層](chapter4/01_repository_layer.md)
+    - [交易邊界放在哪裡](chapter4/02_transaction_boundary.md)
 
 # 第二部　測試
 
