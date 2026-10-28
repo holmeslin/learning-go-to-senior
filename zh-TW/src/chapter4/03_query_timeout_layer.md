@@ -72,7 +72,11 @@ deadline 由邊界決定。handler 在 `r.Context()` 上加 deadline，一起往
 {{#include ../../../examples/chapter4/03_query_timeout_layer/after/store.go:search}}
 ```
 
-`WithTimeout` 取較早的那個：呼叫端的 deadline 更早就聽呼叫端的，呼叫端取消，縮短過的 context 也跟著取消（文件寫明 `WithDeadline` 的結果不會晚於父 context）。`store_test.go` 的另外三個測試分別驗證：呼叫端沒有 deadline 時 store 的上限先到、呼叫端的 deadline 更早時不會被延長、取消照樣傳得進去。完整程式碼在 `examples/chapter4/03_query_timeout_layer/after/`。
+`WithTimeout` 取較早的那個：呼叫端的 deadline 更早就聽呼叫端的，呼叫端取消，縮短過的 context 也跟著取消（文件寫明 `WithDeadline` 的結果不會晚於父 context）。`store_test.go` 的另外三個測試分別驗證：呼叫端沒有 deadline 時 store 的上限先到、呼叫端的 deadline 更早時不會被延長、取消照樣傳得進去。
+
+交易也沒有自己的逾時。本章〈[交易邊界放在哪裡](02_transaction_boundary.md)〉的用例用收到的 `ctx` 呼叫 `BeginTx`；文件寫明這個 context 管到交易結束，取消時 `database/sql` 會回滾交易。所以邊界的 deadline 同時是整個交易的上限，不必另外設。要讓某個交易更短，就像 `SearchCount` 那樣在 `ctx` 上縮短，再交給 `BeginTx`。
+
+完整程式碼在 `examples/chapter4/03_query_timeout_layer/after/`。
 
 ## 取捨
 
