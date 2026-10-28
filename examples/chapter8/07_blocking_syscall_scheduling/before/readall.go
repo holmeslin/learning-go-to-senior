@@ -11,7 +11,7 @@ import (
 // ANCHOR: readall
 
 // ReadAll 對 sources 的每一個來源呼叫 read，回傳讀到的位元組總數與第一個錯誤。
-func ReadAll[S any](ctx context.Context, sources []S, read func(context.Context, S) (int, error)) (int, error) {
+func ReadAll(ctx context.Context, sources []int, read func(context.Context, int) (int, error)) (int, error) {
 	var total atomic.Int64
 	g, ctx := errgroup.WithContext(ctx)
 	for _, src := range sources {

@@ -23,10 +23,10 @@ func Load(n int) *Roster {
 	return &Roster{byID: byID}
 }
 
+// ANCHOR: handle
+
 // avgLineLen 是一行報表的估計長度，用來一次預留緩衝區；估少了 append 會自己擴張，結果不變。
 const avgLineLen = 32
-
-// ANCHOR: handle
 
 // Handle 處理一批會員 ID，回傳每位會員一行的報表，不在名冊裡的 ID 略過。
 // 緩衝區一次配好、直接寫入，不另外做 GC：回收交給 runtime。

@@ -16,7 +16,7 @@
 {{#include ../../../examples/chapter8/02_when_to_tune_gogc/before/roster.go:handle}}
 ```
 
-另一種常見的做法是把環境變數 `GOGC` 設得很低（例如 10），逼 GC 勤快一點。測試全過，完整程式碼在 `examples/chapter8/02_when_to_tune_gogc/before/`。
+另一種常見的做法是把環境變數 `GOGC` 設得很低（例如 10），逼 GC 勤快一點。完整程式碼在 `examples/chapter8/02_when_to_tune_gogc/before/`（只有 benchmark，沒有測試）。
 
 ## 問題在哪
 
@@ -31,14 +31,14 @@ GODEBUG=gctrace=1 ./ingest -impl=before 2>gc.txt
 
 ```text
 $ grep -E ' P( \(forced\))?$' gc.txt | tail -1
-gc 3003 @5.484s 19%: 0.014+1.9+0.002 ms clock, 0.20+0/7.5/11+0.039 ms cpu, 14->14->14 MB, 28 MB goal, 0 MB stacks, 0 MB globals, 14 P (forced)
+gc 3003 @5.360s 18%: 0.003+1.2+0.002 ms clock, 0.055+0/4.5/10+0.032 ms cpu, 14->14->14 MB, 28 MB goal, 0 MB stacks, 0 MB globals, 14 P (forced)
 $ grep -E ' P( \(forced\))?$' gc.txt | grep -c forced
 3000
 $ grep -cE ' P( \(forced\))?$' gc.txt
 3003
 ```
 
-3003 次 GC 裡有 3000 次是手動觸發的，和批數一致。最後一行的 `14->14->14 MB` 依序是 GC 開始時的 heap、結束時的 heap 與存活的 heap：開始與結束一樣大，這次 GC 沒有收到東西，卻得把 14 MB 的名冊重新標記一遍。程式啟動以來花在 GC 的時間占 19%。這是 gctrace 的佐證，要再確認是哪些函式在花時間，用 CPU profile，收法見第 7 章〈[`pprof`：先看 CPU 還是 heap](../chapter7/03_pprof_cpu_or_heap.md)〉。
+3003 次 GC 裡有 3000 次是手動觸發的，和批數一致。最後一行的 `14->14->14 MB` 依序是 GC 開始時的 heap、結束時的 heap 與存活的 heap：開始與結束一樣大，這次 GC 沒有收到東西，卻得把 14 MB 的名冊重新標記一遍。程式啟動以來花在 GC 的時間占 18%。這是 gctrace 的佐證，要再確認是哪些函式在花時間，用 CPU profile，收法見第 7 章〈[`pprof`：先看 CPU 還是 heap](../chapter7/03_pprof_cpu_or_heap.md)〉。
 
 ## 較好的做法
 
@@ -61,17 +61,20 @@ $ grep -cE ' P( \(forced\))?$' gc.txt
 {{#include ../../../examples/chapter8/02_when_to_tune_gogc/after/roster_test.go:allocs}}
 ```
 
-before 與 after 的 `BenchmarkHandle` 各收 `-count=10`，輸出存成 `before.txt`、`after.txt` 再比較。兩份來自不同套件，所以加 `-ignore pkg`，`benchstat` 的讀法本章〈[`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](../chapter7/02_b_loop_benchstat.md)〉談過：
+before 與 after 的 `BenchmarkHandle` 各收 10 次，存成 `before.txt`、`after.txt` 再比較。兩份來自不同套件，所以加 `-ignore pkg`，`benchstat` 的讀法第 7 章〈[`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信](../chapter7/02_b_loop_benchstat.md)〉談過：
 
 執行結果（某一次）：
 
 ```text
+$ go test -run='^$' -bench=. -benchmem -count=10 ./examples/chapter8/02_when_to_tune_gogc/before > before.txt
+$ go test -run='^$' -bench=. -benchmem -count=10 ./examples/chapter8/02_when_to_tune_gogc/after > after.txt
+$ go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e -ignore pkg before.txt after.txt
 goos: darwin
 goarch: arm64
 cpu: Apple M4 Max
           │  before.txt   │              after.txt              │
           │    sec/op     │   sec/op     vs base                │
-Handle-14   1405.15µ ± 7%   40.87µ ± 0%  -97.09% (p=0.000 n=10)
+Handle-14   1312.72µ ± 2%   41.04µ ± 1%  -96.87% (p=0.000 n=10)
 
           │  before.txt   │              after.txt               │
           │     B/op      │     B/op      vs base                │
@@ -90,14 +93,14 @@ Handle-14   8001.000 ± 0%   1.000 ± 0%  -99.99% (p=0.000 n=10)
 
 ```text
 $ GOGC=10 GODEBUG=gctrace=1 ./ingest 2>&1 >/dev/null | grep -E ' P( \(forced\))?$' | tail -1
-gc 150 @0.336s 17%: 0.017+1.5+0.003 ms clock, 0.25+0.81/5.5/10+0.046 ms cpu, 15->15->14 MB, 15 MB goal, 0 MB stacks, 0 MB globals, 14 P
+gc 152 @0.340s 17%: 0.007+1.3+0.008 ms clock, 0.10+1.0/5.2/8.8+0.11 ms cpu, 15->15->14 MB, 15 MB goal, 0 MB stacks, 0 MB globals, 14 P
 $ GOGC=100 GODEBUG=gctrace=1 ./ingest 2>&1 >/dev/null | grep -E ' P( \(forced\))?$' | tail -1
-gc 17 @0.135s 4%: 0.011+1.5+0.011 ms clock, 0.16+0/5.1/9.8+0.16 ms cpu, 27->29->15 MB, 32 MB goal, 0 MB stacks, 0 MB globals, 14 P
+gc 17 @0.137s 4%: 0.026+1.3+0.010 ms clock, 0.37+0/4.9/10+0.14 ms cpu, 27->28->15 MB, 31 MB goal, 0 MB stacks, 0 MB globals, 14 P
 $ GOGC=400 GODEBUG=gctrace=1 ./ingest 2>&1 >/dev/null | grep -E ' P( \(forced\))?$' | tail -1
-gc 4 @0.122s 1%: 0.014+1.9+0.012 ms clock, 0.19+0/7.1/8.1+0.17 ms cpu, 73->75->16 MB, 77 MB goal, 0 MB stacks, 0 MB globals, 14 P
+gc 4 @0.127s 1%: 0.012+1.6+0.009 ms clock, 0.16+0/6.2/6.0+0.13 ms cpu, 77->79->15 MB, 82 MB goal, 0 MB stacks, 0 MB globals, 14 P
 ```
 
-`gc N` 是從程式開始累計的次數，`goal` 是這次 GC 結束時 heap 的目標。三行的存活量差不多（結尾的 `MB` 都是 14 到 16，是那份名冊），差別在 `GOGC` 越小，GC 越勤、`goal` 越貼著存活量，GC 占比越高；`GOGC` 越大，次數與占比越低，代價是 `goal`，也就是 heap 可能長到的大小，跟著變大。第 7 章〈`pprof`：先看 CPU 還是 heap〉留下的問題「GC 怎麼調」，答案就是這張取捨：用記憶體換 CPU。
+`gc N` 是從程式開始累計的次數，`goal` 是這次 GC 結束時 heap 的目標。三行的存活量差不多（結尾的 `MB` 都是 14 到 15，是那份名冊），差別在 `GOGC` 越小，GC 越勤、`goal` 越貼著存活量，GC 占比越高；`GOGC` 越大，次數與占比越低，代價是 `goal`，也就是 heap 可能長到的大小，跟著變大。第 7 章〈[`pprof`：先看 CPU 還是 heap](../chapter7/03_pprof_cpu_or_heap.md)〉留下的問題「GC 怎麼調」，答案就是這張取捨：用記憶體換 CPU。
 
 ## 取捨
 
