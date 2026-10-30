@@ -121,6 +121,7 @@
     - [交叉編譯](chapter12/03_cross_compile.md)
     - [容器映像（multi-stage）](chapter12/04_container_image.md)
     - [`go.mod` 與相依升級](chapter12/06_go_mod_dependency_upgrade.md)
+    - [設定與環境變數](chapter12/08_config_env.md)
 
 # 第六部　在團隊裡寫 Go
 
