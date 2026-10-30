@@ -121,7 +121,7 @@ func rssCase() {
 	snapshot("holding 256 MiB")
 	runtime.KeepAlive(chunks)
 
-	chunks = nil
+	chunks = nil //nolint:ineffassign // 示範：明寫出放掉參照
 	runtime.GC()
 	snapshot("after runtime.GC()")
 

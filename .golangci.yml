@@ -1,0 +1,45 @@
+version: "2"
+
+# 不限制每個 linter 與每種訊息的回報數量（預設各 50 與 3 筆），
+# 否則修掉一批之後，又冒出被截掉的另一批。
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+run:
+  # 帶 integration tag 才編譯得到整合測試；它是本書唯一的 tag，只增加檔案，不會漏掉不帶 tag 的程式。
+  build-tags:
+    - integration
+
+linters:
+  # 沿用預設的規則集合（errcheck、govet、ineffassign、staticcheck、unused），不另外加規則。
+  settings:
+    errcheck:
+      exclude-functions:
+        # 寫進 http.ResponseWriter 失敗，代表對方已經斷線，伺服器沒有別的事可做。
+        - fmt.Fprint(net/http.ResponseWriter)
+        - fmt.Fprintf(net/http.ResponseWriter)
+        - fmt.Fprintln(net/http.ResponseWriter)
+        - io.WriteString(net/http.ResponseWriter)
+        - (net/http.ResponseWriter).Write
+        # bufio.Writer 會記住第一個寫入錯誤，由 Flush 回報。
+        - fmt.Fprint(*bufio.Writer)
+        - fmt.Fprintf(*bufio.Writer)
+        - fmt.Fprintln(*bufio.Writer)
+        # 名稱是常數，只有名稱為空或含 = 時才會失敗。
+        - os.Setenv
+        - os.Unsetenv
+  exclusions:
+    paths:
+      # 刻意寫壞的示範。
+      - /before/
+    rules:
+      # defer 的清理（Close、Rollback、RemoveAll）沒有地方可以回報錯誤。
+      - linters: [errcheck]
+        source: '^\s*defer (.+\.)?(Close|Rollback|RemoveAll)\('
+      # 狀態碼已經送出，JSON 寫進 ResponseWriter 失敗，原因同上：對方斷線。
+      - linters: [errcheck]
+        source: 'json\.NewEncoder\(w\)\.Encode\('
+      # 測試裡刻意丟掉回傳值的呼叫（讓斷路器跳開、在背景占名額、清理資源），結果由後面的斷言檢查。
+      - linters: [errcheck]
+        path: _test\.go

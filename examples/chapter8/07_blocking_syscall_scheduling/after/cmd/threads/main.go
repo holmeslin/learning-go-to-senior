@@ -50,7 +50,7 @@ func main() {
 			entered <- struct{}{}
 			return syscall.Read(rfd[i], make([]byte, 1))
 		}
-		release = func(i int) { syscall.Write(wfd[i], []byte{1}) }
+		release = func(i int) { _, _ = syscall.Write(wfd[i], []byte{1}) }
 	case "net":
 		// 網路連線由 netpoller 管：沒有資料時，goroutine 停放，執行緒不被占住。
 		ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -70,7 +70,7 @@ func main() {
 			entered <- struct{}{}
 			return clients[i].Read(make([]byte, 1))
 		}
-		release = func(i int) { servers[i].Write([]byte{1}) }
+		release = func(i int) { _, _ = servers[i].Write([]byte{1}) }
 	default:
 		log.Fatalf("unknown mode %q", *mode)
 	}
