@@ -12,7 +12,7 @@
 - **SLO**（service level objective）：SLI 要達到的目標，附帶一個窗口，例如 30 天內 99.9%。
 - **SLA**（service level agreement）：對客戶的合約，沒達到要賠償或退費。SLO 通常訂得比 SLA 嚴，讓團隊在違約之前先發現。
 
-延遲是用直方圖收的。指標的種類與屬性怎麼選，本章〈指標（metrics）設計與高基數問題〉談過；第 8 章〈[`runtime/metrics`](../chapter8/06_runtime_metrics.md)〉留下的「直方圖的 bucket 怎麼彙整」，這集回答。
+延遲是用直方圖收的。指標的種類與屬性怎麼選，本章〈[指標（metrics）設計與高基數問題](03_metrics_cardinality.md)〉談過；第 8 章〈[`runtime/metrics`](../chapter8/06_runtime_metrics.md)〉提到直方圖的 bucket 要自己決定怎麼彙整，這集回答邊界怎麼挑、怎麼彙整。
 
 ## 常見寫法
 
@@ -84,13 +84,13 @@
 {{#include ../../../examples/chapter9/08_sli_slo/after/example_test.go:example}}
 ```
 
-錯誤預算是「SLO 允許的壞請求數」。目標 99.9%、一萬個請求，預算是 10 個。消耗速度是實際的壞請求比例除以允許的比例：1 代表剛好在窗口結束時用完預算，2 代表兩倍快，窗口走到一半就沒了：
+錯誤預算（`Budget`）是「SLO 允許的壞請求數」。目標 99.9%、一萬個請求，預算是 10 個。消耗速度是實際的壞請求比例除以允許的比例：1 代表剛好在窗口結束時用完預算，2 代表兩倍快，窗口走到一半就沒了：
 
 ```go,ignore
 {{#include ../../../examples/chapter9/08_sli_slo/after/slo.go:result}}
 ```
 
-告警看消耗速度。`FastBurn` 是 14.4：30 天的窗口，以這個速度燒 1 小時，用掉 2% 的預算（14.4 ÷ 720 小時）。表格測試鎖住 SLI、剩餘預算與消耗速度，包含「剛好 300 ms」算達標、沒有請求不除以零：
+告警看消耗速度，`ShouldPage` 在速度達到 `FastBurn` 時回報要叫醒人。`FastBurn` 是 14.4：30 天的窗口，以這個速度燒 1 小時，用掉 2% 的預算（14.4 ÷ 720 小時）；數字出自 Google SRE Workbook 的〈[Alerting on SLOs](https://sre.google/workbook/alerting-on-slos/)〉。表格測試鎖住 SLI、剩餘預算與消耗速度，包含「剛好 300 ms」算達標、沒有請求不除以零：
 
 ```go,ignore
 {{#include ../../../examples/chapter9/08_sli_slo/after/slo_test.go:table}}
