@@ -1,0 +1,5 @@
+# 建置與發布
+
+前作已經教過這條路上的工具：〈[`go mod init` 與 `go.mod`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/01_go_mod.html)〉、〈[`gofmt` 與 `go vet`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/08_gofmt_vet.html)〉、〈[`go test`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/09_go_test.html)〉、〈[build tags](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter11/06_build_tags.html)〉、〈[`//go:embed`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter11/05_go_embed.html)〉，以及〈[`flag`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter13/02_flag.html)〉與〈[結束碼](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter13/04_exit_code.html)〉。服務寫好之後，缺的不是指令，而是判斷。實際上線時常犯同樣的錯：線上出問題，不知道跑的是哪個 commit；同一份原始碼建出不同的二進位檔，執行檔裡帶著建置機器的路徑；交叉編譯時不小心依賴 cgo；容器映像帶著整套工具鏈、幾百 MB、用 root 執行；CI 只跑測試，lint 規則不是開太少就是開太多，最後被關掉；`go get -u ./...` 一次升級所有相依，出事不知道是哪一個；發布 v2 卻沒改模組路徑，或刪掉已發布的 tag；設定散落在各處的 `os.Getenv`，缺值時悄悄用了奇怪的預設。
+
+這一章的主題是從原始碼到正式環境這一段：建置、打包、檢查、升級、發布、設定。每一集處理流程裡的一個判斷，從執行檔怎麼說出自己是哪個版本開始。建置、容器與模組指令的輸出都是實際執行後貼上的，標明平台與版本，大小與雜湊只談相對關係；需要改 `go.mod`、打 tag 或發布版本的示範，只在 repo 外的暫存模組進行，本書的 repo 不會有示範用的 tag 或 release。
