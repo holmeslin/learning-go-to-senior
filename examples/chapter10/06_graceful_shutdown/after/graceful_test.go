@@ -145,7 +145,8 @@ func TestShutdownOrder(t *testing.T) {
 		if err := <-done; err != nil {
 			t.Errorf("Run() = %v, want nil", err)
 		}
-		// Shutdown 每隔幾毫秒輪詢一次閒置連線，所以會比 Drain 多一點點，但遠低於 Requests 的上限。
+		// Shutdown 輪詢閒置連線的間隔從 1 毫秒起每次加倍（上限 500 毫秒），還加了隨機的 jitter，
+		// 所以總時間比 Drain 多一點點、不是精確值，但遠低於 Requests 的上限。
 		if got := time.Since(begin); got < 5*time.Second || got > 6*time.Second {
 			t.Errorf("shutdown took %v, want about 5s (only the drain wait)", got)
 		}

@@ -10,9 +10,9 @@ import (
 
 // Charge 是一筆扣款紀錄。
 type Charge struct {
-	ID    string `json:"id"`
-	Order string `json:"order"`
-	Cents int    `json:"cents"`
+	ID    string `json:"id"`    // 扣款編號
+	Order string `json:"order"` // 訂單編號
+	Cents int    `json:"cents"` // 金額，單位是分
 }
 
 // Ledger 是記憶體版的帳本，只適合示範；正式環境寫進資料庫。
