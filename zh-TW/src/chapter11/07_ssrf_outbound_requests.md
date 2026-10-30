@@ -44,7 +44,7 @@ HTTP client 與 `httptest` 前作教過：〈[HTTP client](https://holmeslin.git
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/preview.go:policy}}
 ```
 
-`Fetcher` 把所有限制放在欄位上，零值就是安全的預設：只連公開位址、5 秒、不跟隨轉址、1 MiB。`Allow` 與 `Resolver` 為了測試而匯出：httptest 的伺服器在 loopback，預設規則一定擋下，測試要用 `Allow` 只放行指定的假伺服器，用 `Resolver` 把名稱解析到 loopback，才能在不連外網的前提下測「允許的可以連」與「名稱指向內部」；正式環境可以用 `Allow` 放行少數已知的內部位址。
+`Fetcher` 把所有限制放在欄位上，零值就是安全的預設：只連公開位址、5 秒、不跟隨轉址、1 MiB。`Allow` 與 `Resolver` 為了測試而匯出：httptest 的伺服器在 loopback，預設規則一定擋下，測試要用 `Allow` 放行指定的假伺服器，用 `Resolver` 把名稱解析到 loopback，才能在不連外網的前提下測「允許的可以連」與「名稱指向內部」。`Allow` 只增不減：公開位址本來就能連，`Allow` 回傳 true 的位址是額外的例外，所以正式環境可以用 `Allow` 放行少數已知的內部位址，不必重寫整套規則。
 
 ```go,ignore
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/preview.go:fetcher}}
@@ -56,7 +56,7 @@ HTTP client 與 `httptest` 前作教過：〈[HTTP client](https://holmeslin.git
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/preview.go:fetch}}
 ```
 
-after 的測試放在外部測試套件。`serve` 數出假伺服器收到幾個請求，`only` 是注入的允許清單。證明「被擋下」不能只看錯誤，還要看伺服器收到 0 個請求：
+after 的測試放在外部測試套件。`serve` 數出假伺服器收到幾個請求，`only` 是注入的允許清單，`Allowed` 由 `export_test.go` 匯出、只給測試用，讓測試直接問「這個位址能不能連」，不必連到真的公開位址。`TestAllowAddsToPublic` 鎖住 `Allow` 只增不減：放行一個內部位址之後，公開位址仍然可連，另一個內部位址仍被擋。證明「被擋下」不能只看錯誤，還要看伺服器收到 0 個請求：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/fetch_test.go:helpers}}
@@ -84,7 +84,7 @@ after 的測試放在外部測試套件。`serve` 數出假伺服器收到幾個
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/dns_test.go:dns}}
 ```
 
-逾時與回應大小，以及判斷規則的各種位址：
+逾時與回應大小，以及判斷規則的各種位址。`special` 的每個範圍各有一列，拿掉任何一個範圍，測試都會失敗；範圍外一格的位址也要測，確認沒有誤擋：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/fetch_test.go:limits}}
@@ -102,17 +102,12 @@ after 的測試放在外部測試套件。`serve` 數出假伺服器收到幾個
 
 ## 取捨
 
-**允許清單與拒絕清單。** 只能連事先登記的主機（允許清單）最穩，webhook 的對象固定時就該這樣做。預覽功能要抓任意網址，只能用拒絕清單：`IsPublic` 排除已知的特殊範圍。拒絕清單的代價是會漏：新的保留範圍、你自己的網路裡用了公開位址卻不該被連的服務。
-
-**IPv6 與特殊位址。** IPv4-mapped 位址要先還原；NAT64、6to4、Teredo 可以內嵌 IPv4，所以整段排除。CGNAT 常被內部網路與 VPN 使用。範圍清單要隨標準更新，測試表是它的規格。
-
-**程式這一層擋不住的。** `Control` 只管 TCP 連線：DNS 查詢本身照樣發出；走 proxy 時 `Control` 看到的是 proxy 的位址，所以範例不用 `ProxyFromEnvironment`，需要 proxy 時檢查要放在 proxy 上。網路層的隔離（概念）是另一道獨立的防線：讓抓取的工作跑在沒有內網路由的網段，或強制經過只放行公開位址的 egress proxy，即使程式有漏洞也連不到。
-
-**回應與錯誤也是出口。** 連得上的公開頁面，內容不要原樣轉給使用者，預覽只回標題與摘要；回給使用者的錯誤要一致，否則「被擋」與「連線被拒」的差別，會讓人用來探測內網（本章〈[輸入驗證](01_input_validation.md)〉談過錯誤訊息不洩漏內部細節）。`BlockedError` 帶著位址，是給日誌看的。
-
-**成本。** 每次 `Fetch` 建立新的 `http.Client` 且關閉連線重用，換來連線不會跨使用者共用，代價是每次都重新握手。
-
-**before 什麼時候夠用？** 網址是設定檔裡寫死的，不是使用者給的。即使如此，逾時與大小上限還是要有。
+- **允許清單與拒絕清單。** 只能連事先登記的主機（允許清單）最穩，webhook 的對象固定時就該這樣做。預覽功能要抓任意網址，只能用拒絕清單：`IsPublic` 排除已知的特殊範圍。拒絕清單的代價是會漏：新的保留範圍、你自己的網路裡用了公開位址卻不該被連的服務。
+- **IPv6 與特殊位址。** IPv4-mapped 位址要先還原；NAT64、6to4、Teredo 可以內嵌 IPv4，所以整段排除。CGNAT 常被內部網路與 VPN 使用。範圍清單要隨標準更新，測試表是它的規格。
+- **程式這一層擋不住的。** `Control` 只管 TCP 連線：DNS 查詢本身照樣發出；走 proxy 時 `Control` 看到的是 proxy 的位址，所以範例不用 `ProxyFromEnvironment`，需要 proxy 時檢查要放在 proxy 上。網路層的隔離是另一道獨立的防線：讓抓取的工作跑在沒有內網路由的網段，或強制經過只放行公開位址的 egress proxy，即使程式有漏洞也連不到。
+- **回應與錯誤也是出口。** 連得上的公開頁面，內容不要原樣轉給使用者，預覽只回標題與摘要；回給使用者的錯誤要一致，否則「被擋」與「連線被拒」的差別，會讓人用來探測內網（本章〈[輸入驗證](01_input_validation.md)〉談過錯誤訊息不洩漏內部細節）。`BlockedError` 帶著位址，是給日誌看的。
+- **成本。** 每次 `Fetch` 建立新的 `http.Client` 且關閉連線重用，換來連線不會跨使用者共用，代價是每次都重新握手。
+- **before 什麼時候夠用？** 網址是設定檔裡寫死的，不是使用者給的。即使如此，逾時與大小上限還是要有。
 
 ## 重點整理
 
