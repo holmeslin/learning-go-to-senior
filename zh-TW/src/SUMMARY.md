@@ -108,6 +108,7 @@
     - [負載卸載與降級](chapter10/07_load_shedding.md)
     - [bulkhead](chapter10/08_bulkhead.md)
 - [安全實務]()
+    - [`crypto/rand` 與 TLS 設定](chapter11/06_crypto_rand_tls.md)
 - [建置與發布]()
 
 # 第六部　在團隊裡寫 Go
