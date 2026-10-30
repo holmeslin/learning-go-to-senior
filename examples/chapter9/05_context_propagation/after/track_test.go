@@ -100,8 +100,12 @@ func TestLogsCarryTraceID(t *testing.T) {
 		t.Fatalf("log is not one JSON line: %v\n%s", err, buf.String())
 	}
 	want := rec.Ended()[0].SpanContext().TraceID().String()
-	if line["level"] != "ERROR" || line["trace_id"] != want {
+	if line["level"] != "ERROR" || line[track.KeyTraceID] != want {
 		t.Errorf("log = %v, want level ERROR with trace_id %s", line, want)
+	}
+	// 鍵名跟 ep02 一樣：錯誤用 error，不是 err；代號用共用的常數。
+	if line[track.KeyError] == nil || line[track.KeyTrackingID] != "A1" || line["err"] != nil {
+		t.Errorf("log = %v, want keys %q and %q, not err", line, track.KeyError, track.KeyTrackingID)
 	}
 }
 

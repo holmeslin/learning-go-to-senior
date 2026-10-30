@@ -75,7 +75,7 @@ $ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18096/debug/pprof/
 curl -s -o cpu.out 'http://127.0.0.1:18096/debug/pprof/profile?seconds=5'
 ```
 
-這一節的每份 `go tool pprof` 輸出都只留表格，表頭以上的各行（`File`、`Type`、`Time`、`Duration`、`Showing`、`Dropped`，goroutine 那份還有 `Active filters` 與 `focus`）都省略了：
+以下每份 `go tool pprof` 輸出都只留表格，表頭以上的各行（`File`、`Type`、`Time`、`Duration`、`Showing`、`Dropped`，goroutine 那份還有 `Active filters` 與 `focus`）都省略了：
 
 執行結果（某一次）：
 
@@ -87,7 +87,7 @@ $ go tool pprof -top -nodecount=3 cpu.out
      200ms  8.85% 64.60%     1470ms 65.04%  crypto/internal/fips140/sha256.(*Digest).checkSum
 ```
 
-前幾名都是標準庫的 `sha256`，往上找第一個自己寫的函式，flat 與 cum 怎麼讀見第 7 章。heap 與 goroutine profile 是呼叫當下的快照，不必等：
+前幾名都是標準庫的 `sha256`，往上找第一個自己寫的函式，flat 與 cum 怎麼讀，第 7 章〈[`pprof`：先看 CPU 還是 heap](../chapter7/03_pprof_cpu_or_heap.md)〉談過。heap 與 goroutine profile 預設是呼叫當下的快照，不必等：
 
 ```bash
 curl -s -o heap.out http://127.0.0.1:18096/debug/pprof/heap
@@ -117,15 +117,15 @@ $ go tool pprof -top -cum -focus='main\.leak' goroutine.out
          8 61.54% 61.54%          8 61.54%  runtime.gopark
 ```
 
-八個 goroutine 停在同一個函式的同一個 channel 接收，和第 6 章〈[goroutine 洩漏怎麼發生、怎麼在測試裡抓到](../chapter6/09_goroutine_leak.md)〉的洩漏同一個長相，差別是這裡不必等測試。單看一次的數字分不出「本來就有」還是「在長」，每隔一陣收一份，同一個函式的數字一直增加才是洩漏。
+八個 goroutine 停在同一個函式的同一個 channel 接收，和第 6 章〈[goroutine 洩漏怎麼發生、怎麼在測試裡抓到](../chapter6/09_goroutine_leak.md)〉的洩漏同一個長相，差別是這裡不必等測試。單看一次的數字分不出「本來就有」還是「在長」，每隔一陣收一份，同一個函式的數字一直增加才是洩漏。懶得自己比兩份，就加 `seconds=N`：文件寫明 heap、goroutine 等 profile 帶 `seconds` 會回傳這 N 秒的差量（delta），只看增加的部分。
 
 ## 取捨
 
 - **CPU profile 只在收的期間有成本。** 取樣期間 runtime 要額外記錄，期間之外沒有；同一個行程同一時間只能有一個，`StartCPUProfile` 在已經啟用時會回傳錯誤。所以端點可以常開，收的時候用短的 `seconds`，不要預設的 30 秒掛著。
-- **heap 與 goroutine profile 是快照。** 不需要 `seconds`，隨時可以收，但仍要放在管理用的 port 上，內容和 CPU profile 一樣敏感。
-- **`expvar` 不是 profile。** `/debug/vars` 輸出 JSON 的計數，套件文件寫明預設有 `cmdline` 與 `memstats`，也可以用 `expvar.Publish` 加自己的；它回答「數字是多少」，不回答「哪個函式」。它同樣在 import 時註冊到 `DefaultServeMux`，要放進管理用的 mux，用 `expvar.Handler()`。
+- **heap 與 goroutine profile 預設是快照，也能收差量。** 不帶 `seconds` 是當下的快照，隨時可以收；帶 `seconds=N`（allocs、block、goroutine、heap、mutex、threadcreate 都支援）是這 N 秒的差量，適合追趨勢。兩種都要放在管理用的 port 上，內容和 CPU profile 一樣敏感。
+- **`expvar` 不是 profile。** `/debug/vars` 輸出 JSON 的計數，套件文件寫明預設有 `cmdline` 與 `memstats`，也可以用 `expvar.Publish` 加自己的；它回答「數字是多少」，不回答「哪個函式」。它同樣在 import 時註冊到 `DefaultServeMux`，要放進管理用的 mux，用 `expvar.Handler()`；而且 `cmdline` 也在其中，上面不註冊 `cmdline` 的考量一樣適用：命令列有秘密，就別開 `/debug/vars`。
 - **偶發的問題等到發生才收 profile 就太晚。** 第 7 章〈[`runtime/trace`](../chapter7/04_runtime_trace.md)〉談過的 flight recorder 只在記憶體裡保留最近一段 trace，偵測到異常才存檔；存下來的檔不要經由公開端點給人下載。管理端點的 `trace?seconds=` 則是從收的那一刻起錄一段。
-- **存取控制比「只聽本機」多一層。** loopback 擋得住外面，擋不住同一台機器或同一個網路命名空間裡的其他行程。管理用的 port 放在內部網路時，要靠網路層（防火牆、跳板機、`ssh -L` 轉發）或在 handler 前加驗證；這集不教這些設定。
+- **存取控制比「只聽本機」多一層。** loopback 擋得住外面，擋不住同一台機器或同一個網路命名空間裡的其他行程。管理用的 port 放在內部網路時，要靠網路層（防火牆、跳板機、`ssh -L` 轉發）或在 handler 前加驗證；這集不教這些設定。用 HTTP 端點調 `slog.LevelVar` 的日誌層級（本章〈[日誌層級與欄位設計](02_log_levels_and_fields.md)〉談過 `LevelVar`）也是管理操作，那個端點一樣掛在管理用的 mux。
 - **before 什麼時候是對的？** 本機開發，或整個行程只有自己會連的小工具、沒有對外的 listener，一行 `import _` 最省事。
 
 ## 重點整理

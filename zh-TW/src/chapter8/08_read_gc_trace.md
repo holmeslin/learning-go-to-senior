@@ -90,7 +90,7 @@ gc 40 @0.398s 62%: 0.017+7.4+0.001 ms clock, 0.035+13/0.12/0+0.003 ms cpu, 151->
 
 ## 取捨
 
-- **`gctrace` 適合除錯，不適合長期觀察。** 它印到標準錯誤、一輪一行，要用環境變數重啟程式才打得開，也沒有彙總。長期觀察 GC 用本章〈[`runtime/metrics`](06_runtime_metrics.md)〉談過的指標；`runtime` 文件在每一欄旁邊註明了對應的指標（例如 goal 是 `/gc/heap/goal:bytes`）。指標怎麼設計與匯出，第 9 章〈指標（metrics）設計與高基數問題〉會談。
+- **`gctrace` 適合除錯，不適合長期觀察。** 它印到標準錯誤、一輪一行，要用環境變數重啟程式才打得開，也沒有彙總。長期觀察 GC 用本章〈[`runtime/metrics`](06_runtime_metrics.md)〉談過的指標；`runtime` 文件在每一欄旁邊註明了對應的指標（例如 goal 是 `/gc/heap/goal:bytes`）。指標怎麼設計與匯出，第 9 章〈[指標（metrics）設計與高基數問題](../chapter9/03_metrics_cardinality.md)〉談過。
 - **格式可能隨版本改變。** 文件明寫格式可能改變，上面的 `gctrace` 套件只對應 Go 1.27；欄位的定義以 [`runtime` 套件文件](https://pkg.go.dev/runtime)為準，不要把解析 trace 寫進正式環境的流程。
 - **一行不是趨勢。** 大小取整數的 MB，小的 heap 常常是 0；數字也每次不同。要看的是一段 trace 裡 goal、存活量與頻率的相對變化，不是某個數字本身。
 - **大多數服務不需要調。** 預設值夠用，trace 看不出頻繁、被壓住或比例過高，就沒有東西要改。

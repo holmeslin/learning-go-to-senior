@@ -40,7 +40,7 @@ func TestReadyzListsFailedChecks(t *testing.T) {
 		h := health.NewHandler(
 			health.Check{Name: "db", Timeout: 2 * time.Second, Probe: hangs},
 			health.Check{Name: "cache", Timeout: 3 * time.Second, Probe: refuses},
-			health.Check{Name: "queue", Timeout: 3 * time.Second, Probe: func(context.Context) error { return nil }},
+			health.Check{Name: "queue", Timeout: time.Second, Probe: hangs},
 		)
 
 		start := time.Now()
@@ -49,12 +49,12 @@ func TestReadyzListsFailedChecks(t *testing.T) {
 		if code != http.StatusServiceUnavailable {
 			t.Errorf("GET /readyz = %d, want 503", code)
 		}
-		want := `{"status":"unavailable","failed":{"cache":"connection refused","db":"timeout"}}`
+		want := `{"status":"unavailable","failed":{"cache":"connection refused","db":"timeout","queue":"timeout"}}`
 		if body != want {
 			t.Errorf("body = %s, want %s", body, want)
 		}
 		if got := time.Since(start); got != 2*time.Second {
-			t.Errorf("GET /readyz took %v, want 2s (the slowest failing check)", got)
+			t.Errorf("GET /readyz took %v, want 2s (the slowest check; run one after another it would be 3s)", got)
 		}
 	})
 }
