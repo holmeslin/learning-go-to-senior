@@ -89,7 +89,8 @@
 
 # 第五部　上線與維運
 
-- [可觀測性]()
+- [可觀測性](chapter9/README.md)
+    - [結構化日誌：`log/slog` 的欄位與 handler 怎麼選](chapter9/01_structured_logging.md)
     - [日誌層級與欄位設計](chapter9/02_log_levels_and_fields.md)
     - [指標（metrics）設計與高基數問題](chapter9/03_metrics_cardinality.md)
     - [在 `context` 裡傳遞 trace](chapter9/05_context_propagation.md)
