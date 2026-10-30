@@ -8,7 +8,7 @@
 
 結帳服務要向匯率服務查匯率。匯率服務偶爾逾時，過載時回 503；結帳服務有很多個實例，每個實例同時處理很多請求，每個請求都帶著呼叫端願意等的 deadline。
 
-HTTP client 與 `context` 的逾時前作教過：〈[HTTP client](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/06_http_client.html)〉、〈[`WithTimeout` 與 `WithDeadline`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter10/03_with_timeout.html)〉。逾時怎麼分配，本章〈逾時預算〉談過，這集只談失敗之後的重試。操作不是冪等的時候重試會做兩次，本章〈冪等性〉會談；下游已經掛了還要不要打，本章〈斷路器〉會談。
+HTTP client 與 `context` 的逾時前作教過：〈[HTTP client](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/06_http_client.html)〉、〈[`WithTimeout` 與 `WithDeadline`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter10/03_with_timeout.html)〉。逾時怎麼分配，本章〈[逾時預算](01_timeout_budget.md)〉談過，這集只談失敗之後的重試。操作不是冪等的時候重試會做兩次，本章〈冪等性〉會談；下游已經掛了還要不要打，本章〈斷路器〉會談。
 
 ## 常見寫法
 
