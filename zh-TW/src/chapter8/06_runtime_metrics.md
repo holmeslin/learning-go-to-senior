@@ -6,7 +6,7 @@
 
 ## 情境
 
-縮圖服務有一個 goroutine 定期讀 runtime 的記憶體狀況，送到監控系統，並設了一條告警：「heap 超過 800 MiB 就通知值班的人」。這集只談怎麼從 runtime 讀出來；指標怎麼命名、怎麼匯出，第 9 章〈指標（metrics）設計與高基數問題〉會談。GC 的基本觀念前作教過：〈[GC 概念](https://holmeslin.github.io/learning-go-from-zero/zh-TW/appendix2/c_gc.html)〉。
+縮圖服務有一個 goroutine 定期讀 runtime 的記憶體狀況，送到監控系統，並設了一條告警：「heap 超過 800 MiB 就通知值班的人」。這集只談怎麼從 runtime 讀出來；指標怎麼命名、怎麼匯出，第 9 章〈[指標（metrics）設計與高基數問題](../chapter9/03_metrics_cardinality.md)〉談過。GC 的基本觀念前作教過：〈[GC 概念](https://holmeslin.github.io/learning-go-from-zero/zh-TW/appendix2/c_gc.html)〉。
 
 ## 常見寫法
 
@@ -90,7 +90,7 @@ after   /gc/heap/live:bytes                        0.3    64.3      0.3
 
 - **`ReadMemStats` 沒有被淘汰。** 一次性的除錯（臨時印一行、在測試裡看某段程式配置前後的 `HeapAlloc`）用它最快，不必先查名稱。問題出在把它當成長期指標，又沒讀清楚欄位的意思。只想看 heap，也可以用 heap profile：第 7 章〈[`pprof`：先看 CPU 還是 heap](../chapter7/03_pprof_cpu_or_heap.md)〉談過。
 - **名稱會隨版本增加，也會被標成棄用。** 例如 `/gc/pauses:seconds` 在說明裡寫著請改用 `/sched/pauses/total/gc:seconds`。清單是自己挑的，新版本的新指標不會自動出現；`Unsupported` 不為空時，啟動時記一行日誌，別默默少一條線。
-- **這個 `Sampler` 只處理單一數值。** 直方圖（例如 `/sched/latencies:seconds`）要自己決定怎麼彙整 bucket，留給第 9 章。它也不能被多個 goroutine 同時呼叫，要並行就各建一個。
+- **這個 `Sampler` 只處理單一數值。** 直方圖（例如 `/sched/latencies:seconds`）還是要自己決定怎麼彙整 bucket；bucket 的邊界怎麼挑，第 9 章〈[SLI 與 SLO](../chapter9/08_sli_slo.md)〉談過。它也不能被多個 goroutine 同時呼叫，要並行就各建一個。
 - **`/memory/classes/total:bytes` 不含 cgo 或 `syscall` 映射的記憶體**，所以和作業系統看到的行程記憶體還是會有差距。heap 與行程記憶體的差別，本章〈[記憶體配置與 heap 成長](04_heap_growth.md)〉談過。
 - **`gctrace` 適合一次性的除錯，長期觀察用這集的指標。** 怎麼逐欄讀 `gctrace`，本章〈讀 GC trace〉會談；什麼時候該動 `GOGC`，本章〈[什麼時候該調 `GOGC`，什麼時候別動](02_when_to_tune_gogc.md)〉談過。
 
@@ -100,4 +100,4 @@ after   /gc/heap/live:bytes                        0.3    64.3      0.3
 - `runtime/metrics` 以帶單位的名稱選指標，說明與 `Kind` 都在 `metrics.All()`；`Kind` 保證不變。
 - 建立時查 `Kind`、略過不支援的名稱；`Read` 重複使用樣本切片，依 `Kind` 取值。
 - 測試只斷言名稱、型別、略過行為與零配置，不斷言數值。
-- 指標怎麼命名與匯出，第 9 章〈指標（metrics）設計與高基數問題〉會談。
+- 指標怎麼命名與匯出，第 9 章〈[指標（metrics）設計與高基數問題](../chapter9/03_metrics_cardinality.md)〉談過。
