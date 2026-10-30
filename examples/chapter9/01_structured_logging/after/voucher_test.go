@@ -15,9 +15,9 @@ func TestJSONFields(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	r := voucher.New(slog.New(slog.NewJSONHandler(&buf, nil)), voucher.Voucher{Code: "A1", Cents: 100})
-	r.Redeem(t.Context(), "u4", "ZZ")
-	r.Redeem(t.Context(), "u42", "A1")
-	r.Redeem(t.Context(), "u42", "A1")
+	_ = r.Redeem(t.Context(), "u4", "ZZ")
+	_ = r.Redeem(t.Context(), "u42", "A1")
+	_ = r.Redeem(t.Context(), "u42", "A1")
 
 	var u4, u42 []map[string]any
 	dec := json.NewDecoder(&buf)
@@ -58,7 +58,7 @@ func TestLibraryLeavesDefaultLoggerAlone(t *testing.T) {
 	t.Cleanup(func() { slog.SetDefault(old) })
 
 	r := voucher.New(slog.New(slog.NewTextHandler(&injected, nil)), voucher.Voucher{Code: "A1", Cents: 100})
-	r.Redeem(t.Context(), "u1", "A1")
+	_ = r.Redeem(t.Context(), "u1", "A1")
 
 	if global.Len() != 0 {
 		t.Errorf("default logger received %q, want nothing", global.String())

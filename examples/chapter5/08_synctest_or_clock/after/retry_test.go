@@ -106,11 +106,11 @@ func TestDoOverPipe(t *testing.T) {
 		client, server := net.Pipe() // 行程內的假連線，不經過 socket
 		defer client.Close()
 		defer server.Close()
-		go io.Copy(io.Discard, server) // 對方收下請求，但永遠不回
+		go func() { _, _ = io.Copy(io.Discard, server) }() // 對方收下請求，但永遠不回
 
 		ask := func(ctx context.Context) error {
 			deadline, _ := ctx.Deadline()
-			client.SetDeadline(deadline)
+			_ = client.SetDeadline(deadline)
 			if _, err := client.Write([]byte("ping")); err != nil {
 				return err
 			}

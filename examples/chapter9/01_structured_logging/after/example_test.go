@@ -27,8 +27,8 @@ func noTime() *slog.HandlerOptions {
 func ExampleRedeemer_Redeem() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, noTime()))
 	r := voucher.New(logger, voucher.Voucher{Code: "A1", Cents: 100})
-	r.Redeem(context.Background(), "u42", "A1")
-	r.Redeem(context.Background(), "u42", "A1")
+	_ = r.Redeem(context.Background(), "u42", "A1")
+	_ = r.Redeem(context.Background(), "u42", "A1")
 	// Output:
 	// level=INFO msg="voucher redeemed" user_id=u42 voucher.code=A1 voucher.cents=100
 	// level=WARN msg="redeem failed" user_id=u42 code=A1 error="voucher already redeemed"
@@ -41,7 +41,7 @@ func ExampleRedeemer_Redeem() {
 func ExampleRedeemer_Redeem_json() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, noTime()))
 	r := voucher.New(logger, voucher.Voucher{Code: "A1", Cents: 100})
-	r.Redeem(context.Background(), "u42", "A1")
+	_ = r.Redeem(context.Background(), "u42", "A1")
 	// Output:
 	// {"level":"INFO","msg":"voucher redeemed","user_id":"u42","voucher":{"code":"A1","cents":100}}
 }

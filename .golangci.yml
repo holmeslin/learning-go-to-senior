@@ -1,0 +1,48 @@
+version: "2"
+
+# 不限制每個 linter（預設 50 筆）與每種訊息（預設 3 筆）的回報數量；
+# 同一種寫法散在許多檔案時，預設只列前幾處，修掉之後才又冒出被截掉的另一批。
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+run:
+  # 帶 integration tag 才編譯得到整合測試；它是本書唯一的 tag，只增加檔案，不會漏掉不帶 tag 的程式。
+  build-tags:
+    - integration
+
+linters:
+  # 沿用預設的規則集合（errcheck、govet、ineffassign、staticcheck、unused），不另外加規則。
+  settings:
+    errcheck:
+      exclude-functions:
+        # 寫進 http.ResponseWriter 失敗，代表對方已經斷線，伺服器沒有別的事可做。
+        - fmt.Fprint(net/http.ResponseWriter)
+        - fmt.Fprintf(net/http.ResponseWriter)
+        - fmt.Fprintln(net/http.ResponseWriter)
+        - io.WriteString(net/http.ResponseWriter)
+        - (net/http.ResponseWriter).Write
+        # bufio.Writer 會記住第一個寫入錯誤，由 Flush 回報。
+        - fmt.Fprint(*bufio.Writer)
+        - fmt.Fprintf(*bufio.Writer)
+        - fmt.Fprintln(*bufio.Writer)
+        # 名稱是常數，Setenv 只有名稱為空或含 = 時才會失敗；Unsetenv 在 Unix 永遠回傳 nil。
+        - os.Setenv
+        - os.Unsetenv
+        # 記憶體裡的 ResponseRecorder 不會寫入失敗。
+        - (*net/http/httptest.ResponseRecorder).WriteString
+        # 測試結束時關掉資源（資料庫、回應本文、UDP 連線）：失敗了沒有後續可做。
+        - (*database/sql.DB).Close
+        - (io.Closer).Close
+        - (net.PacketConn).Close
+  exclusions:
+    paths:
+      # 刻意寫壞的示範。
+      - /before/
+    rules:
+      # defer 的清理（Close、Rollback、RemoveAll、Unregister）沒有地方可以回報錯誤。
+      - linters: [errcheck]
+        source: '^\s*defer (.+\.)?(Close|Rollback|RemoveAll|Unregister)\('
+      # 狀態碼已經送出，JSON 寫進 ResponseWriter 失敗，原因同上：對方斷線。
+      - linters: [errcheck]
+        source: 'json\.NewEncoder\(w\)\.Encode\('

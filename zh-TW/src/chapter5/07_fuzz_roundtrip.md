@@ -88,7 +88,7 @@ ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter5/07_fuzz_roundt
 fuzz 要付出的：
 
 - **要有可檢查的性質。** 編碼解碼來回、解析再格式化、正規化兩次等於一次、排序後有序，這類性質不需要知道正確答案。如果檢查的唯一方法是和另一份實作比對，或是自己把預期結果算一遍，fuzz 測試就只是把函式重寫一遍，不值得。
-- **CI 預設只跑 seed corpus。** 沒加 `-fuzz` 時，`go test` 只跑 `f.Add` 的種子與 `testdata/fuzz` 的檔案，和普通測試一樣快、一樣確定。真的 fuzzing 要另外安排：排程在夜間跑，或發版、改了解析程式之前手動跑一陣子，找到的輸入再提交進 `testdata/fuzz`。排程的設定第 12 章〈`golangci-lint` 與 CI〉會談。
+- **CI 預設只跑 seed corpus。** 沒加 `-fuzz` 時，`go test` 只跑 `f.Add` 的種子與 `testdata/fuzz` 的檔案，和普通測試一樣快、一樣確定。真的 fuzzing 要另外安排：排程在夜間跑，或發版、改了解析程式之前手動跑一陣子，找到的輸入再提交進 `testdata/fuzz`。排程的設定第 12 章〈[`golangci-lint` 與 CI](../chapter12/05_golangci_lint_ci.md)〉談過。
 - **要看結果的人。** fuzz 失敗是排程裡的事，得有人看、有人修，不然只是在耗電。
 
 手挑輸入的表格仍然有它的位置：它說明規格（`"aaabbc"` 該編成什麼），失敗時一眼看得出哪一列壞掉。fuzz 補上的是「想不到的輸入」，不取代表格。
