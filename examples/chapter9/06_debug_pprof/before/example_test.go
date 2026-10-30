@@ -9,14 +9,14 @@ import (
 	stock "github.com/holmeslin/learning-go-to-senior/examples/chapter9/06_debug_pprof/before"
 )
 
+// ANCHOR: example
+
 // get 對 h 送出 GET 請求，回傳狀態碼與回應內容。
 func get(h http.Handler, path string) (int, string) {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 	return rec.Code, rec.Body.String()
 }
-
-// ANCHOR: example
 
 func ExampleNewHandler() {
 	h := stock.NewHandler() // 對外的 handler：http.ListenAndServe(addr, nil) 用的就是它
