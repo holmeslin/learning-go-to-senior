@@ -2,6 +2,7 @@ package quote_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -75,3 +76,38 @@ func TestOpenBreakerFailsFast(t *testing.T) {
 }
 
 // ANCHOR_END: failfast
+
+func TestRetryAfterRoundsUpToWholeSeconds(t *testing.T) {
+	for _, tc := range []struct {
+		after time.Duration
+		want  string
+	}{
+		{0, "1"}, // 標頭的最小單位是秒，0 秒等於叫呼叫端立刻重試
+		{500 * time.Millisecond, "1"},
+		{time.Second, "1"},
+		{1500 * time.Millisecond, "2"},
+		{30 * time.Second, "30"},
+	} {
+		h := quote.Handler{
+			Downstream: func(context.Context) (int, error) { return 0, errors.New("down") },
+			Breaker:    breaker.New(breaker.Config{Threshold: 1, Cooldown: time.Hour}),
+			Timeout:    time.Second,
+			RetryAfter: tc.after,
+		}
+		get := func() *httptest.ResponseRecorder {
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/quote", nil))
+			return rec
+		}
+
+		get() // 第一個失敗，斷路器打開
+		rec := get()
+
+		if rec.Code != http.StatusServiceUnavailable {
+			t.Fatalf("RetryAfter %v: status = %d, want 503", tc.after, rec.Code)
+		}
+		if got := rec.Header().Get("Retry-After"); got != tc.want {
+			t.Errorf("RetryAfter %v: Retry-After = %q, want %q", tc.after, got, tc.want)
+		}
+	}
+}
