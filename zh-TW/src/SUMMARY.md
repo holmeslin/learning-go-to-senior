@@ -90,6 +90,7 @@
 # 第五部　上線與維運
 
 - [可觀測性]()
+    - [在 `context` 裡傳遞 trace](chapter9/05_context_propagation.md)
 - [韌性]()
 - [安全實務]()
 - [建置與發布]()
