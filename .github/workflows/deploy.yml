@@ -48,6 +48,12 @@ jobs:
             exit 1
           fi
 
+      # ANCHOR: lint
+      - name: Lint
+        # golangci-lint 的版本鎖在 tools/lint/go.mod，不在根目錄的 go.mod；規則與排除見 .golangci.yml
+        run: go tool -modfile=tools/lint/go.mod golangci-lint run ./...
+      # ANCHOR_END: lint
+
       - name: Build book
         working-directory: zh-TW
         run: mdbook build

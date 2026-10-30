@@ -112,7 +112,7 @@ ok  	.../after/notes
 go vet ./... && go vet -tags integration ./... && go test -race -tags integration ./...
 ```
 
-`go vet` 預設與帶 tag 各跑一次，是因為有些檔案只在其中一種設定下才編譯；測試只跑帶 tag 的那一次，它已經包含不帶 tag 的測試。CI 的設定本身，第 12 章〈`golangci-lint` 與 CI〉會談。
+`go vet` 預設與帶 tag 各跑一次，是因為有些檔案只在其中一種設定下才編譯；測試只跑帶 tag 的那一次，它已經包含不帶 tag 的測試。CI 的設定本身，第 12 章〈[`golangci-lint` 與 CI](../chapter12/05_golangci_lint_ci.md)〉談過。
 
 ## 取捨
 

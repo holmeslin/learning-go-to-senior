@@ -116,7 +116,15 @@
     - [`crypto/rand` 與 TLS 設定](chapter11/06_crypto_rand_tls.md)
     - [SSRF 與對外請求](chapter11/07_ssrf_outbound_requests.md)
     - [日誌裡的敏感資料](chapter11/08_sensitive_data_in_logs.md)
-- [建置與發布]()
+- [建置與發布](chapter12/README.md)
+    - [`go build` 與用 `-ldflags` 注入版本](chapter12/01_build_version_info.md)
+    - [可重現的建置](chapter12/02_reproducible_builds.md)
+    - [交叉編譯](chapter12/03_cross_compile.md)
+    - [容器映像（multi-stage）](chapter12/04_container_image.md)
+    - [`golangci-lint` 與 CI](chapter12/05_golangci_lint_ci.md)
+    - [`go.mod` 與相依升級](chapter12/06_go_mod_dependency_upgrade.md)
+    - [發布流程與版本號](chapter12/07_release_and_versioning.md)
+    - [設定與環境變數](chapter12/08_config_env.md)
 
 # 第六部　在團隊裡寫 Go
 

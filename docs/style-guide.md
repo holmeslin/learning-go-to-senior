@@ -145,7 +145,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 ## 第三方套件
 
 - **標準庫與 `golang.org/x` 優先**。能用標準庫解決的就不要引入套件。
-- OpenTelemetry 只在第 9 章「可觀測性」使用；`golangci-lint` 只在第 12 章「建置與發布」使用，並以 `go.mod` 的 `tool` 指令鎖定版本（Go 1.24 起），不是可 import 的相依。第 4、11、16 章可以用 `modernc.org/sqlite`（純 Go、不需要 cgo，與前作第 15 章相同）。第 16 章綜合實戰可以沿用上述套件，但不新增其他相依。
+- OpenTelemetry 只在第 9 章「可觀測性」使用；`golangci-lint` 只在第 12 章「建置與發布」使用，並以獨立的 `tools/lint/go.mod` 的 `tool` 指令鎖定版本（Go 1.24 起；不放進根目錄的 `go.mod`，以免多出兩百多個間接相依），從根目錄用 `go tool -modfile=tools/lint/go.mod golangci-lint` 執行，不是可 import 的相依。第 4、11、16 章可以用 `modernc.org/sqlite`（純 Go、不需要 cgo，與前作第 15 章相同）。第 16 章綜合實戰可以沿用上述套件，但不新增其他相依。
 - 不教框架（Web 框架、ORM、相依注入框架）。要談取捨時，用標準庫寫出同樣的事，再說明框架解決了什麼、換來了什麼。
 - 新增相依要在該集的 ticket 說明理由；單檔範例用到就同步鎖定在 `tools/checkcode/deps/go.mod`，多檔案範例鎖定在根目錄 `go.mod`。
 
@@ -154,7 +154,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 - 以 Go 1.27 為準。Go 1.22 起迴圈變數每次迭代各一份；1.23 起有 range over func；1.26 起 `new(expr)`、`errors.AsType`；1.27 起泛型方法、struct literal 可用巢狀欄位選擇器、`encoding/json/v2`、`uuid` 套件。
 - 不要寫過時的網路說法（例如 Go 1.22 前的迴圈變數陷阱、`time.After` 在迴圈中洩漏）。
 - 不確定時用 `go doc <套件>.<名稱>` 或實際寫程式驗證，不要憑印象。
-- 完成後執行 `go run ./tools/checkcode zh-TW/src/<章節目錄>`，再執行 `go vet ./... && go vet -tags integration ./... && go test -race -tags integration ./...` 與 `go test -run='^$' -bench=. -benchtime=1x ./...`，全部通過才算完成。
+- 完成後執行 `go run ./tools/checkcode zh-TW/src/<章節目錄>`，再執行 `go vet ./... && go vet -tags integration ./... && go test -race -tags integration ./...`、`go test -run='^$' -bench=. -benchtime=1x ./...` 與 `go tool -modfile=tools/lint/go.mod golangci-lint run ./...`，全部通過才算完成。
 
 ## 完成一章時
 

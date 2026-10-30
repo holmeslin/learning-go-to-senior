@@ -200,7 +200,7 @@ func TestGraceCapsTheWholeSequence(t *testing.T) {
 		}
 		client, cancel, done := launch(t, svc, gate)
 
-		go get(client, "/slow")
+		go func() { _, _ = get(client, "/slow") }()
 		synctest.Wait()
 		begin := time.Now()
 		cancel()
