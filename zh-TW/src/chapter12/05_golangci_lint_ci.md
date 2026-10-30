@@ -70,13 +70,14 @@ go tool -modfile=tools/lint/go.mod golangci-lint run -c all.yml --max-issues-per
 ```
 
 - **`before/`。** 刻意寫壞的示範，整個排除。
-- **`errcheck` 的函式排除。** 寫進 `http.ResponseWriter` 失敗代表對方斷線，伺服器沒有別的事可做；`bufio.Writer` 記住第一個錯誤，由 `Flush` 回報（第 3 章〈[接受介面、回傳 struct](../chapter3/02_accept_interfaces_return_structs.md)〉的 `Logger` 就是這樣設計）；`os.Setenv` 的名稱是常數。
-- **`defer` 的清理與 `Encode`。** `defer rows.Close()`、`defer tx.Rollback()` 沒有地方回報錯誤；`json.NewEncoder(w).Encode` 的狀態碼已經送出。
-- **測試檔的 `errcheck`。** 讓斷路器跳開、`go get(...)` 在背景占名額，這些呼叫的結果由後面的斷言檢查。
-- **`build-tags`。** 沒有 `integration` 時，整合測試檔不會被分析（實測在帶 tag 的檔案加一個未使用的變數，只有帶 tag 才報錯）。這和 `go vet` 要跑兩次是同一個道理。
-- **`max-issues-per-linter: 0`。** 不然修掉一批、又冒出被截掉的另一批。
+- **`errcheck` 的函式排除（138 → 72）。** 寫進 `http.ResponseWriter` 失敗代表對方斷線，伺服器沒有別的事可做，`httptest.ResponseRecorder` 則寫在記憶體裡；`bufio.Writer` 記住第一個錯誤，由 `Flush` 回報（第 3 章〈[接受介面、回傳 struct](../chapter3/02_accept_interfaces_return_structs.md)〉的 `Logger` 就是這樣設計）；`os.Setenv` 的名稱是常數，只有名稱為空或含 `=` 才失敗，`os.Unsetenv` 在 Unix 上永遠回傳 `nil`（看 `syscall.Unsetenv` 的原始碼）；`(*sql.DB).Close`、`io.Closer.Close`（`resp.Body`）與 `net.PacketConn.Close` 在測試裡用來收尾，失敗了沒有後續可做。
+- **`defer` 的清理（→ 44）。** `defer rows.Close()`、`defer tx.Rollback()`、`defer reg.Unregister()` 沒有地方回報錯誤；`defer os.RemoveAll(dir)` 清的是測試的暫存目錄，失敗只是多留一個目錄，測試的結果早已出來。
+- **`Encode`（→ 41）。** `json.NewEncoder(w).Encode` 的狀態碼已經送出，失敗的原因同上。
+- **測試檔不整個排除。** 只排除上面這幾個函式；別的呼叫忘了檢查錯誤，在測試裡也要報。
+- **`build-tags`。** 沒有 `integration` 時，整合測試檔不會被分析，和 `go vet` 要跑兩次是同一個道理。驗證：在帶 tag 的測試檔加一行 `func unusedProbe() {}`，`golangci-lint run -c min.yml ./... | grep -c 'unusedProbe is unused'` 得 0，不加 `-c`（用本書的設定）得 1。
+- **兩個上限都設 0。** 預設每個 linter 最多 50 筆，同一種訊息最多 3 筆：同一種寫法散在許多檔案時，只列前 3 處，修掉才冒出被截掉的另一批，一次「乾淨」的結果不能信。
 
-排除之後還剩 10 筆，逐筆處理。`r.Redeem(...)`、`syscall.Write` 與 `s.Server.Close()` 這四處忽略回傳值，改成 `_ =`，把「刻意不看」寫進程式；`entry` 結構的 `payload` 欄位只是補到 128 位元組，改成 `_ [120]byte`。剩下五筆是示範用的寫法，用 `//nolint` 並寫明理由，例如第 11 章〈[秘密管理](../chapter11/05_secret_management.md)〉故意用錯的動詞：
+排除之後還剩 41 筆（`errcheck` 35、`ineffassign` 2、`staticcheck` 3、`unused` 1），逐筆處理。35 筆 `errcheck` 都改成明寫的 `_ =`，把「刻意不看」寫進程式：關機流程的 `s.Server.Close()`、`syscall.Write` 與 `net.Conn` 的 `Write`、`r.Redeem(...)`、測試裡讓斷路器跳開的 `b.Do(...)`；在背景占名額的呼叫（測試輔助函式 `get`、`g.Get`、`io.Copy`）包成 `go func() { _, _ = … }()`；有一處（`<-slowDone`）改成斷言錯誤是 `errBoom`。`entry` 結構的 `payload` 欄位只是補到 128 位元組，改成 `_ [120]byte`。剩下五筆是示範用的寫法，用 `//nolint` 並寫明理由，例如第 11 章〈[秘密管理](../chapter11/05_secret_management.md)〉故意用錯的動詞：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/05_secret_management/after/settings_test.go:gaps}}
@@ -94,10 +95,11 @@ go tool -modfile=tools/lint/go.mod golangci-lint run ./...
 0 issues.
 ```
 
-工具的版本鎖在 `tools/lint/go.mod`，用 `tool` 指令；它是獨立的模組，根目錄 `./...` 不會包含它，根目錄的 `go.mod` 也不會多出相依。`tool` 指令本身，本章〈`go.mod` 與相依升級〉會談：
+工具的版本鎖在 `tools/lint/go.mod`：`tool` 指令，加上 `require` 裡的版本（沒有程式碼 import 它，所以標 `// indirect`）。它是獨立的模組，根目錄 `./...` 不會包含它，根目錄的 `go.mod` 也不會多出相依。`tool` 指令本身，本章〈`go.mod` 與相依升級〉會談：
 
 ```gomod
-{{#include ../../../tools/lint/go.mod:1:5}}
+{{#include ../../../tools/lint/go.mod:tool}}
+{{#include ../../../tools/lint/go.mod:version}}
 ```
 
 CI 的步驟加在所有測試之後、建置書之前，指令和本機完全一樣；因為只有推到 main 才跑，lint 失敗會擋住部署：
@@ -129,13 +131,13 @@ on:
 ```
 
 - **fuzzing。** `go test -run='^$' -fuzz=FuzzRoundTrip -fuzztime=10m ./examples/chapter5/07_fuzz_roundtrip/after`。`-fuzz` 一次只能對一個套件（`go test -fuzz=Fuzz ./...` 回 `cannot use -fuzz flag with multiple packages`），找到的輸入存成 artifact 或開 issue，提交進 `testdata/fuzz` 後就成了每次都跑的回歸測試，見第 5 章〈[什麼時候值得寫 fuzz 測試](../chapter5/07_fuzz_roundtrip.md)〉。
-- **覆蓋率。** `go test -coverprofile=cover.out ./...` 之後，把 `go tool cover -func=cover.out | tail -1` 寫進 `$GITHUB_STEP_SUMMARY`，讓 reviewer 看得到；理由見第 5 章〈[覆蓋率的意義與限制](../chapter5/11_coverage_meaning_limits.md)〉。
+- **覆蓋率。** `go test -coverprofile=cover.out ./...` 之後，把 `go tool cover -func=cover.out | tail -1` 寫進 `$GITHUB_STEP_SUMMARY`；再用 `go tool cover -html=cover.out -o coverage.html` 產生報告，以 `actions/upload-artifact@v7` 上傳（`path: coverage.html`），reviewer 下載後用瀏覽器開，沒被測到的行標成紅色。理由見第 5 章〈[覆蓋率的意義與限制](../chapter5/11_coverage_meaning_limits.md)〉。
 - **`govulncheck`。** 排程跑 `go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...`，失敗就通知；怎麼讀輸出見第 11 章〈[`govulncheck` 與相依弱點](../chapter11/04_govulncheck.md)〉。
 
 ## 取捨
 
 - **規則有維護成本。** 每多一條規則就多一種要看懂的訊息與誤報；升級 golangci-lint 也可能多出新訊息，所以升級單獨一個 PR，先看新增了什麼。
-- **排除規則會放過真的問題。** `defer` 那條也放過寫檔案後的 `defer f.Close()`，而寫入的 `Close` 錯誤要回報；本書沒有這種寫法，但你的專案可能有，要靠 review。
+- **排除規則會放過真的問題。** `defer` 那條也放過寫檔案後的 `defer f.Close()`，而寫入的 `Close` 錯誤要回報；函式排除也不分檔案，正式程式碼裡的 `db.Close()` 同樣被放過。本書沒有這種寫法，但你的專案可能有，要靠 review。
 - **`//nolint` 一律寫理由、範圍最小。** 要強制可以開 `nolintlint`，本書沒開。
 - **lint 看不到的。** 它和 `go vet` 一樣，一次只分析一組 tag 與一個平台；也看不出設計對不對，不取代 code review，第 13 章〈Go 程式碼的 review 檢查清單〉會談。
 - **只跑 `go test` 什麼時候是對的？** 小專案、很少有人改的程式，維護一份設定的成本比它抓到的問題還高。全開則適合只跑一次，從中挑出值得開的規則，不要放進 CI。

@@ -15,7 +15,7 @@
 單階段：建置用的映像就是執行用的映像，`COPY . .` 把整個目錄帶進去：
 
 ```dockerfile
-{{#include ../../../examples/chapter12/04_container_image/before/Dockerfile:3:}}
+{{#include ../../../examples/chapter12/04_container_image/before/Dockerfile:dockerfile}}
 ```
 
 寫法直白，也真的跑得起來。完整程式碼在 `examples/chapter12/04_container_image/before/`。
@@ -47,11 +47,11 @@ LICENSE
 multi-stage：第一個階段建置，第二個階段只放執行檔。
 
 ```dockerfile
-{{#include ../../../examples/chapter12/04_container_image/after/Dockerfile:3:}}
+{{#include ../../../examples/chapter12/04_container_image/after/Dockerfile:dockerfile}}
 ```
 
 - **模組快取層。** 先只複製 `go.mod` 與 `go.sum` 再 `go mod download`；原始碼改了，這兩層命中快取。本書的 `go.mod` 是整個 repo 共用的，所以這層會下載其他章的相依；你的服務只會下載自己的。
-- **`-trimpath` 與 `CGO_ENABLED=0`。** 前者讓執行檔不帶建置機器的路徑，本章〈可重現的建置〉談過；後者建出不依賴 libc 的靜態執行檔，本章〈交叉編譯〉談過。`scratch` 裡沒有 libc；明寫出來，換到帶 C 編譯器的基底映像時，建出的仍是能放進 `scratch` 的靜態執行檔。
+- **`-trimpath` 與 `CGO_ENABLED=0`。** 前者讓執行檔不帶建置機器的路徑，本章〈[可重現的建置](02_reproducible_builds.md)〉談過；後者建出不依賴 libc 的靜態執行檔，本章〈[交叉編譯](03_cross_compile.md)〉談過。`scratch` 裡沒有 libc；明寫出來，換到帶 C 編譯器的基底映像時，建出的仍是能放進 `scratch` 的靜態執行檔。
 - **`scratch` 加數字 UID。** `scratch` 是空的映像，只有 `COPY` 進去的東西；沒有 `/etc/passwd`，所以 `USER` 寫 `65532:65532`。
 - **exec 形式的 `ENTRYPOINT`。** 執行檔直接是 PID 1，`docker stop` 送的 `SIGTERM` 它收得到。
 
@@ -125,10 +125,10 @@ INFO shutting down
 
 ## 取捨
 
-- **`scratch` 缺的東西。** 沒有 CA 憑證，對外的 HTTPS 會以 `x509: certificate signed by unknown authority` 失敗；沒有時區資料，`time.LoadLocation("Asia/Taipei")` 回 `unknown time zone`（兩者都在 `scratch` 裡實測過）。補法：`COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/`，程式 `import _ "time/tzdata"`（文件說執行檔約增加 450 KB）。懶得逐項補，就用 distroless 的 `static` 映像：實測 `gcr.io/distroless/static-debian12:nonroot` 內有 CA 憑證、時區資料與 `/etc/passwd`，預設使用者是 65532。
+- **`scratch` 缺的東西。** 沒有 CA 憑證，對外的 HTTPS 會以 `x509: certificate signed by unknown authority` 失敗；沒有時區資料，`time.LoadLocation("Asia/Taipei")` 回 `unknown time zone`。把一支只做這兩件事的小程式放進 `scratch`，`docker run --rm probe:plain` 印出的就是這兩個錯誤；補法：`COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/`，程式 `import _ "time/tzdata"`（[文件](https://pkg.go.dev/time/tzdata)說執行檔約增加 450 KB），補完的 `probe:withtz` 兩項都回 `<nil>`。懶得逐項補，就用 [distroless 的 `static` 映像](https://github.com/GoogleContainerTools/distroless/blob/main/base/README.md)：README 列出內有 CA 憑證、`/etc/passwd`、`/tmp` 與時區資料；`nonroot` 標籤的預設使用者是 65532（`docker inspect --format '{{.Config.User}}' gcr.io/distroless/static-debian12:nonroot` 回 `65532`）。
 - **除錯工具。** `scratch` 沒有 shell：`docker run --rm --entrypoint sh ch12-ep04:after` 的第一行錯誤是 `exec: "sh": executable file not found in $PATH`（省略最後一行 `docker run --help` 的提示）。要進去看，得靠平台的除錯容器（例如 `kubectl debug`）、另開帶工具的映像共用行程，或在除錯時換用帶 shell 的基底。把整套工具塞進正式映像，等於回到 before。
 - **標籤與 digest。** `golang:1.27-alpine` 是會移動的標籤：Go 的小版本或 Alpine 更新後，同一份 Dockerfile 建出的內容就不同。要固定就寫成 `FROM golang:1.27-alpine@sha256:…`，代價是要有人（或 Dependabot、Renovate 這類工具）定期更新。自己的映像也一樣：部署用 commit 或版本做標籤，不用 `latest`，要完全確定時用 digest 引用。
-- **`.dockerignore`。** `after/` 旁的 `Dockerfile.dockerignore`（BuildKit 會讀與 Dockerfile 同目錄、名為 `<Dockerfile>.dockerignore` 的檔案，實測有效；沒有這個檔案就讀根目錄的 `.dockerignore`）：
+- **`.dockerignore`。** `after/` 旁的 `Dockerfile.dockerignore`（[Docker 文件](https://docs.docker.com/build/concepts/context/#filename-and-location)：與 Dockerfile 同目錄、名為 `<Dockerfile>.dockerignore` 的檔案，優先於根目錄的 `.dockerignore`）：
 
 ```text
 {{#include ../../../examples/chapter12/04_container_image/after/Dockerfile.dockerignore}}
@@ -137,7 +137,7 @@ INFO shutting down
 after 沒有 `COPY . .`，所以不靠它也不會帶進這些檔案；它防的是日後有人改成 `COPY . .`，也讓建置情境小一點。
 
 - **容器裡的 runtime 設定。** Dockerfile 不要寫 `ENV GOMAXPROCS=…`：第 8 章〈[容器內的 `GOMAXPROCS`](../chapter8/05_container_gomaxprocs.md)〉說明預設值會跟著 cgroup 的配額，寫死反而關掉；記憶體上限怎麼交給 runtime，見第 8 章〈[`GOMEMLIMIT` 與容器記憶體上限](../chapter8/03_gomemlimit_container.md)〉。容器的上限是部署時決定的（`docker run --memory` 或平台），寫進映像會和部署脫節。
-- **健康檢查與秘密。** `scratch` 裡沒有 `curl`，Dockerfile 的 `HEALTHCHECK` 沒有東西可執行；多數平台由外面探測 `/livez`，端點怎麼設計見第 9 章〈[健康檢查](../chapter9/07_health_check.md)〉。`ENV`、`ARG`、`COPY .env` 的內容都留在映像裡：實測 `docker history` 看得到 `ENV` 與 `ARG` 的值，`docker inspect` 看得到 `ENV`，映像內的檔案一取出就是明文；秘密在執行時才交給容器。
+- **健康檢查與秘密。** `scratch` 裡沒有 `curl`，Dockerfile 的 `HEALTHCHECK` 沒有東西可執行；多數平台由外面探測 `/livez`，端點怎麼設計見第 9 章〈[健康檢查](../chapter9/07_health_check.md)〉。`ENV`、`ARG`、`COPY .env` 的內容都留在映像裡：`docker history --no-trunc` 看得到 `ENV` 與 `ARG` 的值（Docker 的[建置檢查](https://docs.docker.com/reference/build-checks/secrets-used-in-arg-or-env/)也為此警告），`docker inspect` 看得到 `ENV`，映像內的檔案一取出就是明文；秘密在執行時才交給容器。
 - **before 什麼時候是對的？** 本機開發、一次性的工具、需要在容器裡跑 `go test` 或 `go run`，而且映像不會離開你的機器時，單階段加完整工具鏈很方便。用了 cgo 就不能用 `scratch` 這種做法，要選帶 libc 的執行映像。
 
 ## 重點整理

@@ -28,7 +28,7 @@ func fakeResolver(t *testing.T) *net.Resolver {
 			if err != nil {
 				return
 			}
-			pc.WriteTo(answer(buf[:n]), from)
+			_, _ = pc.WriteTo(answer(buf[:n]), from)
 		}
 	}()
 	return &net.Resolver{PreferGo: true, Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {

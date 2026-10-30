@@ -6,7 +6,7 @@
 
 ## 情境
 
-稽核要確認線上跑的執行檔真的是某個 commit 建出來的：CI 建一次，另一個人在自己的機器再建一次，比雜湊。對不起來時，沒人說得出是程式不同，還是建置環境不同。版本資訊怎麼寫進執行檔、`-ldflags -X` 怎麼用，本章〈`go build` 與用 `-ldflags` 注入版本〉談過；`go.mod` 前作教過：〈[`go mod init` 與 `go.mod`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/01_go_mod.html)〉。
+稽核要確認線上跑的執行檔真的是某個 commit 建出來的：CI 建一次，另一個人在自己的機器再建一次，比雜湊。對不起來時，沒人說得出是程式不同，還是建置環境不同。版本資訊怎麼寫進執行檔、`-ldflags -X` 怎麼用，本章〈[`go build` 與用 `-ldflags` 注入版本](01_build_version_info.md)〉談過；`go.mod` 前作教過：〈[`go mod init` 與 `go.mod`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/01_go_mod.html)〉。
 
 ## 兩個目錄，兩個雜湊
 
@@ -138,7 +138,7 @@ built: 2026-10-30T05:43:26Z
   ```
 
   `go version -m` 的輸出只留含 `vcs` 的行。`vcs.revision` 與 `vcs.time` 是這次 commit 的，每次都不同。最後一組加 `-buildvcs=false`，雜湊與上面沒有 VCS 資訊的 `-trimpath` 建置相同，代價是執行檔不再說得出自己是哪個 commit。為了可重現關掉它不划算；做法是兩邊都從同一個乾淨的 checkout 建。
-- **模組代理與 `go.sum`。** `go.sum` 記每個相依版本內容的雜湊，`go build` 預設 `-mod=readonly` 並驗證，所以相同的 `go.mod` 與 `go.sum` 要嘛拿到記錄過的那份原始碼，要嘛報錯，不會悄悄換成別的內容；預設的代理也讓版本被刪後仍拿得到。保護的只有相依的原始碼：不涵蓋工具鏈、C 函式庫與環境變數。示範的模組沒有相依，所以沒有 `go.sum`。
+- **模組代理與 `go.sum`。** `go.sum` 記每個相依版本內容的雜湊，`go build` 預設 `-mod=readonly` 並驗證，所以相同的 `go.mod` 與 `go.sum` 要嘛拿到記錄過的那份原始碼，要嘛報錯，不會悄悄換成別的內容；預設的代理盡量保留取過的內容，原始 repo 的版本被刪後通常仍拿得到（見 [proxy.golang.org 的 FAQ](https://proxy.golang.org/)）。保護的只有相依的原始碼：不涵蓋工具鏈、C 函式庫與環境變數。示範的模組沒有相依，所以沒有 `go.sum`。
 - **工具鏈本身。** Go 1.21 起，官方發行版的工具鏈本身可以重現（見〈[Perfectly Reproducible, Verified Go Toolchains](https://go.dev/blog/rebuild)〉），別人可以驗證你用的 `go1.27.0` 就是官方那一份。
 - **不一定要做。** 只在單一台機器、同一個目錄建置時，不加 `-trimpath` 照樣可以重現；絕對路徑還讓 stack trace 能在編輯器直接跳到檔案，加了之後除錯器要自己設路徑對應。需要「別人能驗證」或跨機器比對時才值得。
 
