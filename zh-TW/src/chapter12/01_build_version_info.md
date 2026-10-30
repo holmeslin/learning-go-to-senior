@@ -42,7 +42,7 @@ go build -ldflags "-X main.version=v1.4.0" -o ../bin/versiond .
 go version -m ../bin/versiond | grep -e ': go1' -e $'\tmod' -e ldflags -e vcs
 ```
 
-輸出在 macOS（arm64）、Go 1.27.0、git 2.54.0 上取得；`go version -m` 的其他 `build` 行（`-buildmode`、`-compiler`、`CGO_*`、`GOARCH`、`GOOS` 等）被 `grep` 濾掉了：
+本集的輸出都在 macOS（arm64）、Go 1.27.0、git 2.54.0 上取得；`go version -m` 的 `path` 行與其他 `build` 行（`-buildmode`、`-compiler`、`CGO_*`、`GOARCH`、`GOOS` 等）被 `grep` 濾掉了：
 
 執行結果（某一次）：
 
@@ -65,7 +65,7 @@ $ go version -m ../bin/versiond | grep -e ': go1' -e $'\tmod' -e ldflags -e vcs
 
 `go build` 在 git 工作目錄裡建置時（Go 1.18 起）會把 `vcs.revision`、`vcs.time`、`vcs.modified` 記進執行檔；Go 1.24 起，主模組版本也由 tag 與 commit 推出：剛好在 tag 上而且乾淨是 `v1.4.0`，否則是上面那種偽版本，有未提交的修改再加 `+dirty`。程式用 `debug.ReadBuildInfo` 讀，不用人記得更新任何東西。`go version -m` 看的就是同一份資訊，第 7 章〈[PGO](../chapter7/07_pgo.md)〉提過它會多一行 `-pgo=`。
 
-整理成 `Info`。`FromBuildInfo` 收 `*debug.BuildInfo`，不在函式裡自己呼叫 `ReadBuildInfo`：讀的事交給呼叫端，測試才能傳假的。它與 `Info` 是匯出的，因為使用它們的 `main` 在另一個套件：
+整理成 `Info`。`FromBuildInfo` 收 `*debug.BuildInfo`，不在函式裡自己呼叫 `ReadBuildInfo`：讀的事交給呼叫端，測試才能傳假的。它與 `Info` 是匯出的，因為使用它們的 `main` 在另一個套件；一行格式（`String`）與 JSON 端點（`Handler`）也在這裡：
 
 ```go,ignore
 {{#include ../../../examples/chapter12/01_build_version_info/after/version/version.go:info}}
