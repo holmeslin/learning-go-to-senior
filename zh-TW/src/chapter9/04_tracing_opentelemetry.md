@@ -103,7 +103,7 @@ status 與事件：404 與成功都沒有 `Error` 的 span；封面服務掛掉�
 - **全域 provider 不是錯的，是有適用情境。** 小工具或 `main` 裡設定一次、函式庫無法改簽名時，用 `otel.SetTracerProvider` 最省事；contrib 的 `otelhttp` 預設也是讀全域。代價就是 before 看到的：測試接不上、不能平行、依賴藏在各處。範例選擇傳參數；兩者可以並存，`main` 設定全域，函式庫提供「傳入 provider」的選項。
 - **exporter 與 collector 只提名稱。** 實際送出 span 要接 OTLP exporter 與 collector，這集用記憶體裡的 recorder 取代。`otelhttp` 可以替 handler 與 client 自動開 span，上面兩個邊界手寫是為了看清楚 span 裡有什麼。
 - **這條 trace 只在這個程序裡。** 對外呼叫沒有把 trace 傳給封面服務，對方的 span 不會接在這條 trace 底下；怎麼傳遞，本章〈在 `context` 裡傳遞 trace〉會談。
-- **id 可以放 span 屬性，不能放指標屬性。** 本章〈指標（metrics）設計與高基數問題〉談過原因；span 屬性仍有成本，也不要放敏感資料。
+- **id 可以放 span 屬性，不能放指標屬性。** 本章〈[指標（metrics）設計與高基數問題](03_metrics_cardinality.md)〉談過原因；span 屬性仍有成本，也不要放敏感資料。
 
 ## 重點整理
 
