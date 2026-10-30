@@ -100,6 +100,7 @@
     - [SLI 與 SLO](chapter9/08_sli_slo.md)
 - [韌性](chapter10/README.md)
     - [逾時預算](chapter10/01_timeout_budget.md)
+    - [冪等性](chapter10/03_idempotency.md)
     - [斷路器](chapter10/05_circuit_breaker.md)
     - [關機時該等什麼、等多久（graceful shutdown）](chapter10/06_graceful_shutdown.md)
     - [負載卸載與降級](chapter10/07_load_shedding.md)
