@@ -90,7 +90,10 @@
 # 第五部　上線與維運
 
 - [可觀測性]()
+    - [日誌層級與欄位設計](chapter9/02_log_levels_and_fields.md)
+    - [指標（metrics）設計與高基數問題](chapter9/03_metrics_cardinality.md)
     - [分散式追蹤與 OpenTelemetry](chapter9/04_tracing_opentelemetry.md)
+    - [健康檢查](chapter9/07_health_check.md)
 - [韌性]()
 - [安全實務]()
 - [建置與發布]()
