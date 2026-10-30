@@ -99,6 +99,7 @@
     - [健康檢查](chapter9/07_health_check.md)
     - [SLI 與 SLO](chapter9/08_sli_slo.md)
 - [韌性]()
+    - [bulkhead](chapter10/08_bulkhead.md)
 - [安全實務]()
 - [建置與發布]()
 
