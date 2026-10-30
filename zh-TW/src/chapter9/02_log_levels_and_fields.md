@@ -8,7 +8,7 @@
 
 一個付款服務：`POST /invoices/{id}/pay` 依發票扣款，分成 store、service、handler 三層；另有一個批次匯入發票的函式。資料庫連不上時，值班的人要從日誌看出「哪個使用者、哪張發票、為什麼失敗」。
 
-`log/slog` 的基本用法前作〈[`log/slog`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/10_slog.html)〉講過；handler 與欄位的寫法，本章〈結構化日誌：`log/slog` 的欄位與 handler 怎麼選〉談過。這集談的是判斷，不是 API。
+`log/slog` 的基本用法前作〈[`log/slog`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/10_slog.html)〉講過；handler 與欄位的寫法，本章〈[結構化日誌：`log/slog` 的欄位與 handler 怎麼選](01_structured_logging.md)〉談過。這集談的是判斷，不是 API。
 
 ## 常見寫法
 
@@ -54,7 +54,7 @@
 
 **層級依「誰需要採取行動」選：**
 
-- Error：需要有人處理。請求因為我們這一側或下游失敗了。
+- Error：需要有人處理。請求因為本服務或下游失敗了。
 - Warn：服務自己撐過去了，但值得有人看一眼，例如匯入跳過了壞掉的資料列。
 - Info：業務事件，一個請求或一個批次一行，不是一筆資料一行。
 - Debug：除錯用的細節，例如每一筆資料列，預設不開。
