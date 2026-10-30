@@ -49,7 +49,7 @@ $ go version -m $GOPATH/bin/slugtool | sed -n 2,3p
 
 ## 次版本裡的破壞，用 `retract` 撤回
 
-`Slug` 改簽名，呼叫端的 `s := slugtool.Slug(t)` 會編譯失敗（第 1 章〈匯出名稱與 API 穩定性〉貼過這類錯誤）。假設作者趕著修，把 `after/` 當成 v1.1.0 發出去，一個服務已經升上去了。這時刪 tag 沒有用：官方的模組代理與 checksum 資料庫取過某個版本就會一直記住。補救是發新版本：還原 `Slug`，在新版本的 `go.mod` 加 `retract`。`go` 讀最新版本的 `go.mod`，所以它要寫在比被撤回版本更新的版本裡：
+`Slug` 改簽名，呼叫端的 `s := slugtool.Slug(t)` 會編譯失敗（第 1 章〈匯出名稱與 API 穩定性〉貼過這類錯誤）。假設作者趕著修，把 `after/` 當成 v1.1.0 發出去，一個服務已經升上去了。這時刪 tag 沒有用：官方的模組代理與 checksum 資料庫取過某個版本就會一直記住。補救是發新版本：還原 `Slug`，在新版本的 `go.mod` 加 `retract`（本章〈[`go.mod` 與相依升級](06_go_mod_dependency_upgrade.md)〉談過它的用途）。`go` 讀最新版本的 `go.mod`，所以它要寫在比被撤回版本更新的版本裡：
 
 ```bash
 cp "$E/after/slug.go" . && git commit -qam "Slug 回傳 error" && git tag v1.1.0
