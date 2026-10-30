@@ -12,12 +12,11 @@
 
 ## 在暫存模組重現弱點
 
-示範需要一個依賴舊版本的模組，所以建在 repo 之外的空目錄；本書 repo 的 `go.mod` 不會出現有弱點的版本，這個模組做完也整個刪掉。程式只做一件事：用 `golang.org/x/text` 的 `language.ParseAcceptLanguage` 解析 `Accept-Language` 標頭。`GOTOOLCHAIN` 固定工具鏈，因為掃描結果與 Go 版本有關：
+示範需要一個依賴舊版本的模組，所以建在 repo 之外的空目錄，做完整個刪掉。`main.go` 因此寫在下面的 heredoc，不放進 `examples/`：它依賴有弱點的 `golang.org/x/text` 舊版，那個版本不能進本書的 `go.mod`；下面的指令會從空目錄把整個模組重建一次。程式只做一件事：用 `golang.org/x/text` 的 `language.ParseAcceptLanguage` 解析 `Accept-Language` 標頭。`GOTOOLCHAIN` 固定工具鏈，因為掃描結果與 Go 版本有關：
 
 ```bash
 export GOTOOLCHAIN=go1.27.0
-mkdir vulndemo && cd vulndemo
-go mod init example.com/vulndemo
+mkdir vulndemo && cd vulndemo && go mod init example.com/vulndemo
 cat > main.go <<'EOF'
 package main
 
@@ -32,8 +31,7 @@ func main() {
 	fmt.Println(len(tags), err)
 }
 EOF
-go get golang.org/x/text@v0.3.7
-go mod tidy
+go get golang.org/x/text@v0.3.7 && go mod tidy
 ```
 
 `govulncheck` 一律固定版本用 `go run` 執行，不寫進 `go.mod`。以下輸出在 macOS（arm64）、Go 1.27.0、`govulncheck` v1.9.0 上取得，弱點資料庫的版本是 2026-10-27 更新的（`-format json` 輸出的第一筆 `config.db_last_modified`）；輸出完整，最後一行 `exit status 3` 是 `go run` 轉述 `govulncheck` 的結束碼，`go run` 自己以 1 結束：
@@ -70,7 +68,7 @@ exit status 3
 - **套件（Package）**：程式碼 import 了有弱點的套件，但沒有呼叫有問題的函式。
 - **模組（Module）**：`go.mod` 的依賴圖裡有，程式碼連有弱點的套件都沒 import。
 
-後兩層預設只剩結尾那段計數，加 `-show verbose` 才列出內容。下面只留開頭的掃描範圍、整個 Package Results，與 Module Results 裡的一項（其餘 14 項省略）：
+後兩層預設只剩結尾那段計數，加 `-show verbose` 才列出內容。下面的輸出有省略：開頭兩行進度訊息（`Fetching vulnerabilities from the database...`、`Checking the code against the vulnerabilities...`）、`The package pattern matched the following root package:` 與其下的套件名、整個 Symbol Results（內容與上面相同）、結尾「Your code is affected…」那段計數與 `exit status 3`，以及 Module Results 裡除了 `GO-2026-6629` 以外的 14 項：
 
 執行結果（某一次）：
 
@@ -129,22 +127,24 @@ Use '-show verbose' for more details.
 
 - **排程還是擋部署？** 資料庫每天更新，昨天通過的程式碼今天可能就失敗，與這次變更無關。每次部署都擋，會讓不相關的變更被新公布的弱點卡住。常見的做法是排程每天掃一次，失敗就開 issue 或通知；真的要擋，只擋符號層級，並保留放行的辦法。本書不新增 CI 步驟，CI 的設定第 12 章〈`golangci-lint` 與 CI〉會談。
 - **結束碼要看清楚。** 文件寫明有弱點就以非 0 結束，但加 `-format json`、`sarif`、`openvex` 時不論有沒有弱點都是 0（這份暫存模組的 JSON 輸出實測也是 0）。要把 3 與其他錯誤分開，先 `go install` 同一個版本，不用 `go run`。
-- **二進位檔模式。** `-mode binary` 掃的是實際部署的檔案，用的是建置當時的 Go 版本與相依。對上面的暫存模組建出的二進位檔加 `-mode binary` 掃描，符號層級一樣報出同一項，但沒有呼叫路徑，只列出符號，「import 的套件」那一項計數也變成 0：
+- **二進位檔模式。** `-mode binary` 掃的是實際部署的檔案，用的是建置當時的 Go 版本與相依。文件說明二進位檔沒有呼叫資訊，也可能把在檔案裡但呼叫不到的程式算進來，所以多報的機率比原始碼模式高。對上面的暫存模組建出二進位檔再掃，符號層級一樣報出同一項，但沒有呼叫路徑，只列出符號；「import 的套件」那一項的計數也變成 0。下面只留這兩處，其餘都省略：`=== Symbol Results ===`、弱點的標題與 `More info`、`Module`、`Found in`、`Fixed in`、「Your code is affected…」那一句、計數句第一行之後的三行，以及 `exit status 3`。
+
+  執行結果（某一次）：
 
   ```text
+  $ go build -o vulndemo .
+  $ go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 -mode binary ./vulndemo
       Vulnerable symbols found:
         #1: language.ParseAcceptLanguage
+  This scan also found 0 vulnerabilities in packages you import and 15
   ```
-
-  文件說明二進位檔沒有呼叫資訊，也可能把在檔案裡但呼叫不到的程式算進來，所以多報的機率比原始碼模式高。
 - **升級不了時怎麼評估。** 先看 trace：是哪一行呼叫、參數是不是外部輸入（這個例子的弱點與 `Accept-Language` 標頭有關，標頭正是使用者可控制的）。再看 `Platforms` 與弱點描述，確認自己的環境碰不碰得到。評估完還是升不了，選項是換掉套件，或在 `go.mod` 用 `replace` 指向自己修過的分支。`govulncheck` 沒有靜音的機制，例外要自己記在 issue 裡，寫明原因與重新檢視的日期。
 - **「沒呼叫到」不等於安全。** 呼叫圖是靜態分析：透過 `reflect` 的呼叫看不到，會漏報；介面與函式指標的呼叫分析得很保守，會多報。套件與模組層級的項目也是遲早要升級，只是不必今天處理，排進第 12 章〈`go.mod` 與相依升級〉會談的例行升級。
 - **只比對版本號的掃描器仍有用。** 它不限於 Go、不需要能編譯，也能涵蓋 `govulncheck` 不分析的部分；缺點是無法區分呼叫得到與否，通知多、能處理的少。
 
 ## 重點整理
 
-- `govulncheck` 分析呼叫關係，輸出分符號、套件、模組三層；符號層級才是你的程式碼呼叫得到的，要先處理。
+- `govulncheck` 分析呼叫關係，輸出分符號、套件、模組三層；符號層級才是你的程式碼呼叫得到的，要先處理；「乾淨」是符號層級為空、結束碼 0，標準庫的弱點要靠升級工具鏈，不是升級相依。
 - 判斷靠輸出的結構（`Example traces found`、`Platforms`、`Fixed in`），不靠某個弱點編號；資料庫天天更新，重跑結果會變。
-- 「乾淨」是符號層級為空、結束碼 0；標準庫的弱點要靠升級工具鏈，不是升級相依。
 - 排程執行比每次部署都擋更穩；JSON 類輸出的結束碼永遠是 0，用 `go run` 時要自己處理結束碼。
 - 呼叫圖有限制：`reflect` 看不到、二進位檔沒有呼叫路徑；升級不了就要有記錄過的評估，不是靜音。

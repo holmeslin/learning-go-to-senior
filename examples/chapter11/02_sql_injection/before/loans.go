@@ -23,6 +23,7 @@ type Loan struct {
 
 // Querier 是 [Store] 需要的查詢能力，*sql.DB 與 *sql.Tx 都符合。
 type Querier interface {
+	// QueryContext 執行查詢；query 裡的 ? 由 args 依序代入。
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 }
 
