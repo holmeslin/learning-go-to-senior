@@ -154,7 +154,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 - 以 Go 1.27 為準。Go 1.22 起迴圈變數每次迭代各一份；1.23 起有 range over func；1.26 起 `new(expr)`、`errors.AsType`；1.27 起泛型方法、struct literal 可用巢狀欄位選擇器、`encoding/json/v2`、`uuid` 套件。
 - 不要寫過時的網路說法（例如 Go 1.22 前的迴圈變數陷阱、`time.After` 在迴圈中洩漏）。
 - 不確定時用 `go doc <套件>.<名稱>` 或實際寫程式驗證，不要憑印象。
-- 完成後執行 `go run ./tools/checkcode zh-TW/src/<章節目錄>`，再執行 `go vet ./... && go vet -tags integration ./... && go test -race -tags integration ./...` 與 `go test -run='^$' -bench=. -benchtime=1x ./...`，全部通過才算完成。
+- 完成後執行 `go run ./tools/checkcode zh-TW/src/<章節目錄>`，再執行 `go vet ./... && go vet -tags integration ./... && go test -race -tags integration ./...`、`go test -run='^$' -bench=. -benchtime=1x ./...` 與 `go tool -modfile=tools/lint/go.mod golangci-lint run ./...`，全部通過才算完成。
 
 ## 完成一章時
 

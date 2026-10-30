@@ -50,7 +50,7 @@ func main() {
 	read()       // 持有 64 MiB
 
 	runtime.KeepAlive(data)
-	data = nil
+	data = nil //nolint:ineffassign // 示範：明寫出放掉參照
 	runtime.GC()
 	read() // 放掉並 GC
 

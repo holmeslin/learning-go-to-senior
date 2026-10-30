@@ -35,11 +35,11 @@ func TestRefundTotalCountsApprovedOnly(t *testing.T) {
 
 // Sum 的約束只有一行，不需要任何包裝：呼叫端的型別進去什麼、出來還是什麼。
 func TestSumKeepsElementType(t *testing.T) {
-	var d time.Duration = ledger.Sum([]time.Duration{time.Second, 2 * time.Second})
+	var d time.Duration = ledger.Sum([]time.Duration{time.Second, 2 * time.Second}) //nolint:staticcheck // ST1023：刻意寫出型別，斷言 Sum 沒有改變它
 	if d != 3*time.Second {
 		t.Errorf("Sum of durations = %v; want 3s", d)
 	}
-	var f float64 = ledger.Sum([]float64{0.5, 0.25})
+	var f float64 = ledger.Sum([]float64{0.5, 0.25}) //nolint:staticcheck // ST1023：同上
 	if f != 0.75 {
 		t.Errorf("Sum of floats = %v; want 0.75", f)
 	}

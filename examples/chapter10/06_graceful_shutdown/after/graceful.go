@@ -80,7 +80,7 @@ func (s *Service) Run(ctx context.Context, ln net.Listener) error {
 	defer cancelReqs()
 	var reqErr error
 	if err := s.Server.Shutdown(reqs); err != nil {
-		s.Server.Close() // 超過上限：切斷還沒做完的連線
+		_ = s.Server.Close() // 超過上限：切斷還沒做完的連線
 		reqErr = fmt.Errorf("shutdown requests: %w", err)
 	}
 	return errors.Join(reqErr, stopWorkers(grace))
