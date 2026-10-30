@@ -121,6 +121,7 @@
     - [可重現的建置](chapter12/02_reproducible_builds.md)
     - [交叉編譯](chapter12/03_cross_compile.md)
     - [容器映像（multi-stage）](chapter12/04_container_image.md)
+    - [`golangci-lint` 與 CI](chapter12/05_golangci_lint_ci.md)
     - [`go.mod` 與相依升級](chapter12/06_go_mod_dependency_upgrade.md)
     - [發布流程與版本號](chapter12/07_release_and_versioning.md)
     - [設定與環境變數](chapter12/08_config_env.md)

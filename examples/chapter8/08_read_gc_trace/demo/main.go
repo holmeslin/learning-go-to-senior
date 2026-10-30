@@ -14,8 +14,8 @@ import (
 
 // entry 是 128 位元組、含指標的物件：GC 標記時必須逐個掃描它。
 type entry struct {
-	next    *entry
-	payload [120]byte
+	next *entry
+	_    [120]byte
 }
 
 // last 讓編譯器無法把用完就丟的緩衝區優化掉，它們一定會配置在 heap 上。

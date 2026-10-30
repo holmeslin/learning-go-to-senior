@@ -115,6 +115,7 @@ func TestRevealIsTheOnlyWayOut(t *testing.T) {
 func TestKnownGaps(t *testing.T) {
 	cfg := load(t)
 	wrongVerb := "%d" // go vet 抓得到寫死的 %d，所以放進變數
+	//nolint:staticcheck // SA5009：staticcheck 連變數裡的 %d 都抓得到，這裡刻意用錯的動詞
 	if out := fmt.Sprintf(wrongVerb, cfg.APIKey); !strings.Contains(out, apiKey) {
 		t.Errorf("%%d of a Secret = %q, expected the documented gap", out)
 	}

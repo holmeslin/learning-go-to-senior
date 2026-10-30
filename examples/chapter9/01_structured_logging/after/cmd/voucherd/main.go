@@ -19,7 +19,7 @@ func main() {
 	logger := slog.New(h)
 
 	r := voucher.New(logger, voucher.Voucher{Code: "A1", Cents: 100})
-	r.Redeem(context.Background(), "u42", "A1")
+	_ = r.Redeem(context.Background(), "u42", "A1")
 }
 
 // ANCHOR_END: main
