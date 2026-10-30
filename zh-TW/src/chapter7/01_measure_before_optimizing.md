@@ -137,7 +137,7 @@ Summarize/lines=20000/impl=simple-14   70.03k ± 0%   70.16k ± 0%  +0.18% (p=0.
 
 - **明顯的演算法複雜度問題，不用量就可以改。** 迴圈裡對 slice 做 `Contains` 是 O(n²)，code review 看得出來，指出來就能改。先量測對付的是「憑直覺選錯地方」，不是拖延的藉口。批次只有幾十行時，這個 O(n²) 也不是熱點。
 - **多數程式碼，可讀性優先。** 沒有 profile 指著的地方，寫最好讀的版本。before 在什麼情況下是對的：profile 指出解析才是熱點，而且 benchmark 量得出可觀的差距，手寫才值得；那時要把這個 benchmark 留著，說明為什麼。
-- **量到的只是這個 benchmark。** 批次大小、重送比例一變，結果就變。整套服務的壓測，第 16 章〈壓測與調校〉會談；正式環境收 profile，第 9 章〈`/debug/pprof` 與診斷端點〉會談。
+- **量到的只是這個 benchmark。** 批次大小、重送比例一變，結果就變。整套服務的壓測，第 16 章〈壓測與調校〉會談；正式環境收 profile，第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過。
 - **數量也要量，不靠直覺。** 第 6 章〈[什麼時候需要 worker pool，什麼時候每個任務一個 goroutine 就夠](../chapter6/06_worker_pool_or_goroutine_per_task.md)〉與〈[背壓](../chapter6/08_backpressure.md)〉留下的 worker 數量、佇列大小，都用同一套流程量。第 3 章〈[什麼時候用泛型、什麼時候用介面、什麼時候複製貼上](../chapter3/04_generics_interface_or_copy.md)〉的判斷不依據效能，原因也在這裡：效能要量，不能靠推測。
 
 ## 重點整理
