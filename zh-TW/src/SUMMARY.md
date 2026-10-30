@@ -116,7 +116,8 @@
     - [`crypto/rand` 與 TLS 設定](chapter11/06_crypto_rand_tls.md)
     - [SSRF 與對外請求](chapter11/07_ssrf_outbound_requests.md)
     - [日誌裡的敏感資料](chapter11/08_sensitive_data_in_logs.md)
-- [建置與發布]()
+- [建置與發布](chapter12/README.md)
+    - [`go build` 與用 `-ldflags` 注入版本](chapter12/01_build_version_info.md)
 
 # 第六部　在團隊裡寫 Go
 
