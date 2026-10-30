@@ -90,6 +90,7 @@
 # 第五部　上線與維運
 
 - [可觀測性]()
+    - [分散式追蹤與 OpenTelemetry](chapter9/04_tracing_opentelemetry.md)
 - [韌性]()
 - [安全實務]()
 - [建置與發布]()
