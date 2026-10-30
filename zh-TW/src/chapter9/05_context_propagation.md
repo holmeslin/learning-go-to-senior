@@ -8,7 +8,7 @@
 
 出貨追蹤服務：gateway 收到 `GET /track?id=A1`，向承運商（carrier）服務查狀態，回覆之後在背景留一筆稽核紀錄。兩個服務是兩個行程，各自有自己的 `TracerProvider`。
 
-span 是什麼、`TracerProvider` 為什麼用注入的，本章〈分散式追蹤與 OpenTelemetry〉談過。`context` 的傳遞慣例前作教過：〈[context 傳遞慣例](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter10/07_context_conventions.html)〉；取消怎麼傳進 goroutine，見第 6 章〈[取消與 `context` 的傳遞](../chapter6/04_cancellation_context.md)〉。這集談的是同一個 `ctx` 還帶著 trace。測試用 `httptest`：〈[`httptest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/09_httptest.html)〉。
+span 是什麼、`TracerProvider` 為什麼用注入的，本章〈[分散式追蹤與 OpenTelemetry](04_tracing_opentelemetry.md)〉談過。`context` 的傳遞慣例前作教過：〈[context 傳遞慣例](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter10/07_context_conventions.html)〉；取消怎麼傳進 goroutine，見第 6 章〈[取消與 `context` 的傳遞](../chapter6/04_cancellation_context.md)〉。這集談的是同一個 `ctx` 還帶著 trace。測試用 `httptest`：〈[`httptest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/09_httptest.html)〉。
 
 ## 常見寫法
 
@@ -40,7 +40,7 @@ span 是什麼、`TracerProvider` 為什麼用注入的，本章〈分散式追�
 {{#include ../../../examples/chapter9/05_context_propagation/after/gateway.go:handler}}
 ```
 
-`propagation.TraceContext{}` 實作 W3C Trace Context：`Inject` 把 `ctx` 裡目前的 span（這裡是 `carrier.request`）寫成 `traceparent`，`Extract` 在另一端還原。`WithoutCancel` 回傳的 `ctx` 不會被取消、也沒有 deadline，但保留原本的值，span 還在，所以 `audit` 接在 `GET /track` 底下。日誌用下面這個函式把 trace ID 放進欄位，`slog` 的用法見〈[`log/slog`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/10_slog.html)〉：
+`propagation.TraceContext{}` 實作 W3C Trace Context：`Inject` 把 `ctx` 裡目前的 span（這裡是 `carrier.request`）寫成 `traceparent`，`Extract` 在另一端還原。`WithoutCancel` 回傳的 `ctx` 不會被取消、也沒有 deadline，但保留原本的值，span 還在，所以 `audit` 接在 `GET /track` 底下。`Wait` 與 `audit` 回呼是為了測試：背景工作在回覆之後才跑，測試呼叫 `Wait` 等它結束、用 `audit` 決定背景做什麼，不必靠 `time.Sleep` 猜時間。日誌用下面這個函式把 trace ID 放進欄位，鍵名沿用本章〈[日誌層級與欄位設計](02_log_levels_and_fields.md)〉的約定（snake_case、錯誤用 `error`、定成常數），`slog` 的用法見〈[`log/slog`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/10_slog.html)〉：
 
 ```go,ignore
 {{#include ../../../examples/chapter9/05_context_propagation/after/gateway.go:withtrace}}

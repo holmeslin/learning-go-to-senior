@@ -43,11 +43,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	status, err := g.lookup(ctx, id)
 	if err != nil {
-		WithTrace(ctx, g.log).Error("carrier lookup failed", "id", id, "err", err)
+		WithTrace(ctx, g.log).Error("carrier lookup failed", slog.String(KeyTrackingID, id), slog.Any(KeyError, err))
 		http.Error(w, "bad gateway", http.StatusBadGateway)
 		return
 	}
-	WithTrace(ctx, g.log).Info("tracked", "id", id)
+	WithTrace(ctx, g.log).Info("tracked", slog.String(KeyTrackingID, id))
 
 	// 背景工作要在請求結束後繼續：不帶走取消，但保留 trace。
 	bgCtx := context.WithoutCancel(ctx)
@@ -82,10 +82,20 @@ func (g *Gateway) lookup(ctx context.Context, id string) (string, error) {
 
 // ANCHOR: withtrace
 
+// 日誌鍵名，和本章〈日誌層級與欄位設計〉的約定一致：snake_case，錯誤用 error。
+const (
+	// KeyTrackingID 是貨件的追蹤編號。
+	KeyTrackingID = "tracking_id"
+	// KeyTraceID 是目前 span 所屬的 trace ID。
+	KeyTraceID = "trace_id"
+	// KeyError 是錯誤。
+	KeyError = "error"
+)
+
 // WithTrace 回傳帶著 ctx 目前 span 的 trace_id 的 logger；ctx 裡沒有 span 時原樣回傳 l。
 func WithTrace(ctx context.Context, l *slog.Logger) *slog.Logger {
 	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		return l.With("trace_id", sc.TraceID().String())
+		return l.With(slog.String(KeyTraceID, sc.TraceID().String()))
 	}
 	return l
 }
