@@ -110,6 +110,7 @@
 - [安全實務]()
     - [SQL injection 與參數化查詢](chapter11/02_sql_injection.md)
     - [`crypto/rand` 與 TLS 設定](chapter11/06_crypto_rand_tls.md)
+    - [SSRF 與對外請求](chapter11/07_ssrf_outbound_requests.md)
     - [日誌裡的敏感資料](chapter11/08_sensitive_data_in_logs.md)
 - [建置與發布]()
 
