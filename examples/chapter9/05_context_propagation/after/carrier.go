@@ -20,7 +20,7 @@ func NewCarrier(tp trace.TracerProvider, log *slog.Logger) http.Handler {
 		ctx, span := tracer.Start(ctx, "carrier.lookup")
 		defer span.End()
 
-		WithTrace(ctx, log).Info("carrier lookup", "id", r.URL.Query().Get("id"))
+		WithTrace(ctx, log).Info("carrier lookup", slog.String(KeyTrackingID, r.URL.Query().Get("id")))
 		fmt.Fprintln(w, "in transit")
 	})
 }

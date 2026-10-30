@@ -45,8 +45,6 @@ func newProvider(opts ...sdktrace.TracerProviderOption) (*sdktrace.TracerProvide
 	return sdktrace.NewTracerProvider(opts...), rec
 }
 
-// ANCHOR_END: fixture
-
 // get 對 h 送出 GET，回傳狀態碼。
 func get(h http.Handler, path string) int {
 	rec := httptest.NewRecorder()
@@ -60,6 +58,8 @@ func attr(s sdktrace.ReadOnlySpan, key string) attribute.Value {
 	v, _ := set.Value(attribute.Key(key))
 	return v
 }
+
+// ANCHOR_END: fixture
 
 // ANCHOR: siblings
 
