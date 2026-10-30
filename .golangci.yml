@@ -1,7 +1,7 @@
 version: "2"
 
-# 不限制每個 linter 與每種訊息的回報數量（預設各 50 與 3 筆），
-# 否則修掉一批之後，又冒出被截掉的另一批。
+# 不限制每個 linter（預設 50 筆）與每種訊息（預設 3 筆）的回報數量；
+# 同一種寫法散在許多檔案時，預設只列前幾處，修掉之後才又冒出被截掉的另一批。
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -26,20 +26,23 @@ linters:
         - fmt.Fprint(*bufio.Writer)
         - fmt.Fprintf(*bufio.Writer)
         - fmt.Fprintln(*bufio.Writer)
-        # 名稱是常數，只有名稱為空或含 = 時才會失敗。
+        # 名稱是常數，Setenv 只有名稱為空或含 = 時才會失敗；Unsetenv 在 Unix 永遠回傳 nil。
         - os.Setenv
         - os.Unsetenv
+        # 記憶體裡的 ResponseRecorder 不會寫入失敗。
+        - (*net/http/httptest.ResponseRecorder).WriteString
+        # 測試結束時關掉資源（資料庫、回應本文、UDP 連線）：失敗了沒有後續可做。
+        - (*database/sql.DB).Close
+        - (io.Closer).Close
+        - (net.PacketConn).Close
   exclusions:
     paths:
       # 刻意寫壞的示範。
       - /before/
     rules:
-      # defer 的清理（Close、Rollback、RemoveAll）沒有地方可以回報錯誤。
+      # defer 的清理（Close、Rollback、RemoveAll、Unregister）沒有地方可以回報錯誤。
       - linters: [errcheck]
-        source: '^\s*defer (.+\.)?(Close|Rollback|RemoveAll)\('
+        source: '^\s*defer (.+\.)?(Close|Rollback|RemoveAll|Unregister)\('
       # 狀態碼已經送出，JSON 寫進 ResponseWriter 失敗，原因同上：對方斷線。
       - linters: [errcheck]
         source: 'json\.NewEncoder\(w\)\.Encode\('
-      # 測試裡刻意丟掉回傳值的呼叫（讓斷路器跳開、在背景占名額、清理資源），結果由後面的斷言檢查。
-      - linters: [errcheck]
-        path: _test\.go

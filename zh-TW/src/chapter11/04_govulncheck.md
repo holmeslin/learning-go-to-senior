@@ -8,7 +8,7 @@
 
 服務依賴十幾個模組，只比對版本號的掃描器每週開出一串升級通知，分不出哪一個真的碰得到。`govulncheck` 多做一步：分析原始碼的呼叫關係，只把「你的程式碼呼叫得到有弱點的函式」當成受影響。它查的是 Go 團隊維護的弱點資料庫，請求裡只有已知有弱點的模組路徑，不含你的程式碼。
 
-這集談讀輸出與判斷，升級的流程本身第 12 章〈`go.mod` 與相依升級〉會談；`go.mod` 的基本用法前作教過：〈[`go mod init` 與 `go.mod`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/01_go_mod.html)〉。
+這集談讀輸出與判斷，升級的流程本身，第 12 章〈[`go.mod` 與相依升級](../chapter12/06_go_mod_dependency_upgrade.md)〉談過；`go.mod` 的基本用法前作教過：〈[`go mod init` 與 `go.mod`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/01_go_mod.html)〉。
 
 ## 在暫存模組重現弱點
 
@@ -125,7 +125,7 @@ Use '-show verbose' for more details.
 
 ## 取捨
 
-- **排程還是擋部署？** 資料庫每天更新，昨天通過的程式碼今天可能就失敗，與這次變更無關。每次部署都擋，會讓不相關的變更被新公布的弱點卡住。常見的做法是排程每天掃一次，失敗就開 issue 或通知；真的要擋，只擋符號層級，並保留放行的辦法。本書不新增 CI 步驟，CI 的設定第 12 章〈`golangci-lint` 與 CI〉會談。
+- **排程還是擋部署？** 資料庫每天更新，昨天通過的程式碼今天可能就失敗，與這次變更無關。每次部署都擋，會讓不相關的變更被新公布的弱點卡住。常見的做法是排程每天掃一次，失敗就開 issue 或通知；真的要擋，只擋符號層級，並保留放行的辦法。本書不新增 CI 步驟，排程的設定第 12 章〈[`golangci-lint` 與 CI](../chapter12/05_golangci_lint_ci.md)〉談過。
 - **結束碼要看清楚。** 文件寫明有弱點就以非 0 結束，但加 `-format json`、`sarif`、`openvex` 時不論有沒有弱點都是 0（這份暫存模組的 JSON 輸出實測也是 0）。要把 3 與其他錯誤分開，先 `go install` 同一個版本，不用 `go run`。
 - **二進位檔模式。** `-mode binary` 掃的是實際部署的檔案，用的是建置當時的 Go 版本與相依。文件說明二進位檔沒有呼叫資訊，也可能把在檔案裡但呼叫不到的程式算進來，所以多報的機率比原始碼模式高。對上面的暫存模組建出二進位檔再掃，符號層級一樣報出同一項，但沒有呼叫路徑，只列出符號；「import 的套件」那一項的計數也變成 0。下面只留這兩處，其餘都省略：`=== Symbol Results ===`、弱點的標題與 `More info`、`Module`、`Found in`、`Fixed in`、「Your code is affected…」那一句、計數句第一行之後的三行，以及 `exit status 3`。
 
@@ -139,7 +139,7 @@ Use '-show verbose' for more details.
   This scan also found 0 vulnerabilities in packages you import and 15
   ```
 - **升級不了時怎麼評估。** 先看 trace：是哪一行呼叫、參數是不是外部輸入（這個例子的弱點與 `Accept-Language` 標頭有關，標頭正是使用者可控制的）。再看 `Platforms` 與弱點描述，確認自己的環境碰不碰得到。評估完還是升不了，選項是換掉套件，或在 `go.mod` 用 `replace` 指向自己修過的分支。`govulncheck` 沒有靜音的機制，例外要自己記在 issue 裡，寫明原因與重新檢視的日期。
-- **「沒呼叫到」不等於安全。** 呼叫圖是靜態分析：透過 `reflect` 的呼叫看不到，會漏報；介面與函式指標的呼叫分析得很保守，會多報。套件與模組層級的項目也是遲早要升級，只是不必今天處理，排進第 12 章〈`go.mod` 與相依升級〉會談的例行升級。
+- **「沒呼叫到」不等於安全。** 呼叫圖是靜態分析：透過 `reflect` 的呼叫看不到，會漏報；介面與函式指標的呼叫分析得很保守，會多報。套件與模組層級的項目也是遲早要升級，只是不必今天處理，排進第 12 章〈[`go.mod` 與相依升級](../chapter12/06_go_mod_dependency_upgrade.md)〉談過的例行升級。
 - **只比對版本號的掃描器仍有用。** 它不限於 Go、不需要能編譯，也能涵蓋 `govulncheck` 不分析的部分；缺點是無法區分呼叫得到與否，通知多、能處理的少。
 
 ## 重點整理

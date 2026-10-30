@@ -8,7 +8,7 @@
 
 一個報表服務要連資料庫（帳號與密碼），還要呼叫第三方報表 API（一把金鑰）。啟動時載入設定，連不上資料庫時印出錯誤；另外有一個診斷用的端點，把目前的設定以 JSON 回傳，方便值班的人確認服務讀到什麼。
 
-這集只談秘密的存放、讀取與不外洩。日誌的遮蔽策略（依鍵名遮蔽、不記還是遮蔽），本章〈日誌裡的敏感資料〉會談；設定怎麼載入，第 12 章〈設定與環境變數〉會談。`fmt.Stringer` 前作〈[`fmt.Stringer`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/08_stringer.html)〉講過，`encoding/json` 與 `log/slog` 見〈[`encoding/json`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/08_json.html)〉、〈[`log/slog`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/10_slog.html)〉；型別實作 `LogValuer`，第 9 章〈[結構化日誌：`log/slog` 的欄位與 handler 怎麼選](../chapter9/01_structured_logging.md)〉談過。
+這集只談秘密的存放、讀取與不外洩。日誌的遮蔽策略（依鍵名遮蔽、不記還是遮蔽），本章〈日誌裡的敏感資料〉會談；設定怎麼載入，第 12 章〈[設定與環境變數](../chapter12/08_config_env.md)〉談過。`fmt.Stringer` 前作〈[`fmt.Stringer`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/08_stringer.html)〉講過，`encoding/json` 與 `log/slog` 見〈[`encoding/json`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/08_json.html)〉、〈[`log/slog`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/10_slog.html)〉；型別實作 `LogValuer`，第 9 章〈[結構化日誌：`log/slog` 的欄位與 handler 怎麼選](../chapter9/01_structured_logging.md)〉談過。
 
 ## 常見寫法
 
@@ -92,7 +92,7 @@
 ## 取捨
 
 - **遮蔽型別擋的是意外，不是刻意。** `Reveal()` 一呼叫就拿得到值，反射或記憶體傾印（core dump）也拿得到。它的價值是把「取值」縮成少數幾個可搜尋的呼叫處。
-- **型別沒顧到的角落。** 錯的動詞（`%d`）會印出原值，`go vet` 抓得到寫死的 `%d`；欄位若是小寫，`fmt` 看不到它的方法，會把裡面的字串印出來，所以含秘密的欄位要大寫。這兩種情況下面用測試鎖住。
+- **型別沒顧到的角落。** 錯的動詞（`%d`）會印出原值，`go vet` 與 staticcheck（SA5009）都抓得到寫死的 `%d`，本書的 lint 設定見第 12 章〈[`golangci-lint` 與 CI](../chapter12/05_golangci_lint_ci.md)〉；欄位若是小寫，`fmt` 看不到它的方法，會把裡面的字串印出來，所以含秘密的欄位要大寫。這兩種情況下面用測試鎖住。
 - **環境變數也會外洩。** 子行程預設繼承全部環境變數；Linux 上同一個使用者與 root 讀得到 `/proc/<pid>/environ`；容器的環境變數 `docker inspect` 看得到。診斷端點輸出設定時型別擋得住，但命令列參數沒有型別可包：第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉刻意不註冊 pprof 的 `cmdline`，並提醒 `expvar` 的 `/debug/vars` 預設就公開 `cmdline`，所以秘密不放在參數上。檔案比環境變數好一些，仍然要設定檔案權限。
 - **下層的錯誤可能自己帶著連線字串。** 包裝時只能管自己加的那一段；套件的錯誤帶了，只能在邊界換成不帶細節的訊息，原因留在受控的地方。
 - **輪替比存放更難。** 上面的 `Load` 只在啟動時讀一次，換秘密要重新啟動；要不重啟就換，得重新讀檔案，也要讓新舊兩把在一段時間內都有效。HashiCorp Vault、AWS Secrets Manager、Google Secret Manager 這類秘密管理服務處理發放、輪替與稽核，這集只提名稱。

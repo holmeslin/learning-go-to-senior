@@ -64,7 +64,7 @@ func TestSlowDownstreamDoesNotStarveOthers(t *testing.T) {
 
 		// search 卡住，它自己的兩個名額都被占住。
 		for range 2 {
-			go g.Get(context.Background(), "search", "/q")
+			go func() { _, _ = g.Get(context.Background(), "search", "/q") }()
 		}
 		synctest.Wait()
 

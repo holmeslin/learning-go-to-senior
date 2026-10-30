@@ -102,7 +102,7 @@ ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter5/11_coverage_me
 
 輸出省略了耗時。
 - **適合當找漏洞的工具與趨勢指標。** 改完程式看一眼哪些新分支是紅的；看覆蓋率隨時間往下掉，代表有人在沒有測試的情況下加程式。這兩種用法不需要規定一個數字。
-- **不適合當硬門檻。** 門檻一設，最省力的做法就是 before：呼叫、不斷言、數字過關。需要門檻時，至少讓 reviewer 看得到哪些行是新增而沒被測到的；CI 的設定本書第 12 章〈`golangci-lint` 與 CI〉會談。
+- **不適合當硬門檻。** 門檻一設，最省力的做法就是 before：呼叫、不斷言、數字過關。需要門檻時，至少讓 reviewer 看得到哪些行沒被測到；怎麼在 CI 產生報告並附上，本書第 12 章〈[`golangci-lint` 與 CI](../chapter12/05_golangci_lint_ci.md)〉談過。
 - **追到 100% 不一定划算。** 為了跑到一個 `os.Open` 失敗的分支而大費周章，成本可能遠高於它的風險。看紅色的行，判斷哪些值得補。
 - **覆蓋率不會告訴你缺的程式碼。** 少寫的檢查沒有行可以標紅。表格該有哪些案例（零、負數、邊界），要靠你對規格的判斷，不是靠數字。
 - **整合測試的覆蓋率只提一句：** Go 1.20 起可以用 `go build -cover` 建出會記錄覆蓋率的執行檔，或用 `-coverpkg` 把其他套件的程式算進來，細節請看官方文件〈[Coverage profiling support for integration tests](https://go.dev/doc/build-cover)〉。

@@ -106,7 +106,7 @@
 
 ## 取捨
 
-**寬限期不是你決定的。** 它來自部署平台（例如 Kubernetes 的 `terminationGracePeriodSeconds`，預設 30 秒）。`Grace` 要比它短，留時間給行程退出；`Drain` 要比探針的間隔乘上連續失敗次數長。容器與部署的設定，第 12 章〈容器映像（multi-stage）〉會談。
+**寬限期不是你決定的。** 它來自部署平台（例如 Kubernetes 的 `terminationGracePeriodSeconds`，預設 30 秒）。`Grace` 要比它短，留時間給行程退出；`Drain` 要比探針的間隔乘上連續失敗次數長。容器怎麼收到 `SIGTERM`，第 12 章〈[容器映像（multi-stage）](../chapter12/04_container_image.md)〉談過。
 
 **關機會拉長部署。** 每個實例每次部署都要多等 `Drain` 與最慢的請求。滾動更新的實例越多，總時間越長；上限設得越保守，越浪費。
 

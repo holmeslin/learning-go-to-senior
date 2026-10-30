@@ -14,15 +14,15 @@ func Example() {
 	b := breaker.New(breaker.Config{Threshold: 2, Cooldown: 10 * time.Second, Now: clk.Now})
 
 	fmt.Println("start:", b.State())
-	b.Do(func() error { return errBoom })
-	b.Do(func() error { return errBoom })
+	_ = b.Do(func() error { return errBoom })
+	_ = b.Do(func() error { return errBoom })
 	fmt.Println("after 2 failures:", b.State())
 
 	err := b.Do(func() error { return nil })
 	fmt.Println("request while open:", err)
 
 	clk.Advance(10 * time.Second)
-	b.Do(func() error {
+	_ = b.Do(func() error {
 		fmt.Println("probe runs in state:", b.State())
 		return nil
 	})

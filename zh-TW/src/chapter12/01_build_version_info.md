@@ -63,7 +63,7 @@ $ go version -m ../bin/versiond | grep -e ': go1' -e $'\tmod' -e ldflags -e vcs
 
 ## 較好的做法
 
-`go build` 在 git 工作目錄裡建置時（Go 1.18 起）會把 `vcs.revision`、`vcs.time`、`vcs.modified` 記進執行檔；Go 1.24 起，主模組版本也由 tag 與 commit 推出：剛好在 tag 上而且乾淨是 `v1.4.0`，否則是上面那種偽版本，有未提交的修改再加 `+dirty`。程式用 `debug.ReadBuildInfo` 讀，不用人記得更新任何東西。`go version -m` 看的就是同一份資訊，第 7 章〈[PGO](../chapter7/07_pgo.md)〉提過它會多一行 `-pgo=`。
+`go build` 在 git 工作目錄裡建置時（Go 1.18 起）會把 `vcs.revision`、`vcs.time`、`vcs.modified` 記進執行檔；Go 1.24 起，主模組版本也由 tag 與 commit 推出（見 [Go 1.24 發行說明](https://go.dev/doc/go1.24#go-command)）：剛好在 tag 上而且乾淨是 `v1.4.0`，否則是上面那種偽版本，有未提交的修改再加 `+dirty`。程式用 `debug.ReadBuildInfo` 讀，不用人記得更新任何東西。`go version -m` 看的就是同一份資訊，第 7 章〈[PGO](../chapter7/07_pgo.md)〉提過它會多一行 `-pgo=`。
 
 整理成 `Info`。`FromBuildInfo` 收 `*debug.BuildInfo`，不在函式裡自己呼叫 `ReadBuildInfo`：讀的事交給呼叫端，測試才能傳假的。它與 `Info` 是匯出的，因為使用它們的 `main` 在另一個套件；一行格式（`String`）與 JSON 端點（`Handler`）也在這裡：
 
@@ -123,9 +123,9 @@ $ go test -c -o ../bin/version.test ./version && go version -m ../bin/version.te
 	mod	github.com/holmeslin/learning-go-to-senior/examples/chapter12/01_build_version_info/after	(devel)
 ```
 
-**`-buildvcs` 預設是 `auto`。** 主套件、主模組與目前目錄都在同一個 repo 才會蓋。建置時沒有 `.git`（例如容器的建置脈絡沒帶，本章〈容器映像（multi-stage）〉會談）、或不是 git，就沒有資訊；這時 `-X` 從建置系統帶 commit 是退路。`go install 模組@v1.4.0` 從模組版本建置，主模組版本是 `v1.4.0`，也沒有 `vcs.*`；本章〈發布流程與版本號〉會談。
+**`-buildvcs` 預設是 `auto`。** 主套件、主模組與目前目錄都在同一個 repo 才會蓋。建置時沒有 `.git`（例如容器的建置脈絡沒帶，本章〈容器映像（multi-stage）〉會談）、或不是 git，就沒有資訊；這時 `-X` 從建置系統帶 commit 是退路。`go install 模組@v1.4.0` 依[模組參考](https://go.dev/ref/mod#go-install)是從模組版本建置，不看目前目錄；主模組版本記成 `v1.4.0`，建置不在 VCS 目錄裡，所以沒有 `vcs.*`，本章〈發布流程與版本號〉會談。
 
-**`-X` 的限制。** 只能設字串變數；`const` 設了沒有作用，`int`、`bool` 會讓連結失敗。路徑要寫完整：`main` 套件寫 `main.version`，其他套件寫完整 import path；路徑對不上不會報錯，只是沒作用。回到 `before/` 的暫存 repo 試：
+**`-X` 的限制。** [`cmd/link` 的文件](https://pkg.go.dev/cmd/link)說它只對字串變數有效，初始值只能是常數字串。文件沒寫的兩種情況：`const` 設了沒有作用；`int`、`bool` 讓連結失敗，`-ldflags "-X main.n=1"` 設 `var n int` 得到 `main.n: cannot set with -X: not a var of type string (type:int)`。路徑要寫完整：`main` 套件寫 `main.version`，其他套件寫完整 import path；路徑對不上不會報錯，只是沒作用。回到 `before/` 的暫存 repo 試：
 
 執行結果（某一次）：
 
