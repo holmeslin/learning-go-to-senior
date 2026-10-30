@@ -46,7 +46,7 @@
 
 `Shutdown` 只認得 `http.Server` 自己的連線，不認得你開的 goroutine，所以 `ShutdownOnly` 一回傳，背景工作還停在半路（誰開 goroutine、誰負責等，第 6 章〈[goroutine 的生命週期歸誰管](../chapter6/01_goroutine_ownership.md)〉談過）。還有兩個程式碼看不出來的問題：
 
-- 沒有順序。平台把實例移出流量，和送出 `SIGTERM` 差不多同時發生，負載平衡器要過一陣子才會發現，這段時間還會有請求進來。readiness 沒有先失敗，新請求會一直進來，`Shutdown` 要等的東西沒有盡頭。
+- 沒有順序。Kubernetes 文件〈[Termination of Pods](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination)〉寫明，kubelet 開始關閉 Pod 的同時，control plane 也在評估要不要把它從 EndpointSlice 移除，兩件事是並行的；負載平衡器要過一陣子才會發現，這段時間還會有請求進來。readiness 沒有先失敗，新請求會一直進來，`Shutdown` 要等的東西沒有盡頭。
 - 上限和平台無關。寫死的 10 秒可能比寬限期長，那就等不到結束，被 `SIGKILL`；也可能短到做不完正常的請求。
 
 ## 較好的做法
@@ -80,7 +80,7 @@
 {{#include ../../../examples/chapter10/06_graceful_shutdown/after/graceful_test.go:launch}}
 ```
 
-第一個測試依序確認每一步：`Drain` 內 `/readyz` 回 503、新請求仍被接受；`Drain` 之後新連線被拒、進行中的請求還沒結束、背景工作還沒被通知；請求做完才通知背景工作，`Run` 等它收尾才回傳。
+第一個測試依序確認每一步：`Drain` 內 `/readyz` 回 503、新請求仍被接受；`Drain` 之後新連線被拒、進行中的請求還沒結束、背景工作還沒被通知；請求做完才通知背景工作，`Run` 等它收尾才回傳。總時間的斷言是範圍（5 到 6 秒）：`Server.Shutdown` 輪詢閒置連線的間隔從 1 毫秒起每次加倍、上限 500 毫秒，每次還加上最多一成的隨機 jitter，請求結束到被發現之間差多少不固定；其他的經過時間斷言都是精確值。
 
 ```go,ignore
 {{#include ../../../examples/chapter10/06_graceful_shutdown/after/graceful_test.go:order}}
@@ -112,7 +112,7 @@
 
 **`Shutdown` 管不到的東西。** 被 hijack 的連線（例如 WebSocket）與 handler 裡自己 `go` 出去的 goroutine，它都不等。前者用 `RegisterOnShutdown` 通知並自己關閉，後者要有擁有者。`Shutdown` 也不取消請求的 context，超過 `Requests` 才由 `Close` 切斷，所以長時間的 handler 仍要自己設上限。
 
-**佇列裡的工作，做完還是交還。** 範例的 `Work` 在 ctx 結束時回傳。記憶體裡的佇列隨行程消失，所以回傳之前要決定：做完（受 `Workers` 上限限制），或交還給外部的佇列重送。交還表示同一筆工作可能被處理兩次，要冪等，本章〈冪等性〉談過。
+**佇列裡的工作，做完還是交還。** 範例的 `Work` 在 ctx 結束時回傳。記憶體裡的佇列隨行程消失，所以回傳之前要決定：做完（受 `Workers` 上限限制），或交還給外部的佇列重送。交還表示同一筆工作可能被處理兩次，要冪等，本章〈[冪等性](03_idempotency.md)〉談過。
 
 **用盡上限不是成功。** `Run` 回傳的錯誤代表有請求被切斷或背景工作沒停下來，應該記錄下來，並在部署時留意它的頻率。整套服務的觀測與關機怎麼搭配，第 16 章〈可觀測性與韌性〉會談。
 

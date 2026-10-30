@@ -56,7 +56,7 @@ handler 在第 3 秒回了 504，下層卻沒有停：庫存做到第 4 秒才�
 {{#include ../../../examples/chapter10/01_timeout_budget/after/budget.go:service}}
 ```
 
-測試的兩個 helper：`serve` 發請求並量 handler 花的假時間，`newHandler` 組出預算 3 秒的 handler；`recorder` 與 before 的相同。庫存 500 毫秒、運費 1 秒時，每一步看到的 deadline 是扣完後面需求的剩餘（庫存 3 − 1 − 0.2 = 1.8 秒，運費 3 − 0.5 − 0.2 = 2.3 秒）：
+測試的三個 helper：`serve` 發請求並量 handler 花的假時間，`newHandler` 組出預算 3 秒的 handler，`checkLog` 比對 `recorder` 記下的下游呼叫；`recorder` 與 before 的相同。庫存 500 毫秒、運費 1 秒時，每一步看到的 deadline 是扣完後面需求的剩餘（庫存 3 − 1 − 0.2 = 1.8 秒，運費 3 − 0.5 − 0.2 = 2.3 秒）：
 
 ```go,ignore
 {{#include ../../../examples/chapter10/01_timeout_budget/after/budget_test.go:serve}}

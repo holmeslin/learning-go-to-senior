@@ -14,15 +14,16 @@ import (
 	"time"
 )
 
+// ANCHOR: policy
+
 // StatusError 表示下游回了非 200 的狀態碼。
 type StatusError struct {
 	Code       int           // HTTP 狀態碼
 	RetryAfter time.Duration // 下游用 Retry-After 要求的等待；沒有標頭時是 0
 }
 
+// Error 實作 error，訊息只有狀態碼。
 func (e *StatusError) Error() string { return "unexpected status " + strconv.Itoa(e.Code) }
-
-// ANCHOR: policy
 
 // Policy 是重試的規則。零值只嘗試一次，不設逾時，也不等待。
 type Policy struct {
@@ -57,13 +58,13 @@ func (p Policy) wait(attempt int, retryAfter time.Duration) time.Duration {
 
 // ANCHOR_END: policy
 
+// ANCHOR: fetch
+
 // Client 向匯率服務發 GET，並依 Policy 重試。可以在多個 goroutine 之間共用。
 type Client struct {
 	HTTP   *http.Client // nil 時用 http.DefaultClient
-	Policy Policy
+	Policy Policy       // 重試的規則
 }
-
-// ANCHOR: fetch
 
 // Fetch 取得 url 的內容。逾時、連線被拒、429 與 503 才會重試；其他錯誤（例如 400）
 // 立刻回傳。ctx 結束，或下一次嘗試前的等待會超過 ctx 的 deadline 時，也立刻回傳。
@@ -104,8 +105,6 @@ func retryable(err error) bool {
 	return errors.Is(err, context.DeadlineExceeded) || errors.Is(err, syscall.ECONNREFUSED)
 }
 
-// ANCHOR_END: fetch
-
 // once 發一次請求，套用 Policy.Timeout。Retry-After 只讀秒數的寫法，日期的寫法當成沒有。
 func (c *Client) once(ctx context.Context, url string) ([]byte, error) {
 	if c.Policy.Timeout > 0 {
@@ -132,3 +131,5 @@ func (c *Client) once(ctx context.Context, url string) ([]byte, error) {
 	}
 	return io.ReadAll(resp.Body)
 }
+
+// ANCHOR_END: fetch

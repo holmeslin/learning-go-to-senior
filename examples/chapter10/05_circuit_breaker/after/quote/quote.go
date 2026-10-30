@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -19,10 +20,10 @@ type Downstream func(ctx context.Context) (fee int, err error)
 
 // Handler 處理 GET /quote：經過斷路器把請求轉給承運商。
 type Handler struct {
-	Downstream Downstream
-	Breaker    *breaker.Breaker
-	Timeout    time.Duration // 每次呼叫承運商最多等多久
-	RetryAfter time.Duration // 斷路器擋下請求時，建議呼叫端多久之後再來
+	Downstream Downstream       // 承運商的呼叫
+	Breaker    *breaker.Breaker // 這個下游專屬的斷路器
+	Timeout    time.Duration    // 每次呼叫承運商最多等多久
+	RetryAfter time.Duration    // 斷路器擋下請求時，建議呼叫端多久之後再來；無條件進位到整數秒，至少 1 秒
 }
 
 // ServeHTTP 實作 http.Handler。
@@ -38,7 +39,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch {
 	case errors.Is(err, breaker.ErrOpen):
-		w.Header().Set("Retry-After", strconv.Itoa(int(h.RetryAfter.Seconds())))
+		w.Header().Set("Retry-After", strconv.Itoa(max(1, int(math.Ceil(h.RetryAfter.Seconds())))))
 		http.Error(w, "carrier unavailable", http.StatusServiceUnavailable)
 	case errors.Is(err, context.DeadlineExceeded):
 		http.Error(w, "carrier timeout", http.StatusGatewayTimeout)

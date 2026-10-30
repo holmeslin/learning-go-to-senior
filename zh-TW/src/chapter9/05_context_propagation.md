@@ -82,7 +82,7 @@ span 是什麼、`TracerProvider` 為什麼用注入的，本章〈[分散式追
 
 請求快的、稽核算請求的一部分，延續；背景工作自成一件事，用 link。
 
-`WithoutCancel` 拿掉的不只取消，還有 deadline：背景工作若卡住，沒有人會叫它停，要自己再包一層逾時，第 10 章〈逾時預算〉會談。它保留所有的值，不只 span。
+`WithoutCancel` 拿掉的不只取消，還有 deadline：背景工作若卡住，沒有人會叫它停，要自己再包一層逾時，第 10 章〈[逾時預算](../chapter10/01_timeout_budget.md)〉談過。它保留所有的值，不只 span。
 
 `Inject` 與 `Extract` 要在每個邊界各寫一次。contrib 的 `otelhttp` 把它們包進 `Transport` 與 `Handler`；程式進入點也可以用 `otel.SetTextMapPropagator` 設全域的 propagator。這一集不碰全域設定，測試才能各用各的 provider 平行跑。對外部的第三方服務，注入 `traceparent` 等於把內部的 trace ID 送出去，要不要注入由邊界決定。
 
