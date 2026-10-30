@@ -34,7 +34,7 @@ HTTP client 與 `httptest` 前作教過：〈[HTTP client](https://holmeslin.git
 {{#include ../../../examples/chapter10/08_bulkhead/before/gateway_test.go:starved}}
 ```
 
-`pricing` 自己沒有任何問題，它的下游一次都沒被呼叫到，請求卻在呼叫端的 deadline 到了才失敗。壞的是 `search`，受害的是 `pricing`。呼叫端沒設 deadline 的話，這些請求會一直等到 `search` 恢復。換成共用連線池也是同樣的結構：資源不分下游，一個下游的故障就是整個服務的故障。
+`pricing` 自己沒有任何問題，它的下游一次都沒被呼叫到，請求卻在呼叫端的 deadline 到了才失敗。壞的是 `search`，受害的是 `pricing`。呼叫端沒設 deadline 的話，這些請求會一直等到 `search` 恢復。共用的若是沒有依下游分開的連線池（例如兩個功能共用同一個資料庫的連線池），結構也一樣：資源不分，一個下游的故障就是整個服務的故障。
 
 ## 較好的做法
 
@@ -69,7 +69,7 @@ HTTP client 與 `httptest` 前作教過：〈[HTTP client](https://holmeslin.git
 ## 取捨
 
 - **閒置的名額借不出去。** 共用 2 個 worker 時，`search` 沒流量，`pricing` 可以用滿；分開後各 2 個，總共要 4 個，而 `pricing` 的請求再多，也用不到 `search` 閒置的名額。切得越細，每一份都要留尖峰的餘裕，加總就越大。按下游或功能切到夠用就好，不要為每個 endpoint 各切一份。
-- **上限怎麼定。** 從該下游的容量與你預期的尖峰流量出發，不是平均分。副本會相乘：4 個副本各設 4，下游看到的是 16，跟第 6 章〈`errgroup` 的並行上限〉談的一樣。各下游上限加總，也是這個行程最多同時占用的 goroutine 與連線數。
+- **上限怎麼定。** 從該下游的容量與你預期的尖峰流量出發，不是平均分。副本會相乘：4 個副本各設 4，下游看到的是 16，算法和第 6 章〈[`errgroup` 的並行上限](../chapter6/03_errgroup_limit.md)〉的一樣。各下游上限加總，也是這個行程最多同時占用的 goroutine 與連線數。
 - **和連線池的關係。** `http.Transport` 的連線池本來就依 host 分開，共用一個 client 並不會讓兩個 host 搶同一批連線；真正共用的是 worker 的名額，以及 `MaxIdleConns` 這類全域設定。限制連線數（`MaxConnsPerHost`）也不等於限制同時請求，HTTP/2 的一條連線會承載很多請求，所以並行上限要自己管。資料庫也是同樣的道理：`database/sql` 的連線池就是資料庫專屬的 bulkhead，怎麼設見第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉。
 - **和斷路器、限流的分工。** bulkhead 限制「同時占用多少」，讓故障留在一個區域；本章〈斷路器〉談過的斷路器偵測到下游壞了就停止呼叫，請求不再占名額；本章〈`golang.org/x/time/rate` 限流〉談過的限流管「每秒幾個」。bulkhead 不會讓卡住的下游變好，它的名額滿了之後，那個下游的呼叫端仍然在等；等多久靠 deadline，要不要乾脆拒絕，本章〈負載卸載與降級〉談過。三者常常一起用。
 - **名額是靜態的。** 下游變慢或變快，上限都不會自己調整。要依延遲自動調整，要用自適應的並行控制，這裡只提名稱。
