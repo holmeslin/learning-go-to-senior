@@ -57,7 +57,7 @@
 {{#include ../../../examples/chapter11/05_secret_management/after/settings.go:load}}
 ```
 
-這是第 2 章〈[多個錯誤要合併回傳，還是只回第一個](../chapter2/05_join_or_first_error.md)〉的 `errors.Join`：值班的人一次看到缺哪幾個。同樣的三條路徑，這次的輸出，以及讀不到秘密時的錯誤：
+這是第 2 章〈[多個錯誤要合併回傳，還是只回第一個](../chapter2/05_join_or_first_error.md)〉的 `errors.Join`：值班的人一次看到缺哪幾個。同樣的三條路徑，這次的輸出，以及讀不到秘密時的錯誤。`Example` 沒有 `*testing.T`，不能用 `t.Setenv`，所以由 `setEnv` 設定環境變數，再用 `defer` 還原成原狀：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/05_secret_management/after/example_test.go:example}}
@@ -93,7 +93,7 @@
 
 - **遮蔽型別擋的是意外，不是刻意。** `Reveal()` 一呼叫就拿得到值，反射或記憶體傾印（core dump）也拿得到。它的價值是把「取值」縮成少數幾個可搜尋的呼叫處。
 - **型別沒顧到的角落。** 錯的動詞（`%d`）會印出原值，`go vet` 抓得到寫死的 `%d`；欄位若是小寫，`fmt` 看不到它的方法，會把裡面的字串印出來，所以含秘密的欄位要大寫。這兩種情況下面用測試鎖住。
-- **環境變數也會外洩。** 子行程預設繼承全部環境變數；Linux 上同一個使用者與 root 讀得到 `/proc/<pid>/environ`；容器的環境變數 `docker inspect` 看得到。診斷端點輸出設定時型別擋得住，但第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉的 `cmdline` 會公開命令列參數，所以秘密不放在參數上。檔案比環境變數好一些，仍然要設定檔案權限。
+- **環境變數也會外洩。** 子行程預設繼承全部環境變數；Linux 上同一個使用者與 root 讀得到 `/proc/<pid>/environ`；容器的環境變數 `docker inspect` 看得到。診斷端點輸出設定時型別擋得住，但命令列參數沒有型別可包：第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉刻意不註冊 pprof 的 `cmdline`，並提醒 `expvar` 的 `/debug/vars` 預設就公開 `cmdline`，所以秘密不放在參數上。檔案比環境變數好一些，仍然要設定檔案權限。
 - **下層的錯誤可能自己帶著連線字串。** 包裝時只能管自己加的那一段；套件的錯誤帶了，只能在邊界換成不帶細節的訊息，原因留在受控的地方。
 - **輪替比存放更難。** 上面的 `Load` 只在啟動時讀一次，換秘密要重新啟動；要不重啟就換，得重新讀檔案，也要讓新舊兩把在一段時間內都有效。HashiCorp Vault、AWS Secrets Manager、Google Secret Manager 這類秘密管理服務處理發放、輪替與稽核，這集只提名稱。
 - **before 在什麼時候是對的？** 沒有任何真實秘密的示範程式與一次性的腳本；以及本來就不是秘密的值（公開的 client ID）。包成 `Secret` 要多一個型別，也要在交給第三方套件的地方呼叫 `Reveal`。
