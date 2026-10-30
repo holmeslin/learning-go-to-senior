@@ -91,6 +91,7 @@
 
 - [可觀測性](chapter9/README.md)
     - [結構化日誌：`log/slog` 的欄位與 handler 怎麼選](chapter9/01_structured_logging.md)
+    - [健康檢查](chapter9/07_health_check.md)
 - [韌性]()
 - [安全實務]()
 - [建置與發布]()
