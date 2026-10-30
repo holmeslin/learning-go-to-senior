@@ -8,7 +8,7 @@
 
 文件協作服務有「貼上連結就顯示預覽」的功能：使用者貼一個網址，伺服器去抓頁面。這個請求是伺服器發的，伺服器在內網裡，連得到使用者連不到的東西：本機的管理介面、內網的服務、雲端主機的 metadata 端點。使用者能指定網址，就能叫伺服器替他去連，這就是 SSRF（server-side request forgery）。
 
-HTTP client 與 `httptest` 前作教過：〈[HTTP client](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/06_http_client.html)〉、〈[逾時設定](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/07_timeouts.html)〉、〈[`httptest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/09_httptest.html)〉。網址只是輸入的一種，一般的輸入驗證本章〈輸入驗證〉談過；這集處理的是「字串合法，連到的地方不合法」。對外請求失敗要不要重試，第 10 章〈[重試、退避與 jitter](../chapter10/02_retry_backoff_jitter.md)〉談過，這集的 `Fetch` 只發一次請求。
+HTTP client 與 `httptest` 前作教過：〈[HTTP client](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/06_http_client.html)〉、〈[逾時設定](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/07_timeouts.html)〉、〈[`httptest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/09_httptest.html)〉。網址只是輸入的一種，一般的輸入驗證，本章〈[輸入驗證](01_input_validation.md)〉談過；這集處理的是「字串合法，連到的地方不合法」。對外請求失敗要不要重試，第 10 章〈[重試、退避與 jitter](../chapter10/02_retry_backoff_jitter.md)〉談過，這集的 `Fetch` 只發一次請求。
 
 ## 常見寫法
 
@@ -108,7 +108,7 @@ after 的測試放在外部測試套件。`serve` 數出假伺服器收到幾個
 
 **程式這一層擋不住的。** `Control` 只管 TCP 連線：DNS 查詢本身照樣發出；走 proxy 時 `Control` 看到的是 proxy 的位址，所以範例不用 `ProxyFromEnvironment`，需要 proxy 時檢查要放在 proxy 上。網路層的隔離（概念）是另一道獨立的防線：讓抓取的工作跑在沒有內網路由的網段，或強制經過只放行公開位址的 egress proxy，即使程式有漏洞也連不到。
 
-**回應與錯誤也是出口。** 連得上的公開頁面，內容不要原樣轉給使用者，預覽只回標題與摘要；回給使用者的錯誤要一致，否則「被擋」與「連線被拒」的差別，會讓人用來探測內網（本章〈輸入驗證〉談過錯誤訊息不洩漏內部細節）。`BlockedError` 帶著位址，是給日誌看的。
+**回應與錯誤也是出口。** 連得上的公開頁面，內容不要原樣轉給使用者，預覽只回標題與摘要；回給使用者的錯誤要一致，否則「被擋」與「連線被拒」的差別，會讓人用來探測內網（本章〈[輸入驗證](01_input_validation.md)〉談過錯誤訊息不洩漏內部細節）。`BlockedError` 帶著位址，是給日誌看的。
 
 **成本。** 每次 `Fetch` 建立新的 `http.Client` 且關閉連線重用，換來連線不會跨使用者共用，代價是每次都重新握手。
 
