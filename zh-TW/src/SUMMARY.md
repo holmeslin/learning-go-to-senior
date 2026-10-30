@@ -98,7 +98,8 @@
     - [`/debug/pprof` 與診斷端點](chapter9/06_debug_pprof.md)
     - [健康檢查](chapter9/07_health_check.md)
     - [SLI 與 SLO](chapter9/08_sli_slo.md)
-- [韌性]()
+- [韌性](chapter10/README.md)
+    - [逾時預算](chapter10/01_timeout_budget.md)
 - [安全實務]()
 - [建置與發布]()
 
