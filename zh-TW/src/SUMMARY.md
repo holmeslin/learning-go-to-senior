@@ -107,7 +107,8 @@
     - [關機時該等什麼、等多久（graceful shutdown）](chapter10/06_graceful_shutdown.md)
     - [負載卸載與降級](chapter10/07_load_shedding.md)
     - [bulkhead](chapter10/08_bulkhead.md)
-- [安全實務]()
+- [安全實務](chapter11/README.md)
+    - [輸入驗證](chapter11/01_input_validation.md)
 - [建置與發布]()
 
 # 第六部　在團隊裡寫 Go
