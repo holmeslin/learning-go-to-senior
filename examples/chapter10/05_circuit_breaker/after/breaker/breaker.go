@@ -19,7 +19,7 @@ type State int
 const (
 	Closed   State = iota // 關閉：請求正常通過
 	Open                  // 打開：請求立刻被擋下
-	HalfOpen              // 半開：一個試探請求在途中，其餘被擋下
+	HalfOpen              // 半開：只放行一個新的試探請求，其餘新請求被擋下
 )
 
 // String 回傳狀態的名稱，給日誌與指標用。

@@ -6,7 +6,7 @@
 
 ## 情境
 
-運費報價服務，`GET /quote` 把請求轉給承運商的 API，每次呼叫最多等 3 秒（這個逾時怎麼從呼叫端的 deadline 分配，本章〈逾時預算〉談過）。某天承運商開始完全不回應。
+運費報價服務，`GET /quote` 把請求轉給承運商的 API，每次呼叫最多等 3 秒（這個逾時怎麼從呼叫端的 deadline 分配，本章〈[逾時預算](01_timeout_budget.md)〉談過）。某天承運商開始完全不回應。
 
 `WithTimeout`、HTTP 逾時設定與 `httptest` 前作教過：〈[`WithTimeout` 與 `WithDeadline`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter10/03_with_timeout.html)〉、〈[逾時設定](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/07_timeouts.html)〉、〈[`httptest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/09_httptest.html)〉。這集的測試用 `testing/synctest` 的假時間，用法見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉。
 
@@ -48,7 +48,7 @@
 {{#include ../../../examples/chapter10/05_circuit_breaker/after/breaker/breaker.go:do}}
 ```
 
-半開只會由試探請求進入、由它結束離開，所以半開的時候，途中一定只有一個請求，其餘的直接回 `ErrOpen`。`admit` 回傳的 `probe` 讓 `record` 分得出試探與一般請求：斷路器打開之前就出發的請求，晚到的失敗不重新計算冷卻。`fn` 如果 panic，`ok` 還是 `false`，視為失敗，斷路器不會卡在半開。
+半開只會由試探請求進入、由它結束離開，所以半開只放行一個新的試探，其餘新來的直接回 `ErrOpen`。打開之前就出發的請求可能還在途中，不受影響，也不算試探。`admit` 回傳的 `probe` 讓 `record` 分得出試探與一般請求：斷路器不在關閉狀態時，這些晚到的結果不改變狀態，失敗也不重新計算冷卻。`fn` 如果 panic，`ok` 還是 `false`，視為失敗，斷路器不會卡在半開。
 
 測試用的時鐘只在 `Advance` 時前進：
 
@@ -96,7 +96,7 @@
 
 **哪些錯誤算失敗。** `Do` 把 `fn` 回傳的每個非 nil 錯誤都算失敗。呼叫端自己取消、下游回 4xx 這類不是下游壞掉的錯誤，要在 `fn` 裡轉成 nil，否則一批壞請求就能把斷路器打開。
 
-**和重試的順序。** 重試在外、斷路器在內：每一次嘗試都經過斷路器，每次失敗都算數；斷路器打開之後，重試要把 `ErrOpen` 當作不可重試的錯誤，立刻放棄，不是退避等待（可重試的條件本章〈重試、退避與 jitter〉談過）。反過來，斷路器在外、重試在內，一整串重試只算一次失敗，下游在斷路器反應之前先被放大好幾倍的流量。
+**和重試的順序。** 重試在外、斷路器在內：每一次嘗試都經過斷路器，每次失敗都算數；斷路器打開之後，重試要把 `ErrOpen` 當作不可重試的錯誤，立刻放棄，不是退避等待（可重試的條件本章〈[重試、退避與 jitter](02_retry_backoff_jitter.md)〉談過）。反過來，斷路器在外、重試在內，一整串重試只算一次失敗，下游在斷路器反應之前先被放大好幾倍的流量。
 
 **打開時回什麼。** 上面回 503 與 `Retry-After`（冷卻時間是上限，實際剩下的可能更短）。也可以回快取的運費或固定費率，並在回應裡標示是降級的結果，本章〈負載卸載與降級〉會談。
 
