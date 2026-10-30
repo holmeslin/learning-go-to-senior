@@ -93,6 +93,7 @@
     - [結構化日誌：`log/slog` 的欄位與 handler 怎麼選](chapter9/01_structured_logging.md)
     - [日誌層級與欄位設計](chapter9/02_log_levels_and_fields.md)
     - [指標（metrics）設計與高基數問題](chapter9/03_metrics_cardinality.md)
+    - [分散式追蹤與 OpenTelemetry](chapter9/04_tracing_opentelemetry.md)
     - [在 `context` 裡傳遞 trace](chapter9/05_context_propagation.md)
     - [`/debug/pprof` 與診斷端點](chapter9/06_debug_pprof.md)
     - [健康檢查](chapter9/07_health_check.md)
