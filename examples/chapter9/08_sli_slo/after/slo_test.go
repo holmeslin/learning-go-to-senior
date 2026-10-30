@@ -43,9 +43,10 @@ func collect(reqs []traffic, opts ...sdkmetric.Option) (metricdata.ResourceMetri
 
 // ANCHOR_END: traffic
 
-func near(a, b float64) bool { return math.Abs(a-b) < 1e-9 }
-
 // ANCHOR: table
+
+// near 比較兩個浮點數，容許極小的誤差。
+func near(a, b float64) bool { return math.Abs(a-b) < 1e-9 }
 
 func TestCompute(t *testing.T) {
 	ms := time.Millisecond
@@ -93,7 +94,7 @@ func TestCompute(t *testing.T) {
 
 // ANCHOR_END: table
 
-func TestPage(t *testing.T) {
+func TestShouldPage(t *testing.T) {
 	t.Parallel()
 	ms := time.Millisecond
 	for _, tt := range []struct {
@@ -113,7 +114,7 @@ func TestPage(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if page := got.Availability.Page() || got.Latency.Page(); page != tt.want {
+		if page := got.Availability.ShouldPage() || got.Latency.ShouldPage(); page != tt.want {
 			t.Errorf("%s: page = %t, want %t", tt.name, page, tt.want)
 		}
 	}
