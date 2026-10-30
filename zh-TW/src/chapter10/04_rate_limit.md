@@ -48,7 +48,7 @@
 {{#include ../../../examples/chapter10/04_rate_limit/after/limiter_test.go:wait}}
 ```
 
-`Wait` 在 deadline 之前一定等不到 token 時，不會等到逾時才失敗，而是立刻回錯誤，下游也不會被呼叫。deadline 怎麼從呼叫端往下分配，本章〈逾時預算〉談過：
+`Wait` 在 deadline 之前一定等不到 token 時，不會等到逾時才失敗，而是立刻回錯誤，下游也不會被呼叫。deadline 怎麼從呼叫端往下分配，本章〈[逾時預算](01_timeout_budget.md)〉談過：
 
 ```go,ignore
 {{#include ../../../examples/chapter10/04_rate_limit/after/limiter_test.go:deadline}}
@@ -60,7 +60,7 @@
 {{#include ../../../examples/chapter10/04_rate_limit/after/limiter.go:perclient}}
 ```
 
-`Allow` 只回 `bool`，不會說還要等多久，`Retry-After` 要自己算：還缺的 token 數除以補充速度，進位到整數秒（標頭的最小單位是秒，所以最小是 1）。client 收到之後怎麼等，本章〈重試、退避與 jitter〉談過。下面的測試都用這兩個 helper：
+`Allow` 只回 `bool`，不會說還要等多久，`Retry-After` 要自己算：還缺的 token 數除以補充速度，進位到整數秒（標頭的最小單位是秒，所以最小是 1）。client 收到之後怎麼等，本章〈[重試、退避與 jitter](02_retry_backoff_jitter.md)〉談過。下面的測試都用這兩個 helper：
 
 ```go,ignore
 {{#include ../../../examples/chapter10/04_rate_limit/after/limiter_test.go:helpers}}
