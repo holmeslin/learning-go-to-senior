@@ -11,7 +11,9 @@ import (
 
 // Store 是儲存層。Down 為 true 時，Charge 一律失敗。
 type Store struct {
-	Down   bool
+	// Down 為 true 時，Charge 一律回傳錯誤。
+	Down bool
+	// Logger 是儲存層自己的 logger。
 	Logger *slog.Logger
 }
 
@@ -31,7 +33,9 @@ func (s *Store) Charge(userID, invoiceID string) error {
 
 // Service 是業務層。
 type Service struct {
-	Store  *Store
+	// Store 是扣款用的儲存層。
+	Store *Store
+	// Logger 是業務層自己的 logger。
 	Logger *slog.Logger
 }
 
