@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+// ANCHOR: config
+
 // Config 是轉發服務的設定。Load 驗證過之後才會交出來，
 // 拿到 Config 的程式不必再檢查欄位，也不該再讀環境變數。
 type Config struct {
@@ -26,6 +28,8 @@ type Config struct {
 	// Debug 打開時輸出除錯日誌。
 	Debug bool
 }
+
+// ANCHOR_END: config
 
 // ANCHOR: load
 
@@ -99,6 +103,8 @@ func Load(fs *flag.FlagSet, args []string) (Config, error) {
 
 // ANCHOR_END: load
 
+// ANCHOR: checks
+
 // checkAddr 檢查 host:port，port 要是 0 到 65535 的數字。
 func checkAddr(v string) error {
 	_, port, err := net.SplitHostPort(v)
@@ -123,6 +129,8 @@ func checkUpstream(v string) error {
 	}
 	return nil
 }
+
+// ANCHOR_END: checks
 
 // ANCHOR: client
 

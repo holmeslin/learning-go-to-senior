@@ -7,6 +7,8 @@ import (
 	relay "github.com/holmeslin/learning-go-to-senior/examples/chapter12/08_config_env/before"
 )
 
+// ANCHOR: setenv
+
 // setEnv 設定一組環境變數，回傳把它們還原成原狀的函式，原本沒設的就還原成沒設。
 func setEnv(vars map[string]string) (restore func()) {
 	old := make(map[string]*string, len(vars))
@@ -28,6 +30,8 @@ func setEnv(vars map[string]string) (restore func()) {
 		}
 	}
 }
+
+// ANCHOR_END: setenv
 
 // ANCHOR: example
 
