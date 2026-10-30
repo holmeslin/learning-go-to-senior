@@ -10,7 +10,7 @@
 
 ## 在暫存模組看升級
 
-示範建在 repo 之外的空目錄，做完整個刪掉，本書的 `go.mod` 不會被動到。模組有兩個真的相依，起點刻意選舊版：`golang.org/x/text` v0.3.7（第 11 章用的那一版）與 `golang.org/x/sync` v0.1.0，`go` 指令設成 1.22。`GOTOOLCHAIN` 固定工具鏈，免得結果隨本機的 Go 版本變：
+示範建在 repo 之外的空目錄，做完整個刪掉，本書的 `go.mod` 不會被動到。模組有兩個真的相依，起點刻意選舊版：`golang.org/x/text` v0.3.7（第 11 章〈[`govulncheck` 與相依弱點](../chapter11/04_govulncheck.md)〉用的那一版）與 `golang.org/x/sync` v0.1.0，`go` 指令設成 1.22。`GOTOOLCHAIN` 固定工具鏈，免得結果隨本機的 Go 版本變：
 
 ```bash
 export GOTOOLCHAIN=go1.27.0
@@ -112,7 +112,7 @@ go: upgraded golang.org/x/mod v0.41.0 => v0.42.0
 go: upgraded golang.org/x/tools v0.51.0 => v0.52.0
 ```
 
-`go.mod` 因此多了一行 `tool golang.org/x/tools/cmd/stringer`，之後用 `go tool stringer` 執行。本書的 lint 工具也是這樣固定版本，本章〈`golangci-lint` 與 CI〉會談。其餘三個指令改變的是「用哪個版本」：
+`go.mod` 因此多了一行 `tool golang.org/x/tools/cmd/stringer`，之後用 `go tool stringer` 執行。本書的 lint 工具也是這樣固定版本，本章〈[`golangci-lint` 與 CI](05_golangci_lint_ci.md)〉談過。其餘三個指令改變的是「用哪個版本」：
 
 ```gomod
 exclude golang.org/x/text v0.40.0
@@ -120,8 +120,8 @@ replace golang.org/x/text => ../text-fork
 retract v1.0.1 // 發布時誤放了測試用的金鑰
 ```
 
-- `exclude`：不使用某個版本；有人要求它時，Go 改用下一個較高的版本。它與 `replace` 只在主模組的 `go.mod` 生效，相依的 `go.mod` 裡的會被忽略。
-- `replace`：把模組換成別處的內容，常見是本機目錄或自己修過的分支。先 `mkdir ../text-fork && (cd ../text-fork && go mod init golang.org/x/text)` 建一個空模組，`go list -m` 的 `=>` 就是被換掉的證據：
+- [`exclude`](https://go.dev/ref/mod#go-mod-file-exclude)：不使用某個版本；有人要求它時，Go 改用下一個較高的版本。它與 `replace` 只在主模組的 `go.mod` 生效，相依的 `go.mod` 裡的會被忽略。
+- [`replace`](https://go.dev/ref/mod#go-mod-file-replace)：把模組換成別處的內容，常見是本機目錄或自己修過的分支。先 `mkdir ../text-fork && (cd ../text-fork && go mod init golang.org/x/text)` 建一個空模組，`go list -m` 的 `=>` 就是被換掉的證據：
 
   執行結果（某一次）：
 
@@ -130,14 +130,14 @@ retract v1.0.1 // 發布時誤放了測試用的金鑰
   $ go list -m golang.org/x/text
   golang.org/x/text v0.43.0 => ../text-fork
   ```
-- `retract`：寫在**被發布的模組**自己的 `go.mod`，宣告某些版本不該用，`go list -m -u` 會標出。怎麼發布與撤回，本章〈發布流程與版本號〉會談。
+- [`retract`](https://go.dev/ref/mod#go-mod-file-retract)：寫在**被發布的模組**自己的 `go.mod`，宣告某些版本不該用，`go list -m -u` 會標出。怎麼發布與撤回，本章〈發布流程與版本號〉會談。
 
 ## 取捨
 
-- **節奏比方法重要。** 每週或每月固定升一輪，每次只有幾個小變動；一年升一次，每個相依都跨好幾個次版本，出事時要查的範圍大得多。弱點通報是例外，依第 11 章的判斷插隊處理。
+- **節奏比方法重要。** 每週或每月固定升一輪，每次只有幾個小變動；一年升一次，每個相依都跨好幾個次版本，出事時要查的範圍大得多。弱點通報是例外，依第 11 章〈[`govulncheck` 與相依弱點](../chapter11/04_govulncheck.md)〉的判斷插隊處理。
 - **自動化。** Dependabot 與 Renovate 會替每個相依各開一個 PR，等於把「一次一個」交給機器；前提是 CI 夠可靠，測試薄弱時只是更快合併沒人檢查的升級。
-- **`go get -u ./...` 在什麼情況下是對的。** 新專案、測試完整的小工具、或專門升級的分支。它也不是完全隔離的相反：一次一個時，A 要求更高版本的 B，B 也會跟著升，所以每一步仍要看輸出。
-- **`replace` 不該留在發布的模組。** 它只對自己有效：使用者拿到的是原版，你測過的與他們用的不同；`go install 模組@版本` 遇到有 `replace` 或 `exclude` 的 `go.mod` 會直接拒絕。為了等上游修正而暫時用 fork，附上 issue 連結與移除期限，發布前拿掉。
+- **`go get -u ./...` 在什麼情況下是對的。** 新專案、測試完整的小工具、或專門升級的分支。一次一個也不是各自獨立：升 A 時，A 要求更高版本的 B，B 也會跟著升，所以每一步仍要看輸出。
+- **`replace` 不該留在發布的模組。** 它只對自己有效：使用者拿到的是原版，你測過的與他們用的不同；`go install 模組@版本` 遇到有 `replace` 或 `exclude` 的 `go.mod` 會直接拒絕（見[模組參考](https://go.dev/ref/mod#go-install)）。為了等上游修正而暫時用 fork，附上 issue 連結與移除期限，發布前拿掉。
 - **主版本升級是另一種成本。** `go get -u` 不會跨主版本。`v2` 以上的模組路徑多一段 `/v2`，要改每個 import，兩個主版本也可以同時在相依圖裡。先讀升級指南，獨立一個 PR 做，不要混在例行升級裡。
 - **`go list -m -u` 只說有新版。** 值不值得升要看變更記錄；有沒有弱點交給 `govulncheck`。
 

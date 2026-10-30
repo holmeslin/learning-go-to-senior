@@ -26,13 +26,12 @@ publish() { # publish <模組路徑> <tag>：把 tag 打包成模組代理的四
 }
 ```
 
-發 v1.0.0 並用 `go install …@版本` 驗證。`cmd/slugtool` 只是讓模組有個可以安裝的 `main`，印出自己的建置資訊（本章〈`go build` 與用 `-ldflags` 注入版本〉談過版本資訊從哪來）：
+發 v1.0.0 並用 `go install …@版本` 驗證。`cmd/slugtool` 只是讓模組有個可以安裝的 `main`，印出自己的建置資訊（本章〈[`go build` 與用 `-ldflags` 注入版本](01_build_version_info.md)〉談過版本資訊從哪來）：
 
 ```bash
 mkdir slugtool && cd slugtool && git init -q && go mod init example.com/slugtool
 cp "$E/before/slug.go" . && cp -r "$E/before/cmd" .
-git add . && git commit -qm "first release" && git tag v1.0.0
-publish example.com/slugtool v1.0.0
+git add . && git commit -qm "first release" && git tag v1.0.0 && publish example.com/slugtool v1.0.0
 go install example.com/slugtool/cmd/slugtool@v1.0.0
 go version -m $GOPATH/bin/slugtool | sed -n 2,3p
 ```
@@ -49,19 +48,14 @@ $ go version -m $GOPATH/bin/slugtool | sed -n 2,3p
 
 ## 次版本裡的破壞，用 `retract` 撤回
 
-`Slug` 改簽名，呼叫端的 `s := slugtool.Slug(t)` 會編譯失敗（第 1 章〈匯出名稱與 API 穩定性〉貼過這類錯誤）。假設作者趕著修，把 `after/` 當成 v1.1.0 發出去，一個服務已經升上去了。這時刪 tag 沒有用：官方的模組代理與 checksum 資料庫取過某個版本就會一直記住。補救是發新版本：還原 `Slug`，在新版本的 `go.mod` 加 `retract`（本章〈[`go.mod` 與相依升級](06_go_mod_dependency_upgrade.md)〉談過它的用途）。`go` 讀最新版本的 `go.mod`，所以它要寫在比被撤回版本更新的版本裡：
+`Slug` 改簽名，呼叫端的 `s := slugtool.Slug(t)` 會編譯失敗（第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉貼過這類錯誤）。假設作者趕著修，把 `after/` 當成 v1.1.0 發出去，一個服務已經升上去了。這時刪 tag 沒有用：官方的模組代理盡量保留取過的內容（[proxy.golang.org 的 FAQ](https://proxy.golang.org/)說，原始 repo 的版本刪了，代理上可能仍拿得到），checksum 資料庫也已經記下它的雜湊。補救是發新版本：還原 `Slug`，在新版本的 `go.mod` 加 `retract`（本章〈[`go.mod` 與相依升級](06_go_mod_dependency_upgrade.md)〉談過它的用途）。`go` 讀最新版本的 `go.mod`，所以它要寫在比被撤回版本更新的版本裡：
 
 ```bash
-cp "$E/after/slug.go" . && git commit -qam "Slug 回傳 error" && git tag v1.1.0
-publish example.com/slugtool v1.1.0
-mkdir ../app && cd ../app
-go mod init example.com/app && go get example.com/slugtool@v1.1.0
-cd ../slugtool && cp "$E/before/slug.go" .
-printf '\nretract v1.1.0 // 破壞相容的修改誤放進次版本\n' >>go.mod
-git commit -qam "revert Slug, retract v1.1.0" && git tag v1.1.1
-publish example.com/slugtool v1.1.1
-cd ../app
-go list -m -u example.com/slugtool
+cp "$E/after/slug.go" . && git commit -qam "Slug 回傳 error" && git tag v1.1.0 && publish example.com/slugtool v1.1.0
+mkdir ../app && cd ../app && go mod init example.com/app && go get example.com/slugtool@v1.1.0
+cd ../slugtool && cp "$E/before/slug.go" . && printf '\nretract v1.1.0 // 破壞相容的修改誤放進次版本\n' >>go.mod
+git commit -qam "revert Slug, retract v1.1.0" && git tag v1.1.1 && publish example.com/slugtool v1.1.1
+cd ../app && go list -m -u example.com/slugtool
 go list -m -versions example.com/slugtool
 go list -m -versions -retracted example.com/slugtool
 ```
@@ -84,8 +78,7 @@ example.com/slugtool v1.0.0 v1.1.0 v1.1.1
 真正的解法是 v2。常見的錯誤是只打 tag、沒改 `go.mod` 的模組路徑：
 
 ```bash
-cd ../slugtool && cp "$E/after/slug.go" . && git commit -qam "Slug 回傳 error（v2）" && git tag v2.0.0
-publish example.com/slugtool v2.0.0
+cd ../slugtool && cp "$E/after/slug.go" . && git commit -qam "Slug 回傳 error（v2）" && git tag v2.0.0 && publish example.com/slugtool v2.0.0
 cd ../app
 go get example.com/slugtool@v2.0.0
 ```
@@ -104,11 +97,20 @@ go: unzip $DEMO/gopath/pkg/mod/cache/download/example.com/slugtool/@v/v2.0.0.zip
 
 ```bash
 cd ../slugtool && go mod edit -module example.com/slugtool/v2 -dropretract v1.1.0
-git commit -qam "module path /v2" && git tag v2.0.1
-publish example.com/slugtool/v2 v2.0.1
-cd ../app
-go get example.com/slugtool/v2@v2.0.1
-go list -m all
+git commit -qam "module path /v2" && git tag v2.0.1 && publish example.com/slugtool/v2 v2.0.1
+cd ../app && go get example.com/slugtool/v2@v2.0.1 && go list -m all
+```
+
+執行結果（某一次）：
+
+```text
+$ go get example.com/slugtool/v2@v2.0.1
+go: downloading example.com/slugtool/v2 v2.0.1
+go: added example.com/slugtool/v2 v2.0.1
+$ go list -m all
+example.com/app
+example.com/slugtool v1.1.0
+example.com/slugtool/v2 v2.0.1
 ```
 
 ## 不要移動已發布的 tag
@@ -116,8 +118,7 @@ go list -m all
 最後一種誘惑：把 `v1.1.0` 移到修好的 commit。清掉模組快取，模擬另一台沒下載過的機器：
 
 ```bash
-cd ../slugtool && git tag -f v1.1.0 v1.1.1
-publish example.com/slugtool v1.1.0
+cd ../slugtool && git tag -f v1.1.0 v1.1.1 && publish example.com/slugtool v1.1.0
 cd ../app && rm -rf "$GOPATH/pkg/mod"
 go mod download example.com/slugtool@v1.1.0
 ```
@@ -133,17 +134,17 @@ verifying example.com/slugtool@v1.1.0/go.mod: checksum mismatch
 	go.sum:     h1:…
 ```
 
-擋下來的是已經用過 v1.1.0 的服務自己的 `go.sum`。公開的 `sum.golang.org` 對所有人做同一件事：一個版本只能有一個雜湊，所以 tag 只能往前加。
+擋下來的是已經用過 v1.1.0 的服務自己的 `go.sum`。公開的 [`sum.golang.org`](https://go.dev/ref/mod#checksum-database) 對所有人做同一件事：同一個版本的內容不會一天一個樣，即使作者之後改了 tag；所以 tag 只能往前加。
 
 ## 取捨
 
 - **v0 還是 v1。** v0 不承諾相容，API 還在改、只有少數呼叫端時留在 v0 比較誠實；多個團隊依賴、想承諾「次版本不破壞」才發 v1。
-- **v2 的成本。** 新路徑、一段時間要維護兩個版本，呼叫端要改 import 與程式碼。能新增或棄用解決就不開 v2（第 1 章〈棄用（deprecation）與相容性〉）；同名函式非改簽名不可才要，另一條路是在 v1 新增 `SlugStrict`。
+- **v2 的成本。** 新路徑、一段時間要維護兩個版本，呼叫端要改 import 與程式碼。能新增或棄用解決就不開 v2（第 1 章〈[棄用（deprecation）與相容性](../chapter1/08_deprecation_and_compatibility.md)〉）；同名函式非改簽名不可才要，另一條路是在 v1 新增 `SlugStrict`。
 - **自動化。** 版本號靠人判斷。changelog 與 release 工具（GoReleaser、release-please）只負責紀錄與打包；`gorelease` 比對公開 API 的差異，改動算不算破壞，最後還是人決定。
 
 ## 重點整理
 
 - 公開 API 的破壞性修改要改模組路徑發新主版本；只升次版本，呼叫端升級時才發現壞了。
-- 代理與 checksum 資料庫永久記住發布過的版本：不刪、不移動、不重用 tag，發錯了發新版本。
+- 代理盡量保留、checksum 資料庫固定每個版本的雜湊：不刪、不移動、不重用 tag，發錯了發新版本。
 - `retract` 寫在更新的版本的 `go.mod`，只是警告；v2 要同時改 `go.mod` 的模組路徑與 tag。
 - 用 `go list -m -versions` 與 `go install …@版本` 在乾淨環境驗證發布結果。
