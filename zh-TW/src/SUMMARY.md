@@ -108,7 +108,9 @@
     - [負載卸載與降級](chapter10/07_load_shedding.md)
     - [bulkhead](chapter10/08_bulkhead.md)
 - [安全實務]()
+    - [SQL injection 與參數化查詢](chapter11/02_sql_injection.md)
     - [SSRF 與對外請求](chapter11/07_ssrf_outbound_requests.md)
+    - [日誌裡的敏感資料](chapter11/08_sensitive_data_in_logs.md)
 - [建置與發布]()
 
 # 第六部　在團隊裡寫 Go
