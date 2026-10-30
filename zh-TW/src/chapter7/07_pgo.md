@@ -132,7 +132,7 @@ PGO 只改機器碼，不改程式碼。after 的測試鎖住兩件事：配置�
 ## 取捨
 
 - **改善通常有限。** 上面的幅度來自一個只有一個迴圈的 benchmark，不能搬到整支服務。官方文件〈[Profile-guided optimization](https://go.dev/doc/pgo)〉的說法是一般程式約 2% 到 14%，常見的是個位數。profile 裡沒有明顯的小呼叫熱點，就不會有感覺。
-- **profile 要有代表性。** 上面的路徑前綴規則就是例子；官方文件也說，不具代表性的 profile 幾乎得不到改善。正式環境的 profile 怎麼收，第 9 章〈`/debug/pprof` 與診斷端點〉會談；從 benchmark 收的，要持續跟實際的負載比對。
+- **profile 要有代表性。** 上面的路徑前綴規則就是例子；官方文件也說，不具代表性的 profile 幾乎得不到改善。正式環境的 profile 怎麼收，第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過；從 benchmark 收的，要持續跟實際的負載比對。
 - **程式改了要更新。** profile 靠函式名稱與行號對應，改動之後對不上的部分就失效，而且沒有錯誤訊息。重新產生的指令要寫在文件或 Makefile 裡，並確認 `-gcflags=-m` 還看得到 PGO 的決定。
 - **建置時間會變長。** 每個編譯單元都要讀 profile，官方文件說可以量到建置時間增加。這個範例太小，量不出差別；自己的程式用 `time go build -pgo=off` 與 `time go build -pgo=auto` 比較。
 - **`default.pgo` 是二進位檔。** diff 看不出內容，審查時只能看大小與產生指令。
