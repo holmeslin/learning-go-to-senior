@@ -101,6 +101,7 @@
 - [韌性](chapter10/README.md)
     - [逾時預算](chapter10/01_timeout_budget.md)
     - [斷路器](chapter10/05_circuit_breaker.md)
+    - [bulkhead](chapter10/08_bulkhead.md)
 - [安全實務]()
 - [建置與發布]()
 
