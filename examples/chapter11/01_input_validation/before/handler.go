@@ -48,7 +48,9 @@ func NewHandler(save func(Request)) http.Handler {
 
 // Attack 是一筆惡意輸入：Name 是識別名稱，Body 是原封不動送出的請求本文。
 type Attack struct {
+	// Name 是這筆輸入的識別名稱，對應「問題在哪」表格的第一欄。
 	Name string
+	// Body 是原封不動送出的請求本文。
 	Body string
 }
 
