@@ -109,6 +109,7 @@
     - [bulkhead](chapter10/08_bulkhead.md)
 - [安全實務]()
     - [SQL injection 與參數化查詢](chapter11/02_sql_injection.md)
+    - [`crypto/rand` 與 TLS 設定](chapter11/06_crypto_rand_tls.md)
     - [日誌裡的敏感資料](chapter11/08_sensitive_data_in_logs.md)
 - [建置與發布]()
 
