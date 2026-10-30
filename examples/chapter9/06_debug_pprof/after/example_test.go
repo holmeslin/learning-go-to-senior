@@ -8,14 +8,14 @@ import (
 	stock "github.com/holmeslin/learning-go-to-senior/examples/chapter9/06_debug_pprof/after"
 )
 
+// ANCHOR: example
+
 // status 對 h 送出 GET 請求，回傳狀態碼。
 func status(h http.Handler, path string) int {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 	return rec.Code
 }
-
-// ANCHOR: example
 
 func ExampleNewAdminHandler() {
 	public, admin := stock.NewPublicHandler(), stock.NewAdminHandler()
