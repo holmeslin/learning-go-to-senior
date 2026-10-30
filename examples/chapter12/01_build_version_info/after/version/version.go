@@ -47,8 +47,6 @@ func FromBuildInfo(bi *debug.BuildInfo, build string) Info {
 	return info
 }
 
-// ANCHOR_END: info
-
 // String 印成一行：版本、commit 前 12 碼（有未提交的修改時加 -dirty）、commit 時間、Go 版本，
 // 有 Build 時最後再加上。
 func (i Info) String() string {
@@ -78,3 +76,5 @@ func Handler(i Info) http.Handler {
 		_ = json.NewEncoder(w).Encode(i) // 寫入失敗代表客戶端已斷線，沒有人可以回報
 	})
 }
+
+// ANCHOR_END: info
