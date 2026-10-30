@@ -143,7 +143,7 @@ func TestPanickingHandlerDoesNotBlockRetries(t *testing.T) {
 	}))
 
 	func() {
-		defer func() { recover() }() // net/http 會接住 panic；這裡自己接
+		defer func() { _ = recover() }() // net/http 會接住 panic；這裡自己接
 		post(h, "k1", a1)
 	}()
 	rec := post(h, "k1", a1) // 若鍵一直處於「執行中」，這一行會永遠卡住

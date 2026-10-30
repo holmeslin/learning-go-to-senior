@@ -53,13 +53,13 @@ func TestStateTransitions(t *testing.T) {
 	}
 
 	// 連續失敗才算數：中間成功一次，計數歸零。
-	call(errBoom)
-	call(errBoom)
-	call(nil)
-	call(errBoom)
-	call(errBoom)
+	_ = call(errBoom)
+	_ = call(errBoom)
+	_ = call(nil)
+	_ = call(errBoom)
+	_ = call(errBoom)
 	wantState(breaker.Closed)
-	call(errBoom) // 連續第 3 次
+	_ = call(errBoom) // 連續第 3 次
 	wantState(breaker.Open)
 
 	// 打開時：立刻回 ErrOpen，不呼叫下游。
@@ -93,8 +93,8 @@ func TestStateTransitions(t *testing.T) {
 		t.Fatalf("probe err = %v, want nil", err)
 	}
 	wantState(breaker.Closed)
-	call(errBoom)
-	call(errBoom)
+	_ = call(errBoom)
+	_ = call(errBoom)
 	wantState(breaker.Closed)
 }
 
@@ -105,7 +105,7 @@ func TestStateTransitions(t *testing.T) {
 func TestHalfOpenAdmitsOneProbe(t *testing.T) {
 	b, clk := newBreaker()
 	for range 3 {
-		b.Do(func() error { return errBoom })
+		_ = b.Do(func() error { return errBoom })
 	}
 	clk.Advance(10 * time.Second)
 
@@ -153,12 +153,14 @@ func TestLateFailureDoesNotExtendCooldown(t *testing.T) {
 	}()
 	<-entered // 這個請求在斷路器還關著時就出發了
 	for range 3 {
-		b.Do(func() error { return errBoom })
+		_ = b.Do(func() error { return errBoom })
 	}
 	clk.Advance(9 * time.Second)
 
 	close(release)
-	<-slowDone // 打開之前出發的請求，這時才失敗
+	if err := <-slowDone; !errors.Is(err, errBoom) { // 打開之前出發的請求，這時才失敗
+		t.Fatalf("late request err = %v, want errBoom", err)
+	}
 	clk.Advance(time.Second)
 	if err := b.Do(func() error { return nil }); err != nil {
 		t.Errorf("err = %v, want nil: a late failure must not restart the cooldown", err)
@@ -168,13 +170,13 @@ func TestLateFailureDoesNotExtendCooldown(t *testing.T) {
 func TestPanicInProbeDoesNotStickHalfOpen(t *testing.T) {
 	b, clk := newBreaker()
 	for range 3 {
-		b.Do(func() error { return errBoom })
+		_ = b.Do(func() error { return errBoom })
 	}
 	clk.Advance(10 * time.Second)
 
 	func() {
-		defer func() { recover() }()
-		b.Do(func() error { panic("downstream client bug") })
+		defer func() { _ = recover() }()
+		_ = b.Do(func() error { panic("downstream client bug") })
 	}()
 	if got := b.State(); got != breaker.Open {
 		t.Fatalf("state after a panicking probe = %v, want open", got)
@@ -187,7 +189,7 @@ func TestPanicInProbeDoesNotStickHalfOpen(t *testing.T) {
 
 func TestNewDefaults(t *testing.T) {
 	b := breaker.New(breaker.Config{}) // Threshold 為 0 當作 1，Now 為 nil 用 time.Now
-	b.Do(func() error { return errBoom })
+	_ = b.Do(func() error { return errBoom })
 	if got := b.State(); got != breaker.Open {
 		t.Errorf("state after 1 failure with default threshold = %v, want open", got)
 	}
