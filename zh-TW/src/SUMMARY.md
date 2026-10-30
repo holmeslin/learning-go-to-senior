@@ -117,6 +117,7 @@
     - [SSRF 與對外請求](chapter11/07_ssrf_outbound_requests.md)
     - [日誌裡的敏感資料](chapter11/08_sensitive_data_in_logs.md)
 - [建置與發布]()
+    - [發布流程與版本號](chapter12/07_release_and_versioning.md)
 
 # 第六部　在團隊裡寫 Go
 
