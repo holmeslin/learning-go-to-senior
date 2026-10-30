@@ -99,6 +99,7 @@
     - [健康檢查](chapter9/07_health_check.md)
     - [SLI 與 SLO](chapter9/08_sli_slo.md)
 - [韌性]()
+    - [關機時該等什麼、等多久（graceful shutdown）](chapter10/06_graceful_shutdown.md)
 - [安全實務]()
 - [建置與發布]()
 
