@@ -19,7 +19,7 @@ var ErrUnknownDownstream = errors.New("unknown downstream")
 
 // Downstream 描述一個下游：位址、專屬的 client、同時最多幾個請求。
 type Downstream struct {
-	BaseURL string
+	BaseURL string       // 下游的位址，請求路徑接在它後面
 	Client  *http.Client // 每個下游各自一個，連線池不共用
 	Limit   int          // 這個下游同時進行的請求上限，至少 1
 }
