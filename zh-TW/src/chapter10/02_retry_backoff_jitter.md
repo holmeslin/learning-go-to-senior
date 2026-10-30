@@ -60,7 +60,7 @@ HTTP client 與 `context` 的逾時前作教過：〈[HTTP client](https://holme
 
 `Jitter` 是為了測試才匯出的接縫：正式環境留空，用 `math/rand/v2` 的全域亂數（前作〈[`math/rand/v2`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/11_rand_v2.html)〉）；測試注入固定 seed 的 `*rand.Rand`，或固定的值，讓等待時間可以斷言。`StatusError` 匯出，是因為呼叫端要用 `errors.AsType` 分辨 400 與 503。
 
-`Fetch` 只重試暫時性的錯誤：單次嘗試逾時、連線被拒、429 與 503，其他錯誤立刻回傳。每次等待之前先看 deadline，等不起就現在回錯誤，不要睡到 deadline 才失敗；等待時 `ctx` 結束也立刻回傳：
+`Fetch` 只重試暫時性的錯誤：單次嘗試逾時、連線被拒、429 與 503，其他錯誤立刻回傳。429 也算：帶 `Retry-After` 的 429 是伺服器明說「稍後再來」，本章〈`golang.org/x/time/rate` 限流〉會談的伺服器回的正是這種。每次等待之前先看 deadline，等不起就現在回錯誤，不要睡到 deadline 才失敗；等待時 `ctx` 結束也立刻回傳。`Client` 把 `Policy` 與 `http.Client` 放在一起，`once` 發一次請求並套用 `Policy.Timeout`：
 
 ```go,ignore
 {{#include ../../../examples/chapter10/02_retry_backoff_jitter/after/rates.go:fetch}}

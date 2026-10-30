@@ -30,14 +30,15 @@ func newHandler(rec *recorder, stock, carrier time.Duration) budget.Handler {
 	}
 }
 
-// ANCHOR_END: serve
-
+// checkLog 比對 recorder 記下的下游呼叫與預期是否一致。
 func checkLog(t *testing.T, rec *recorder, want ...string) {
 	t.Helper()
 	if got := rec.entries(); !slices.Equal(got, want) {
 		t.Errorf("downstream calls:\n got %q\nwant %q", got, want)
 	}
 }
+
+// ANCHOR_END: serve
 
 // ANCHOR: within
 

@@ -27,6 +27,14 @@ type entry struct {
 	resp        recorded
 }
 
+// recorded 是記下來的回應，同時實作 http.ResponseWriter 用來接 next 的輸出。
+// 它的方法在檔案後段。
+type recorded struct {
+	status int
+	header http.Header
+	body   bytes.Buffer
+}
+
 // claim 回傳鍵對應的 entry；first 為 true 代表這個請求是第一個，必須負責執行。
 // 查詢與登記在同一把鎖裡完成，所以同時進來的請求只有一個會拿到 first。
 func (s *Store) claim(key string, fp [sha256.Size]byte) (e *entry, first bool) {
@@ -94,13 +102,6 @@ func (e *entry) run(next http.Handler, r *http.Request) {
 }
 
 // ANCHOR_END: wrap
-
-// recorded 是記下來的回應，同時實作 http.ResponseWriter 用來接 next 的輸出。
-type recorded struct {
-	status int
-	header http.Header
-	body   bytes.Buffer
-}
 
 func (c *recorded) Header() http.Header {
 	if c.header == nil {
