@@ -24,6 +24,7 @@ type Loan struct {
 // Querier 是 [Store] 需要的查詢能力，*sql.DB 與 *sql.Tx 都符合。
 // 它也讓測試能包住它，看見實際送進資料庫的 SQL 與參數。
 type Querier interface {
+	// QueryContext 執行查詢；query 裡的 ? 由 args 依序代入。
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 }
 
