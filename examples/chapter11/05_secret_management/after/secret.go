@@ -3,10 +3,10 @@ package settings
 
 import "log/slog"
 
+// ANCHOR: secret
+
 // redacted 是秘密在任何輸出裡顯示的樣子。
 const redacted = "[REDACTED]"
-
-// ANCHOR: secret
 
 // Secret 是不該被印出來的字串。欄位是小寫，套件外只能用 Reveal 取值，
 // 所以誤把它當 string 用會編譯失敗，而不是悄悄把秘密帶進輸出。

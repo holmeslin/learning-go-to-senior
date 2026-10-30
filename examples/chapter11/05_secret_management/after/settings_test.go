@@ -15,13 +15,13 @@ import (
 	settings "github.com/holmeslin/learning-go-to-senior/examples/chapter11/05_secret_management/after"
 )
 
-// 這些測試用 t.Setenv，不能呼叫 t.Parallel。
+// ANCHOR: load
+
+// 假的秘密。用 t.Setenv 的測試不能呼叫 t.Parallel。
 const (
 	apiKey     = "example-not-a-real-key"
 	dbPassword = "example-not-a-real-password"
 )
-
-// ANCHOR: load
 
 // load 設好兩個假的秘密並載入設定；空字串的 _FILE 等於沒設，不受開發機環境影響。
 func load(t *testing.T) settings.Config {
@@ -37,8 +37,6 @@ func load(t *testing.T) settings.Config {
 	return cfg
 }
 
-// ANCHOR_END: load
-
 func assertRedacted(t *testing.T, name, out string) {
 	t.Helper()
 	for _, secret := range []string{apiKey, dbPassword} {
@@ -50,6 +48,8 @@ func assertRedacted(t *testing.T, name, out string) {
 		t.Errorf("%s has no redaction marker: %s", name, out)
 	}
 }
+
+// ANCHOR_END: load
 
 // ANCHOR: fmt
 
