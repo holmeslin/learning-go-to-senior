@@ -108,7 +108,9 @@
     - [負載卸載與降級](chapter10/07_load_shedding.md)
     - [bulkhead](chapter10/08_bulkhead.md)
 - [安全實務]()
+    - [SQL injection 與參數化查詢](chapter11/02_sql_injection.md)
     - [路徑來自使用者輸入時，用 `os.Root` 還是自己檢查](chapter11/03_path_from_user_input.md)
+    - [日誌裡的敏感資料](chapter11/08_sensitive_data_in_logs.md)
 - [建置與發布]()
 
 # 第六部　在團隊裡寫 Go
