@@ -118,6 +118,7 @@
     - [日誌裡的敏感資料](chapter11/08_sensitive_data_in_logs.md)
 - [建置與發布]()
     - [可重現的建置](chapter12/02_reproducible_builds.md)
+    - [交叉編譯](chapter12/03_cross_compile.md)
     - [容器映像（multi-stage）](chapter12/04_container_image.md)
     - [`go.mod` 與相依升級](chapter12/06_go_mod_dependency_upgrade.md)
 
