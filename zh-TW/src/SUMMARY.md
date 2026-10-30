@@ -109,6 +109,8 @@
     - [bulkhead](chapter10/08_bulkhead.md)
 - [安全實務](chapter11/README.md)
     - [輸入驗證](chapter11/01_input_validation.md)
+    - [SQL injection 與參數化查詢](chapter11/02_sql_injection.md)
+    - [日誌裡的敏感資料](chapter11/08_sensitive_data_in_logs.md)
 - [建置與發布]()
 
 # 第六部　在團隊裡寫 Go
