@@ -6,7 +6,7 @@
 
 ## 情境
 
-會員服務要看每個端點的請求量與錯誤，於是在 HTTP 中介層加一個計數器。屬性放什麼，寫的人通常覺得「越詳細越好查」：誰打的、打的是哪個網址。同一個服務還有一個 `*sql.DB`，第 4 章〈連線池要設多大、設錯會怎樣〉談過它的 `Stats()` 要長期收集與告警，這集示範怎麼把它匯出。HTTP 伺服器、`ServeMux` 與 middleware 前作教過：〈[`ServeMux` 路由](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/02_servemux.html)〉、〈[middleware](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/05_middleware.html)〉。
+會員服務要看每個端點的請求量與錯誤，於是在 HTTP 中介層加一個計數器。屬性放什麼，寫的人通常覺得「越詳細越好查」：誰打的、打的是哪個網址。同一個服務還有一個 `*sql.DB`，第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉談過它的 `Stats()` 要長期收集與告警，這集示範怎麼把它匯出。HTTP 伺服器、`ServeMux` 與 middleware 前作教過：〈[`ServeMux` 路由](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/02_servemux.html)〉、〈[middleware](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/05_middleware.html)〉。
 
 ## 常見寫法
 
@@ -56,7 +56,7 @@ SDK 有保險：資料點超過上限（預設 2000），多出來的組合被�
 {{#include ../../../examples/chapter9/03_metrics_cardinality/after/middleware.go:bounds}}
 ```
 
-三種儀器各有用途。計數器只會增加，數「發生了幾次」（請求、錯誤）；直方圖記一批數值的分布，耗時這類要看百分位的值用它；量測值是「現在多少」，可增可減，例如連線數、佇列長度。名稱用小寫加點，單位放在 `WithUnit`（秒是 `s`，計數的東西用 `{request}` 這種花括號），名稱本身不重複寫單位。名稱與單位怎麼對應到後端，由匯出的那一端處理。
+三種儀器各有用途。計數器只會增加，數「發生了幾次」（請求、錯誤）；直方圖記一批數值的分布，耗時這類要看百分位的值用它；量測值是「現在多少」，可增可減，例如連線數、佇列長度。名稱用小寫加點，單位放在 `WithUnit`（秒是 `s`，計數的東西用 `{request}` 這種花括號），名稱本身不重複寫單位。耗時用秒記，SDK 預設的 bucket 邊界卻是為毫秒設計的，所以上面的直方圖明確給了一組以秒為單位的邊界；邊界怎麼選，本章〈SLI 與 SLO〉會談。名稱與單位怎麼對應到後端，由匯出的那一端處理。
 
 測試送出 500 種不同的路徑與使用者，加上一個 404、一個 POST 與 100 條掃描路徑，斷言屬性組合恰好是下面四組。helper 在 `after/helpers_test.go`，這裡一併列出：
 
@@ -94,13 +94,13 @@ SDK 有保險：資料點超過上限（預設 2000），多出來的組合被�
 {{#include ../../../examples/chapter9/03_metrics_cardinality/after/pool_test.go:pool}}
 ```
 
-第 8 章〈`runtime/metrics`〉的讀數也可以這樣匯出：在回呼裡呼叫 `metrics.Read`，把 `/gc/heap/live:bytes` 這類單一數值用 `ObserveInt64` 或 `ObserveFloat64` 回報。
+第 8 章〈[`runtime/metrics`](../chapter8/06_runtime_metrics.md)〉的讀數也可以這樣匯出：在回呼裡呼叫 `metrics.Read`，把 `/gc/heap/live:bytes` 這類單一數值用 `ObserveInt64` 或 `ObserveFloat64` 回報。
 
 ## 取捨
 
-- **高基數的資訊不是不要記，是放對地方。** 使用者代號、請求代號、完整路徑與錯誤訊息放日誌的欄位（本章〈結構化日誌：`log/slog` 的欄位與 handler 怎麼選〉談過欄位的寫法）或 span 的屬性（本章〈分散式追蹤與 OpenTelemetry〉會談）；指標只回答「整體怎麼樣」。要找某個使用者的失敗，從日誌找。
+- **高基數的資訊不是不要記，是放對地方。** 使用者代號、請求代號、完整路徑與錯誤訊息放日誌的欄位（本章〈[結構化日誌：`log/slog` 的欄位與 handler 怎麼選](01_structured_logging.md)〉談過欄位的寫法）或 span 的屬性（本章〈分散式追蹤與 OpenTelemetry〉會談）；指標只回答「整體怎麼樣」。要找某個使用者的失敗，從日誌找。
 - **屬性集合要在 code review 時看。** 看到 `attribute.String(..., 變數)` 先問：這個值有幾種可能、誰決定？客戶端能決定的（路徑、標頭、方法）都要先歸類。
-- **屬性越多，成本相乘。** 序列數是各屬性取值數的乘積；直方圖的每個資料點還帶著每個 bucket 的計數，比計數器貴。bucket 邊界怎麼選，本章〈SLI 與 SLO〉會談。
+- **屬性越多，成本相乘。** 序列數是各屬性取值數的乘積；直方圖的每個資料點還帶著每個 bucket 的計數，比計數器貴。
 - **狀態碼類別有時不夠。** 想分開看 429 與 503，可以把有限的幾個碼列進白名單，其餘歸類；前提仍是集合有上限。
 - **before 在內部小工具上不一定錯。** 使用者只有幾十個、路由是固定的，序列數本來就有上限，用不著為它限制。問題是對外服務的使用者與路徑由別人決定。
 - **序列數在後端也是成本。** 儲存與查詢都跟著序列數走；Prometheus 等後端各有各的設定，這裡只談送出去之前自己守住。
