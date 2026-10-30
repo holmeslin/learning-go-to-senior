@@ -22,7 +22,7 @@ cgo 與 `CGO_ENABLED` 的預設值前作〈[cgo 簡介](https://holmeslin.github
 {{#include ../../../examples/chapter12/03_cross_compile/before/limit.go:limit}}
 ```
 
-這是刻意示範的寫法，完整程式碼在 `examples/chapter12/03_cross_compile/before/`，不要照用。在 macOS 上 `go run` 一切正常。
+這是刻意示範的寫法，完整程式碼在 `examples/chapter12/03_cross_compile/before/`，不要照用。在 macOS 上 `go run` 一切正常。`before/` 要有 C 編譯器才編得過：`CGO_ENABLED=0 go vet ./examples/chapter12/03_cross_compile/before` 會因 `undefined: hostname` 型別檢查失敗，所以本書的 lint 設定排除 `before/`；CI 的 runner 本來就有 gcc。
 
 ## 問題在哪
 
@@ -126,9 +126,9 @@ done
 
 ## 取捨
 
-- **純 Go 還是 cgo。** 能用純 Go 的相依，交叉編譯就只剩 `GOOS`／`GOARCH` 兩個變數。本書的資料層用 `modernc.org/sqlite`，就是為了這點：第 4 章〈測試資料層：fake 與真實資料庫〉談過它是純 Go、不必安裝任何東西；可以直接驗證：第 4 章的 `04_pool_size/after` 用 `CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build` 與 `GOOS=windows GOARCH=amd64` 都沒有輸出、結束碼 0。代價是它把 SQLite 的 C 程式轉成 Go，版本與效能和用 C 函式庫的 driver 不一定一致，要換之前自己量。
+- **純 Go 還是 cgo。** 能用純 Go 的相依，交叉編譯就只剩 `GOOS`／`GOARCH` 兩個變數。本書的資料層用 `modernc.org/sqlite`，就是為了這點：第 4 章〈[測試資料層：fake 與真實資料庫](../chapter4/07_fake_or_real_database.md)〉談過它是純 Go、不必安裝任何東西；可以直接驗證：第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉的 `examples/chapter4/04_pool_size/after` 用 `CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build` 與 `GOOS=windows GOARCH=amd64` 都沒有輸出、結束碼 0。代價是它把 SQLite 的 C 程式轉成 Go，版本與效能和用 C 函式庫的 driver 不一定一致，要換之前自己量。
 - **`net` 與 `os/user` 的純 Go 實作。** 沒有 cgo 時這兩個套件改用純 Go：`net` 的解析器自己讀 `/etc/resolv.conf` 發 DNS 請求（本來就是 Unix 上的首選，cgo 只在特定設定下才接手），`os/user` 只解析 `/etc/passwd` 與 `/etc/group`。差別在系統設定用到純 Go 版沒實作的功能時（例如 `nsswitch.conf` 的部分項目，或帳號不在那兩個檔案裡），就查不到。要保留 cgo、只強制這兩個套件用純 Go，可以加 `-tags netgo,osusergo`。
-- **cgo 有時是對的。** 沒有純 Go 替代品的 C 函式庫，就得用 cgo；那就在目標平台上建置，或準備交叉 C 編譯器，並接受 CI 要多跑一個環境。cgo 呼叫也占一個執行緒，第 8 章〈阻塞、syscall 與排程〉談過。
+- **cgo 有時是對的。** 沒有純 Go 替代品的 C 函式庫，就得用 cgo；那就在目標平台上建置，或準備交叉 C 編譯器，並接受 CI 要多跑一個環境。cgo 呼叫也占一個執行緒，第 8 章〈[阻塞、syscall 與排程](../chapter8/07_blocking_syscall_scheduling.md)〉談過。
 - **build tag 的成本。** 每多一種實作就多一份要測的程式碼；`go vet` 只證明編得過，不證明跑得對，`limit_other_test.go` 在 Windows 上才真的執行。能用 `runtime.GOOS` 判斷的差異不必拆檔，但那要求兩邊的程式碼在所有平台都編得過；這裡 `syscall.Getrlimit` 在 Windows 不存在，只能靠 tag。
 
 ## 重點整理
