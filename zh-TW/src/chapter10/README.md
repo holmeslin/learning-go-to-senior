@@ -1,0 +1,5 @@
+# 韌性
+
+前作已經教過 `context` 的逾時與取消：〈[`WithTimeout` 與 `WithDeadline`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter10/03_with_timeout.html)〉，也教過 HTTP 的逾時設定、`Shutdown` 與 `signal.NotifyContext`：〈[逾時設定](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/07_timeouts.html)〉、〈[graceful shutdown](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/08_graceful_shutdown.html)〉、〈[`signal.NotifyContext`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter13/07_signal_notify_context.html)〉。服務上線之後，缺的不是這些 API，而是判斷。實際上線時常犯同樣的錯：每一層各設一個固定的逾時，加起來比呼叫端願意等的還久；失敗就立刻重試，沒有上限也沒有 jitter，下游一恢復就被同時湧入的重試打掛；對不是冪等的操作重試，扣了兩次款；限流寫成 `time.Sleep`；下游已經掛了還一直打，每個請求都等到逾時；關機時直接結束，進行中的請求做到一半；超載時所有請求一起變慢，而不是先拒絕一部分；一個慢的下游吃光整個服務的 goroutine，連不相關的功能也一起停擺。
+
+這一章的主題是：依賴會失敗、流量會超出預期、行程會被重啟時，服務怎麼不被拖垮，也不拖垮別人。每一集處理其中一種失敗，也都誠實談機制的代價：重試會放大負載，限流會擋掉合法的流量，斷路器會誤判，降級會讓使用者體驗變差，所以韌性不是機制越多越好。範例的時間用 `testing/synctest` 的假時間，jitter 用固定 seed 的亂數，HTTP 用 `httptest`，關機用 context 觸發，不送真的 signal，所以 `go test` 不需要外部服務，結果每次都一樣。
