@@ -2,7 +2,9 @@ module tools
 
 go 1.27
 
+// ANCHOR: tool
 tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+// ANCHOR_END: tool
 
 require (
 	4d63.com/gocheckcompilerdirectives v1.4.0 // indirect
@@ -88,7 +90,9 @@ require (
 	github.com/golangci/dupl v0.0.0-20260401084720-c99c5cf5c202 // indirect
 	github.com/golangci/go-printf-func-name v0.1.1 // indirect
 	github.com/golangci/gofmt v0.0.0-20260820135601-e84e05053792 // indirect
+	// ANCHOR: version
 	github.com/golangci/golangci-lint/v2 v2.15.0 // indirect
+	// ANCHOR_END: version
 	github.com/golangci/golines v0.16.0 // indirect
 	github.com/golangci/misspell v0.8.0 // indirect
 	github.com/golangci/plugin-module-register v0.1.2 // indirect
