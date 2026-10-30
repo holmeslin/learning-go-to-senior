@@ -57,9 +57,11 @@ func IsPublic(a netip.Addr) bool {
 // Fetcher 替使用者抓取網址。零值可以直接用：只連公開位址、最多 5 秒、
 // 不跟隨轉址、回應最多 1 MiB。
 type Fetcher struct {
-	// Allow 決定實際要連的位址能不能連；nil 時只放行 IsPublic 的位址。
-	// 這個欄位也是測試的接縫：httptest 的伺服器在 loopback，預設規則一定擋下，
-	// 測試要用它只放行指定的假伺服器；正式環境可以用它放行少數已知的內部位址。
+	// Allow 在 IsPublic 之外，另外放行少數位址：實際要連的位址是公開位址，
+	// 或 Allow 回傳 true，才能連；nil 時只放行 IsPublic 的位址。它只增不減，
+	// 不會讓任何公開位址被擋下。這個欄位也是測試的接縫：httptest 的伺服器在
+	// loopback，預設規則一定擋下，測試要用它放行指定的假伺服器；正式環境可以用它
+	// 放行少數已知的內部位址。
 	Allow func(netip.AddrPort) bool
 
 	// Resolver 解析主機名稱；nil 時用 net.DefaultResolver。
@@ -78,14 +80,15 @@ func (f *Fetcher) control(_, address string, _ syscall.RawConn) error {
 	if err != nil {
 		return err
 	}
-	ok := IsPublic(ap.Addr())
-	if f.Allow != nil {
-		ok = f.Allow(ap)
-	}
-	if !ok {
+	if !f.allowed(ap) {
 		return &BlockedError{Addr: ap}
 	}
 	return nil
+}
+
+// allowed 回報 ap 能不能連：公開位址，或 Allow 另外放行的位址。
+func (f *Fetcher) allowed(ap netip.AddrPort) bool {
+	return IsPublic(ap.Addr()) || f.Allow != nil && f.Allow(ap)
 }
 
 func (f *Fetcher) client() *http.Client {

@@ -8,7 +8,7 @@
 
 一個電子錢包服務：`POST /cards` 讓使用者綁定信用卡，本文有使用者代號、密碼（再次確認身分）與完整卡號，`Authorization` 標頭帶著 token。客服要查「為什麼綁卡失敗」，所以大家習慣把整個請求記下來，好還原現場。
 
-`log/slog`、JSON API 與 `httptest` 前作教過：〈[`log/slog`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/10_slog.html)〉、〈[JSON API](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/04_json_api.html)〉、〈[`httptest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/09_httptest.html)〉。`LogValuer` 與 `ReplaceAttr` 的用法，第 9 章〈[結構化日誌：`log/slog` 的欄位與 handler 怎麼選](../chapter9/01_structured_logging.md)〉談過，那一集也預告了這個問題；欄位怎麼設計見〈[日誌層級與欄位設計](../chapter9/02_log_levels_and_fields.md)〉。秘密型別本身（`String`、`GoString`、`MarshalJSON`）本章〈秘密管理〉談過，這集只用到它的 `LogValue`。
+`log/slog`、JSON API 與 `httptest` 前作教過：〈[`log/slog`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter12/10_slog.html)〉、〈[JSON API](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/04_json_api.html)〉、〈[`httptest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/09_httptest.html)〉。`LogValuer` 與 `ReplaceAttr` 的用法，第 9 章〈[結構化日誌：`log/slog` 的欄位與 handler 怎麼選](../chapter9/01_structured_logging.md)〉談過，那一集也預告了這個問題；欄位怎麼設計見〈[日誌層級與欄位設計](../chapter9/02_log_levels_and_fields.md)〉。完整的秘密型別（`String`、`GoString`、`MarshalJSON`、`Reveal`）在本章〈[秘密管理](05_secret_management.md)〉談過；這集為了讓範例自成一體，另外寫了一個最小的 `Secret`，只實作 `LogValue`，沒有沿用那一集的型別。
 
 ## 常見寫法
 

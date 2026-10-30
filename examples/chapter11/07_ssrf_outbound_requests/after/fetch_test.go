@@ -67,6 +67,30 @@ func TestLoopbackBlockedByDefault(t *testing.T) {
 	}
 }
 
+// Allow 只增不減：放行它指定的位址，公開位址不必列進去，其他內部位址仍然擋下。
+func TestAllowAddsToPublic(t *testing.T) {
+	f := &preview.Fetcher{Allow: func(ap netip.AddrPort) bool { return ap.Addr() == netip.MustParseAddr("10.0.0.5") }}
+
+	cases := []struct {
+		addr string
+		want bool
+	}{
+		{"10.0.0.5:80", true},
+		{"10.0.0.6:80", false},
+		{"127.0.0.1:80", false},
+		{"8.8.8.8:443", true},
+		{"[2606:4700:4700::1111]:443", true},
+	}
+	for _, c := range cases {
+		if got := preview.Allowed(f, netip.MustParseAddrPort(c.addr)); got != c.want {
+			t.Errorf("Allowed(%s) = %v, want %v", c.addr, got, c.want)
+		}
+	}
+	if !preview.Allowed(&preview.Fetcher{}, netip.MustParseAddrPort("8.8.8.8:443")) {
+		t.Error("with a nil Allow, a public address must be allowed")
+	}
+}
+
 func TestAllowedAddressConnects(t *testing.T) {
 	srv, _ := serve(t, func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("hello")) })
 
@@ -169,6 +193,15 @@ func TestIsPublic(t *testing.T) {
 		"::ffff:127.0.0.1":     false, // IPv4-mapped
 		"::ffff:100.64.0.1":    false,
 		"64:ff9b::7f00:1":      false, // NAT64 內嵌 127.0.0.1
+		"192.0.0.1":            false, // IETF 保留
+		"198.18.0.1":           false, // 效能測試用（198.18.0.0/15 的頭）
+		"198.19.255.255":       false, // 同一段的尾
+		"240.0.0.1":            false, // 保留
+		"2002:808:808::1":      false, // 6to4 內嵌 8.8.8.8
+		"2001::1":              false, // Teredo
+		"100.128.0.1":          true,  // 特殊範圍的邊界外一格：不能誤擋
+		"192.0.1.1":            true,
+		"198.20.0.1":           true,
 	}
 	for s, want := range cases {
 		if got := preview.IsPublic(netip.MustParseAddr(s)); got != want {
