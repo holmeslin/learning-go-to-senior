@@ -9,14 +9,40 @@ import (
 	settings "github.com/holmeslin/learning-go-to-senior/examples/chapter11/05_secret_management/after"
 )
 
+// setEnv 設定環境變數，回傳把它們還原成原狀的函式，原本沒設的就還原成沒設。
+// Example 沒有 *testing.T，不能用 t.Setenv，所以自己存、自己還原。
+func setEnv(vars map[string]string) (restore func()) {
+	old := make(map[string]*string, len(vars))
+	for name, value := range vars {
+		if prev, ok := os.LookupEnv(name); ok {
+			old[name] = &prev
+		} else {
+			old[name] = nil
+		}
+		os.Setenv(name, value)
+	}
+	return func() {
+		for name, prev := range old {
+			if prev == nil {
+				os.Unsetenv(name)
+			} else {
+				os.Setenv(name, *prev)
+			}
+		}
+	}
+}
+
 // ANCHOR: example
 
 // 同樣的三條外洩路徑：%v 印設定、連線失敗的錯誤訊息、JSON 輸出。
 func Example() {
-	os.Setenv("REPORT_API_KEY", "example-not-a-real-key")
-	os.Setenv("REPORT_API_KEY_FILE", "")
-	os.Setenv("REPORT_DB_PASSWORD", "example-not-a-real-password")
-	os.Setenv("REPORT_DB_PASSWORD_FILE", "")
+	restore := setEnv(map[string]string{
+		"REPORT_API_KEY":          "example-not-a-real-key",
+		"REPORT_API_KEY_FILE":     "",
+		"REPORT_DB_PASSWORD":      "example-not-a-real-password",
+		"REPORT_DB_PASSWORD_FILE": "",
+	})
+	defer restore()
 	cfg, err := settings.Load()
 	if err != nil {
 		fmt.Println(err)
@@ -44,9 +70,13 @@ func Example() {
 
 // 讀不到秘密就啟動失敗，錯誤只說缺哪個變數。
 func ExampleLoad_missing() {
-	for _, name := range []string{"REPORT_API_KEY", "REPORT_API_KEY_FILE", "REPORT_DB_PASSWORD", "REPORT_DB_PASSWORD_FILE"} {
-		os.Setenv(name, "")
-	}
+	restore := setEnv(map[string]string{
+		"REPORT_API_KEY":          "",
+		"REPORT_API_KEY_FILE":     "",
+		"REPORT_DB_PASSWORD":      "",
+		"REPORT_DB_PASSWORD_FILE": "",
+	})
+	defer restore()
 	_, err := settings.Load()
 	fmt.Println(err)
 	// Output:
