@@ -50,7 +50,7 @@ HTTP handler 與 `httptest` 前作教過：〈[第一個 HTTP 伺服器](https:/
 {{#include ../../../examples/chapter9/07_health_check/after/health_test.go:checks}}
 ```
 
-時間用 `testing/synctest`（用法見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉），逾時在 bubble 裡瞬間跑完，經過的時間是精確的。下游失敗與逾時時，`/readyz` 回 503 並列出失敗的檢查；三項檢查是同時跑的，所以經過的時間是最慢的失敗項 2 秒，不是加總：
+時間用 `testing/synctest`（用法見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉），bubble 裡的時間是假的：逾時瞬間跑完，`time.Since` 量到的是精確的 2 秒，不是會抖動的實際耗時，所以這裡可以斷言經過的時間。下游失敗與逾時時，`/readyz` 回 503 並列出失敗的檢查；`db`（逾時 2 秒）與 `queue`（逾時 1 秒）都卡住直到逾時，`cache` 直接失敗；斷言恰好 2 秒，依序執行會是 3 秒，所以這個斷言證明三項檢查是同時跑的（等的是最慢的一項，不是加總）：
 
 ```go,ignore
 {{#include ../../../examples/chapter9/07_health_check/after/health_test.go:readyz}}
