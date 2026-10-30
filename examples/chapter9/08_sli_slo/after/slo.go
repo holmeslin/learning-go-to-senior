@@ -14,6 +14,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
+// ANCHOR: recorder
+
 const durationName = "http.server.request.duration"
 
 const (
@@ -24,14 +26,12 @@ const (
 	// AvailabilityTarget 是可用性 SLO：99.9% 的請求不能是 5xx。
 	AvailabilityTarget = 0.999
 	// FastBurn 是告警的消耗速度。30 天的窗口裡以這個速度消耗 1 小時，
-	// 用掉 2% 的預算（14.4 ÷ 720 小時）。
+	// 用掉 2% 的預算（14.4 ÷ 720 小時）；出處是 Google SRE Workbook 的 "Alerting on SLOs"。
 	FastBurn = 14.4
 )
 
 // ErrNoBoundary 表示直方圖的 bucket 邊界不含 LatencyThreshold，算不出確定的 SLI。
 var ErrNoBoundary = errors.New("latency threshold is not a bucket boundary")
-
-// ANCHOR: recorder
 
 // Recorder 把每個請求的狀態碼類別與延遲（秒）記進直方圖。
 type Recorder struct {
@@ -70,11 +70,14 @@ func LatencyView() sdkmetric.View {
 
 // Result 是一個 SLO 在一批請求上的結果。
 type Result struct {
-	Good, Total int64
+	// Good 是達標的請求數。
+	Good int64
+	// Total 是全部的請求數。
+	Total int64
 	// SLI 是好請求的比例；沒有請求時是 1。
 	SLI float64
-	// Allowed 是錯誤預算：這批請求最多允許幾個壞請求。
-	Allowed float64
+	// Budget 是錯誤預算：這批請求最多允許幾個壞請求。
+	Budget float64
 	// Remaining 是剩下的預算，負數代表已經超支。
 	Remaining float64
 	// BurnRate 是壞請求的比例除以允許的比例；1 代表剛好用完預算。
@@ -82,26 +85,29 @@ type Result struct {
 }
 
 func newResult(good, total int64, target float64) Result {
-	r := Result{Good: good, Total: total, SLI: 1, Allowed: (1 - target) * float64(total)}
+	r := Result{Good: good, Total: total, SLI: 1, Budget: (1 - target) * float64(total)}
 	if total == 0 {
 		return r
 	}
 	bad := float64(total - good)
 	r.SLI = float64(good) / float64(total)
-	r.Remaining = r.Allowed - bad
-	r.BurnRate = bad / r.Allowed
+	r.Remaining = r.Budget - bad
+	r.BurnRate = bad / r.Budget
 	return r
 }
 
-// Page 回報消耗速度是否達到 FastBurn，也就是該叫醒人的程度。
-func (r Result) Page() bool { return r.BurnRate >= FastBurn }
-
-// ANCHOR_END: result
+// ShouldPage 回報消耗速度是否達到 FastBurn，也就是該叫醒人的程度。
+func (r Result) ShouldPage() bool { return r.BurnRate >= FastBurn }
 
 // Report 是可用性與延遲兩個 SLO 的結果。
 type Report struct {
-	Availability, Latency Result
+	// Availability 是可用性 SLO（不回 5xx）的結果。
+	Availability Result
+	// Latency 是延遲 SLO（在 LatencyThreshold 內完成）的結果。
+	Latency Result
 }
+
+// ANCHOR_END: result
 
 // ANCHOR: compute
 

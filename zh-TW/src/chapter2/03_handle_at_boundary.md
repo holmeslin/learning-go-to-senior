@@ -8,7 +8,7 @@
 
 你有一個「標記任務完成」的 HTTP 端點，分成 store、service、handler 三層，和第 1 章〈[套件切分的依據（依職責，不依型別）](../chapter1/01_package_by_responsibility.md)〉的 handler 是同一個形狀。資料庫連不上時，store 的 `Save` 會失敗。你希望出事的時候，日誌看得出發生了什麼事。
 
-`if err != nil` 與 `%w` 包裝，前作〈[`if err != nil` 慣例](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/03_if_err_nil.html)〉與〈[`fmt.Errorf` 與 `%w`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/04_errorf_wrap.html)〉已經講過，這集只談哪一層該做什麼。日誌怎麼設計（格式、層級、欄位），第 9 章會談，這裡只用標準庫的 `log` 印一行。
+`if err != nil` 與 `%w` 包裝，前作〈[`if err != nil` 慣例](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/03_if_err_nil.html)〉與〈[`fmt.Errorf` 與 `%w`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/04_errorf_wrap.html)〉已經講過，這集只談哪一層該做什麼。日誌怎麼設計（格式、層級、欄位），第 9 章〈[結構化日誌：`log/slog` 的欄位與 handler 怎麼選](../chapter9/01_structured_logging.md)〉談過，這裡只用標準庫的 `log` 印一行。
 
 ## 常見寫法
 

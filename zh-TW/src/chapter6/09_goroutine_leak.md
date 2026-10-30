@@ -91,7 +91,7 @@ FAIL	quoterepro
 - 只抓測試實際走過的路徑；沒有測到「輸家」，就沒有輸家可洩漏。
 - `t.Context()` 會在 bubble 結束前被取消，所以由它衍生的 `ctx` 會把「沒人取消」的洩漏藏起來；要驗證取消，用 `context.WithCancel(context.Background())`，由測試自己呼叫 `cancel`。
 
-比較 `runtime.NumGoroutine` 的前後數量也是常見做法，但這個數字包含 runtime 與 testing 自己開的 goroutine、其他平行測試開的 goroutine，而且 goroutine 結束不是同步的：想比得準就得加等待，又回到「賭時間」。第三方的 goleak 也能在測試結束時列出還活著的 goroutine，這裡只提名稱。正式環境怎麼看 goroutine 數量，第 9 章〈`/debug/pprof` 與診斷端點〉會談。
+比較 `runtime.NumGoroutine` 的前後數量也是常見做法，但這個數字包含 runtime 與 testing 自己開的 goroutine、其他平行測試開的 goroutine，而且 goroutine 結束不是同步的：想比得準就得加等待，又回到「賭時間」。第三方的 goleak 也能在測試結束時列出還活著的 goroutine，這裡只提名稱。正式環境怎麼看 goroutine 數量，第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過。
 
 after 也不是沒有代價。緩衝大小等於供應商數量，輸家仍會跑完，繼續占著它用到的連線與下游配額；要讓輸家提早停下來，得把 `ctx` 傳進 `Source`，做法本章〈[取消與 `context` 的傳遞](04_cancellation_context.md)〉談過。供應商若可能永遠不回，緩衝救不了它，一樣要靠取消。而 before 在一個只呼叫一次、回傳後行程就結束的小工具裡，洩漏沒有後果，不值得多加一行。
 
@@ -101,4 +101,4 @@ after 也不是沒有代價。緩衝大小等於供應商數量，輸家仍會�
 - 普通測試看不到洩漏；`synctest.Test` 在 bubble 結束時還有 goroutine 卡住就 panic，並指出卡在哪一行。
 - 洩漏測試的寫法：在 bubble 裡建構、用假時間跑完，結尾讓時間走過所有計時，別讓睡著的 goroutine 被誤判。
 - `synctest` 抓不到卡在網路 I/O、系統呼叫與 mutex 的 goroutine，也只抓測試走過的路徑。
-- 比較 `runtime.NumGoroutine` 的數量容易不穩定；正式環境的觀察留給第 9 章。
+- 比較 `runtime.NumGoroutine` 的數量容易不穩定；正式環境的觀察，第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過。

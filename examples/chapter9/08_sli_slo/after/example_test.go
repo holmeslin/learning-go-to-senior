@@ -29,7 +29,7 @@ func ExampleLatencyView() {
 			panic(err)
 		}
 		fmt.Printf("%s: latency SLI %.2f, %.0f of %d requests may be slow\n",
-			c.name, report.Latency.SLI, report.Latency.Allowed, report.Latency.Total)
+			c.name, report.Latency.SLI, report.Latency.Budget, report.Latency.Total)
 	}
 	// Output:
 	// A: latency SLI 1.00, 1 of 100 requests may be slow
@@ -40,7 +40,7 @@ func ExampleLatencyView() {
 
 // ANCHOR: burn
 
-func ExampleResult_Page() {
+func ExampleResult_ShouldPage() {
 	ms := time.Millisecond
 	for _, w := range []struct {
 		name string
@@ -59,7 +59,7 @@ func ExampleResult_Page() {
 		}
 		a := report.Availability
 		fmt.Printf("%s: sli %.4f, budget left %.0f of %.0f, burn %.1fx, page %t\n",
-			w.name, a.SLI, a.Remaining, a.Allowed, a.BurnRate, a.Page())
+			w.name, a.SLI, a.Remaining, a.Budget, a.BurnRate, a.ShouldPage())
 	}
 	// Output:
 	// quiet: sli 0.9999, budget left 9 of 10, burn 0.1x, page false

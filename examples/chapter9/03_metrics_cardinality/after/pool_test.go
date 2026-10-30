@@ -11,12 +11,12 @@ import (
 	httpmetrics "github.com/holmeslin/learning-go-to-senior/examples/chapter9/03_metrics_cardinality/after"
 )
 
+// ANCHOR: pool
+
 // fakePool 讓測試決定連線池「現在」的統計。
 type fakePool struct{ stats sql.DBStats }
 
 func (p *fakePool) Stats() sql.DBStats { return p.stats }
-
-// ANCHOR: pool
 
 func TestPoolStatsAreReadAtCollect(t *testing.T) {
 	t.Parallel()

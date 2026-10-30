@@ -50,16 +50,16 @@ func ExampleGateway() {
 	defer carrier.Close()
 
 	audit := func(ctx context.Context, id string) {
-		track.WithTrace(ctx, logger).Info("audit", "id", id)
+		track.WithTrace(ctx, logger).Info("audit", slog.String(track.KeyTrackingID, id))
 	}
 	gw := track.NewGateway(tp, logger, carrier.Client(), carrier.URL, audit)
 	gw.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/track?id=A1", nil))
 	gw.Wait()
 	// Output:
 	// traceparent: 00-0102030405060708090a0b0c0d0e0f10-0000000000000002-01
-	// level=INFO msg="carrier lookup" trace_id=0102030405060708090a0b0c0d0e0f10 id=A1
-	// level=INFO msg=tracked trace_id=0102030405060708090a0b0c0d0e0f10 id=A1
-	// level=INFO msg=audit trace_id=0102030405060708090a0b0c0d0e0f10 id=A1
+	// level=INFO msg="carrier lookup" trace_id=0102030405060708090a0b0c0d0e0f10 tracking_id=A1
+	// level=INFO msg=tracked trace_id=0102030405060708090a0b0c0d0e0f10 tracking_id=A1
+	// level=INFO msg=audit trace_id=0102030405060708090a0b0c0d0e0f10 tracking_id=A1
 }
 
 // ANCHOR_END: example

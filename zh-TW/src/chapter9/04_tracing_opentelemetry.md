@@ -70,7 +70,7 @@ provider 當參數，span 開在請求的入口。名稱用路由樣板 `r.Patte
 
 樹裡只剩請求、查詢、對外呼叫；`p2` 的失敗從封面呼叫一路標到請求，事件各留一筆 `exception`。N+1 也看得見了：`SELECT tracks` 是請求底下一串同名的子 span。修法在第 4 章〈[N+1 與查詢組裝](../chapter4/05_n_plus_one.md)〉，上線後看到這種形狀就知道該回去數查詢次數。
 
-測試放在外部測試套件，每個測試建自己的 provider 與 recorder，不碰全域設定，所以都可以 `t.Parallel`：
+測試放在外部測試套件，每個測試建自己的 provider 與 recorder，不碰全域設定，所以都可以 `t.Parallel`。`get` 與 `attr` 是送請求、取 span 屬性的小 helper：
 
 ```go,ignore
 {{#include ../../../examples/chapter9/04_tracing_opentelemetry/after/service_test.go:fixture}}

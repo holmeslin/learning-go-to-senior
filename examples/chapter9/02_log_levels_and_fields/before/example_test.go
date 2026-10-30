@@ -8,6 +8,8 @@ import (
 	billing "github.com/holmeslin/learning-go-to-senior/examples/chapter9/02_log_levels_and_fields/before"
 )
 
+// ANCHOR: request
+
 // newLogger 回傳寫到標準輸出的文字 logger，拿掉 time 讓輸出固定。
 func newLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -19,8 +21,6 @@ func newLogger() *slog.Logger {
 		},
 	}))
 }
-
-// ANCHOR: request
 
 func ExampleNewHandler() {
 	logger := newLogger()
