@@ -96,6 +96,7 @@
     - [在 `context` 裡傳遞 trace](chapter9/05_context_propagation.md)
     - [`/debug/pprof` 與診斷端點](chapter9/06_debug_pprof.md)
     - [健康檢查](chapter9/07_health_check.md)
+    - [SLI 與 SLO](chapter9/08_sli_slo.md)
 - [韌性]()
 - [安全實務]()
 - [建置與發布]()
