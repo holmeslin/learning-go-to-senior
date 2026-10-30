@@ -6,7 +6,7 @@
 
 ## 情境
 
-一個付款服務提供 `POST /charges`，結帳流程呼叫它扣款。呼叫端遇到逾時就重試，本章〈重試、退避與 jitter〉談過該重試哪些錯誤、怎麼退避。但逾時還有一個問題那集沒有回答：逾時代表 client 沒收到回應，伺服器可能還沒收到請求，也可能已經扣完款、只是回應沒送到。client 分不出這兩種情況。
+一個付款服務提供 `POST /charges`，結帳流程呼叫它扣款。呼叫端遇到逾時就重試，本章〈[重試、退避與 jitter](02_retry_backoff_jitter.md)〉談過該重試哪些錯誤、怎麼退避。但逾時還有一個問題那集沒有回答：逾時代表 client 沒收到回應，伺服器可能還沒收到請求，也可能已經扣完款、只是回應沒送到。client 分不出這兩種情況。
 
 HTTP handler 與 `httptest` 前作教過：〈[JSON API](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/04_json_api.html)〉、〈[`httptest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/09_httptest.html)〉。
 
@@ -38,7 +38,7 @@ client 的每個動作都合理：逾時、重試、第二次拿到 201。結果
 {{#include ../../../examples/chapter10/03_idempotency/after/store.go:store}}
 ```
 
-`claim` 在同一把鎖裡查詢並登記，所以同一個鍵同時進來好幾個請求，只有一個會拿到 `first`。`Wrap` 把它接到 handler 前面：
+`recorded` 記下狀態碼、標頭與內容，同時實作 `http.ResponseWriter`，用來接住 `next` 的輸出。`claim` 在同一把鎖裡查詢並登記，所以同一個鍵同時進來好幾個請求，只有一個會拿到 `first`。`Wrap` 把它接到 handler 前面：
 
 ```go,ignore
 {{#include ../../../examples/chapter10/03_idempotency/after/store.go:wrap}}
