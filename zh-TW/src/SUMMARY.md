@@ -109,6 +109,7 @@
     - [bulkhead](chapter10/08_bulkhead.md)
 - [安全實務]()
     - [`crypto/rand` 與 TLS 設定](chapter11/06_crypto_rand_tls.md)
+    - [日誌裡的敏感資料](chapter11/08_sensitive_data_in_logs.md)
 - [建置與發布]()
 
 # 第六部　在團隊裡寫 Go
