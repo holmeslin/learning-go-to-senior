@@ -27,10 +27,11 @@ type Sender struct {
 	URL string
 }
 
+// shortcut: 上限與逾時寫死成常數，正式環境要從設定讀（第 12 章〈設定與環境變數〉），範例不做。
+
 // ANCHOR: sender
 
 // 上限與逾時都是示範用的數字。
-// shortcut: 寫死成常數，正式環境要從設定讀（第 12 章〈設定與環境變數〉），範例不做。
 const (
 	maxInFlight    = 8               // 同時進行的請求數；供應商限制每秒 50 次，上限要照它定
 	requestTimeout = 2 * time.Second // 每個請求最多等多久，超過就當它失敗

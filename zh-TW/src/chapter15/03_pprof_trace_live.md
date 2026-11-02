@@ -2,7 +2,7 @@
 
 ## 本集目標
 
-事故進行中、現場還在的時候，判斷先收什麼證據：重啟之前先收 goroutine 與 heap profile，隔一陣再收一次，用 `go tool pprof -top -base` 比較差異，從堆疊找出 goroutine 卡在哪一行；證據收齊，才輪到止血。
+事故進行中、現場還在的時候，判斷先收什麼證據：重啟之前先收 goroutine 與 heap profile，隔一陣再收一次，用 `go tool pprof -top -base` 比較差異，從堆疊找出 goroutine 卡在哪一行；收完，才重啟。
 
 ## 情境
 
@@ -108,7 +108,7 @@ net/http.(*persistConn).writeLoop|530|834.88µs
 
 兩組數量一樣多，執行時間加起來只有幾毫秒，錄的卻是 2 秒：它們在等，不在算。結論和堆疊一致，但 trace 說不出卡在哪一行，所以事故中堆疊先收。證據存好，記錄者記下「profile 已收」，指揮官才說重啟。
 
-修正是兩件事：每個請求有逾時，同時進行的請求有上限（上限的做法見第 6 章〈[`errgroup` 的並行上限](../chapter6/03_errgroup_limit.md)〉，逾時值怎麼定見第 10 章〈[逾時預算](../chapter10/01_timeout_budget.md)〉）。測試用假的 `http.RoundTripper` 取代網路，在 `testing/synctest` 的 bubble 裡跑，2 秒的逾時瞬間走完；`SendAll` 回傳時若還有 goroutine 卡著，bubble 結束時 `synctest.Test` 會 panic。上限的測試是 `TestSendAllRespectsLimit`，完整程式碼在 `examples/chapter15/03_pprof_trace_live/after/`：
+修正是兩件事：每個請求有逾時，同時進行的請求有上限（上限的做法見第 6 章〈[`errgroup` 的並行上限](../chapter6/03_errgroup_limit.md)〉，逾時怎麼沿呼叫鏈分配、從哪一層定下，見第 10 章〈[逾時預算](../chapter10/01_timeout_budget.md)〉）。測試用假的 `http.RoundTripper` 取代網路，在 `testing/synctest` 的 bubble 裡跑，2 秒的逾時瞬間走完；`SendAll` 回傳時若還有 goroutine 卡著，bubble 結束時 `synctest.Test` 會 panic。上限的測試是 `TestSendAllRespectsLimit`，完整程式碼在 `examples/chapter15/03_pprof_trace_live/after/`：
 
 ```go,ignore
 {{#include ../../../examples/chapter15/03_pprof_trace_live/after/sender.go:sender}}
@@ -118,9 +118,9 @@ net/http.(*persistConn).writeLoop|530|834.88µs
 {{#include ../../../examples/chapter15/03_pprof_trace_live/after/sender_test.go:timeout}}
 ```
 
-這兩個測試放到 `before/` 會失敗：before 的 `SendAll` 立刻回傳 nil，沒有逾時的錯誤，bubble 結束時還有卡住的 goroutine，`synctest` 直接 panic。同樣的指令對 `-mode after` 再收一次，兩次快照的 goroutine 總數相同，`-base` 的差異是空的：
+這兩個測試放到 `before/` 會失敗：before 的 `SendAll` 立刻回傳 nil，沒有逾時的錯誤，bubble 結束時還有卡住的 goroutine，`synctest` 直接 panic。同樣的指令對 `-mode after` 啟動的修正版再收一次，兩次快照的 goroutine 總數相同，`-base` 的差異是空的：
 
-執行結果（某一次，`-mode after`）：
+執行結果（某一次）：
 
 ```text
 $ grep -h '^goroutine profile' goroutine1.debug1.txt goroutine2.debug1.txt
@@ -132,13 +132,13 @@ $ go tool pprof -top -nodecount=4 -base goroutine1.pb.gz goroutine2.pb.gz
 
 ## 取捨
 
-- **收證據也有成本。** `debug=1` 的檔案大小只和不同堆疊的種類有關，兩次都在一萬位元組上下；`debug=2` 隨 goroutine 數量成長，第二次的檔案約是第一次的兩倍（`wc -c`），而且 Go 1.27.0 的 `runtime.Stack(buf, true)` 在格式化全部堆疊的期間讓整個世界停住。所以先收 `debug=1`，需要 `created by` 與等待狀態時再收 `debug=2`。
+- **收證據也有成本。** `debug=1` 與 `.pb.gz` 用的 goroutine profile 只在開始與結束時短暫停住世界，`debug=1` 的檔案大小幾乎不變；`debug=2` 隨 goroutine 數量成長，第二次的檔案約是第一次的兩倍（`wc -c`），而且 Go 1.27.0 的 `runtime.Stack(buf, true)` 在格式化全部堆疊的整段期間讓世界停住。所以先收 `debug=1`，需要 `created by` 與等待狀態時再收 `debug=2`。
 - **CPU profile 與 trace 放最後。** 它們只在收的期間有成本（第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過），trace 比 profile 貴，CPU profile 又看不到在等的 goroutine（第 7 章〈[`runtime/trace`](../chapter7/04_runtime_trace.md)〉談過）。這次 CPU 不忙，所以沒有收 CPU profile。
 - **heap 看不到 goroutine 的堆疊。** goroutine 自己占的記憶體不在 heap profile 裡，profile 是取樣的，`gc=1` 還要多做一次 GC。記憶體上升的主因，要看 goroutine 的數量。
 - **診斷端點事故中也只能從內部存取。** 不要為了方便把管理 port 對外開（第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過存取控制）；存下來的檔案有函式名稱與路徑，當成敏感資料。
 - **時間盒要有人守。** 每多收一分鐘，報名 API 多失敗一分鐘；到了時間，不管收到多少都重啟。
 - **直接重啟什麼時候是對的。** 原因已經確定（同樣的症狀、已知的原因與修正），或影響大到每分鐘都等不起；至少先收 `debug=1`，幾秒就好，事後才有東西可對照。
-- **修正也有代價。** 逾時太短，慢但正常的回應也會失敗；上限太小，批次拖長（最壞是批次筆數除以上限、無條件進位，再乘以逾時，上面第二個測試是 20 則 6 秒）；逾時不保證供應商沒有處理，所以請求帶冪等鍵（第 10 章〈[冪等性](../chapter10/03_idempotency.md)〉）。把 worker 拆成獨立部署是另一件事，本章〈行動項目與追蹤〉會談。
+- **修正也有代價。** 範例把上限與逾時寫死成常數，正式環境要從設定讀（第 12 章〈[設定與環境變數](../chapter12/08_config_env.md)〉）。逾時太短，慢但正常的回應也會失敗；上限太小，批次拖長（最壞是批次筆數除以上限、無條件進位，再乘以逾時，上面第二個測試是 20 則 6 秒）；逾時不保證供應商沒有處理，所以請求帶冪等鍵（第 10 章〈[冪等性](../chapter10/03_idempotency.md)〉）。把 worker 拆成獨立部署是另一件事，本章〈行動項目與追蹤〉會談。
 
 ## 重點整理
 
