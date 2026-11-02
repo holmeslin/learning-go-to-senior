@@ -47,9 +47,10 @@ type Options struct {
 	RatePerSecond float64       // 每秒最多送出幾則，必須大於零
 	QueryTimeout  time.Duration // 每個資料庫查詢的逾時，必須大於零
 
-	// RetryBase 與 RetryMax 是重試退避的設定；零值用預設的 5 分鐘與 30 分鐘。
+	// RetryBase 是第一次重試前，等待時間的上限，之後每次加倍；零值用預設的 5 分鐘。
 	RetryBase time.Duration
-	RetryMax  time.Duration
+	// RetryMax 是等待時間上限的天花板，不得小於 RetryBase；零值用預設的 30 分鐘。
+	RetryMax time.Duration
 
 	// Jitter 回傳 [0, limit) 之間的等待時間。nil 時用 math/rand/v2 的全域亂數。
 	// 這個欄位是注入亂數來源的接縫，讓測試能斷言重試的時間點；注入的函式要自己負責並行安全。
