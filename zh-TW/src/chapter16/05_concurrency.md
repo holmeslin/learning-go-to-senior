@@ -68,7 +68,7 @@
 {{#include ../../../examples/chapter16/05_concurrency/after/shutdown.go:deliver}}
 ```
 
-取消只決定「要不要開始這一則」，開始之後，送出與寫入都切開取消。切開時 deadline 也一起拿掉（第 10 章〈[逾時預算](../chapter10/01_timeout_budget.md)〉談過），所以請求要有自己的逾時；記結果用沒有逾時的 ctx，請求逾時之後仍寫得進去。三個測試各鎖一個性質：進行中的做完且記為已寄出，`Run` 在訊號後 2 秒回傳；供應商不回應時，最多等一個請求逾時；期限比請求逾時短時，到期就回傳錯誤。`synctest.Test` 同時保證沒有殘留的 goroutine（第 6 章〈[goroutine 洩漏怎麼發生、怎麼在測試裡抓到](../chapter6/09_goroutine_leak.md)〉）。
+取消只決定「要不要開始這一則」，開始之後，送出與寫入都切開取消。切開時 deadline 也一起拿掉（第 10 章〈[逾時預算](../chapter10/01_timeout_budget.md)〉、本章〈[錯誤與資料層](03_errors_and_data.md)〉談過），所以請求要有自己的逾時；記結果用沒有逾時的 ctx，請求逾時之後仍寫得進去。三個測試各鎖一個性質：進行中的做完且記為已寄出，`Run` 在訊號後 2 秒回傳；供應商不回應時，最多等一個請求逾時；期限比請求逾時短時，到期就回傳錯誤。`synctest.Test` 同時保證沒有殘留的 goroutine（第 6 章〈[goroutine 洩漏怎麼發生、怎麼在測試裡抓到](../chapter6/09_goroutine_leak.md)〉）。
 
 ```go,ignore
 {{#include ../../../examples/chapter16/05_concurrency/after/shutdown_test.go:finish}}
