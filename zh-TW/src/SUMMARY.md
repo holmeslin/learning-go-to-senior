@@ -141,6 +141,7 @@
     - [寫給誰看](chapter14/03_audience.md)
     - [替代方案怎麼寫](chapter14/04_alternatives.md)
     - [設計文件的 review](chapter14/05_design_review.md)
+    - [設計文件與 ADR 的關係](chapter14/06_design_doc_and_adr.md)
 - [事故處理]()
 
 # 第七部　綜合實戰
