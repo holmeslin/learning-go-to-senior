@@ -4,7 +4,7 @@
 // 送出用並行上限（errgroup 的 SetLimit）加每秒的限流；暫時失敗用退避加 jitter 重試，
 // 重試的時間點只會落在掃描的時間，期限是預定時間後 store.SendWindow。
 //
-// 每批掃描留下一個 span、每次送出一個子 span，以及三個指標：reminder.deliveries（標籤只有 result）、
+// 每批掃描留下一個 span、每次送出（呼叫供應商）一個子 span，以及三個指標：reminder.deliveries（標籤只有 result）、
 // reminder.scan.duration、reminder.overdue.unsent。Options 的 Meter 與 Tracer 是 nil 時什麼也不記。
 package dispatch
 
@@ -123,8 +123,7 @@ func New(st *store.Store, sender Sender, opts Options) (*Dispatcher, error) {
 		log = slog.Default()
 	}
 	d := &Dispatcher{
-		store:  st,
-		sender: sender,
+		store: st,
 		// burst 是 1：每秒 50 次是供應商的限制，請求要均勻地分散，不能一開始就湧出一整批。
 		limiter: rate.NewLimiter(rate.Limit(opts.RatePerSecond), 1),
 		opts:    opts,
@@ -134,6 +133,7 @@ func New(st *store.Store, sender Sender, opts Options) (*Dispatcher, error) {
 	if d.tracer == nil {
 		d.tracer = tracenoop.NewTracerProvider().Tracer("")
 	}
+	d.sender = tracedSender{next: sender, tracer: d.tracer}
 	meter := opts.Meter
 	if meter == nil {
 		meter = metricnoop.NewMeterProvider().Meter("")
@@ -210,18 +210,32 @@ func (s Summary) results() []result {
 	}
 }
 
-// startSend 開啟一次送出的 span，回傳的函式在結果出來時記下結果並結束它。
-// 屬性可以有活動編號（追蹤不是指標，高基數沒關係），不能有裝置 token。
-func (d *Dispatcher) startSend(ctx context.Context, r store.Reminder) (context.Context, func(outcome)) {
-	ctx, span := d.tracer.Start(ctx, "reminder.deliver", trace.WithAttributes(
-		attribute.Int64("event.id", r.EventID), attribute.Int("attempt", r.Attempts+1)))
-	return ctx, func(o outcome) {
-		span.SetAttributes(attribute.String("result", o.String()))
-		if o == failed || o == errored {
-			span.SetStatus(codes.Error, o.String())
-		}
-		span.End()
+// tracedSender 在每次送出外面包一個 span，成為這一批 span 的子 span：它只量供應商那一段花的時間。
+// 屬性有活動編號（追蹤不是指標，高基數沒關係）與結果，不帶裝置 token，也不記錄錯誤訊息。
+// 包在 Sender 外面而不是寫進 deliver：限流與寫紀錄的程式不必知道追蹤的存在，
+// 而且等限流、被取消而沒有送出的提醒不會留下 span。
+type tracedSender struct {
+	next   Sender
+	tracer trace.Tracer
+}
+
+func (s tracedSender) Send(ctx context.Context, n push.Notification) error {
+	ctx, span := s.tracer.Start(ctx, "reminder.send", trace.WithAttributes(attribute.Int64("event.id", n.EventID)))
+	defer span.End()
+	err := s.next.Send(ctx, n)
+	result := "sent"
+	switch {
+	case err == nil:
+	case errors.Is(err, push.ErrTransient):
+		result = "transient"
+	default:
+		result = "permanent" // 分不出類別的，dispatch 也當成永久失敗
 	}
+	span.SetAttributes(attribute.String("result", result))
+	if err != nil {
+		span.SetStatus(codes.Error, result)
+	}
+	return err
 }
 
 // instrument 建立指標：送出結果的計數、批次時間，以及逾期未寄的數量。
@@ -325,15 +339,10 @@ const (
 	errored                 // 資料庫操作失敗
 )
 
-// String 回傳結果的名稱，與 Summary 的七種結果同名（aborted 沒有寫紀錄，不計入）。
-func (o outcome) String() string {
-	return [...]string{"aborted", "sent", "retrying", "failed", "skipped", "errored"}[o]
-}
-
 // ANCHOR: deliver
 
 // deliver 處理一則提醒：限流、寫紀錄、送出、更新狀態。
-func (d *Dispatcher) deliver(ctx context.Context, r store.Reminder) (out outcome) {
+func (d *Dispatcher) deliver(ctx context.Context, r store.Reminder) outcome {
 	// 限流在寫紀錄之前：等的時候 ctx 結束，丟掉的只是還沒寫紀錄的提醒，下次掃描會再挑到。
 	// 寫完紀錄到送出之間，沒有任何會被取消的等待。
 	if err := d.limiter.Wait(ctx); err != nil {
@@ -342,8 +351,6 @@ func (d *Dispatcher) deliver(ctx context.Context, r store.Reminder) (out outcome
 	// 從這裡起這一則要做完：取消只決定「要不要開始下一則」，不切斷進行中的送出，
 	// 也不讓結果寫不進去而留下停在寄送中的紀錄。逾時由每個請求與每個查詢自己的期限負責。
 	ctx = context.WithoutCancel(ctx)
-	ctx, end := d.startSend(ctx, r)
-	defer func() { end(out) }()
 	attempt := r.Attempts + 1
 
 	ok, err := d.begin(ctx, r)
