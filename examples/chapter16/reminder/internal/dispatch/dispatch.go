@@ -17,8 +17,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/push"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/store"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/push"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/store"
 )
 
 // 重試退避的預設值。第一次重試前等待時間的上限，之後每次加倍，直到 retryMax。

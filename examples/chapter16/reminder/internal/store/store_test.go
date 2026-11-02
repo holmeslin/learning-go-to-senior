@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/demoreg"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/store"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/demoreg"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/store"
 )
 
 // start 是測試裡所有活動的開始時間；預定時間是 start 往前 24 小時。

@@ -13,7 +13,7 @@ import (
 	"syscall"
 
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/config"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/config"
 )
 
 // ANCHOR: main
