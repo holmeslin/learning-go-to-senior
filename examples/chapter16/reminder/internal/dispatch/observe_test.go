@@ -197,7 +197,7 @@ func attrs(kvs []attribute.KeyValue) map[string]attribute.Value {
 // ANCHOR: spans
 
 // 每批一個 span，每次送出一個子 span：子 span 屬於同一條追蹤、父親是這一批的 span。
-// span 的屬性有活動編號、第幾次嘗試與結果；沒有裝置 token。
+// 送出的 span 屬性是活動編號與結果（sent、transient、permanent），失敗的狀態是 Error；沒有裝置 token。
 func TestScanRecordsOneSpanPerBatchWithOneChildPerSend(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		st, _ := setup(t, 4)
@@ -215,7 +215,7 @@ func TestScanRecordsOneSpanPerBatchWithOneChildPerSend(t *testing.T) {
 			switch s.Name {
 			case "reminder.scan":
 				scan = s
-			case "reminder.deliver":
+			case "reminder.send":
 				sends = append(sends, s)
 			default:
 				t.Errorf("unexpected span %q", s.Name)
@@ -237,20 +237,20 @@ func TestScanRecordsOneSpanPerBatchWithOneChildPerSend(t *testing.T) {
 			}
 			a := attrs(s.Attributes)
 			results = append(results, a["result"].AsString())
-			if a["event.id"].AsInt64() != 1 || a["attempt"].AsInt64() != 1 {
-				t.Errorf("send span attributes = %v, want event.id 1 and attempt 1", s.Attributes)
+			if len(a) != 2 || a["event.id"].AsInt64() != 1 {
+				t.Errorf("send span attributes = %v, want only event.id 1 and the result", s.Attributes)
 			}
 			for _, kv := range s.Attributes {
 				if strings.Contains(kv.Value.Emit(), "token-") { // setup 的裝置 token 都是 token-N
 					t.Errorf("attribute %s = %q contains a device token", kv.Key, kv.Value.Emit())
 				}
 			}
-			if failed := a["result"].AsString() == "failed"; failed != (s.Status.Code == codes.Error) {
-				t.Errorf("result %q has status %v, want Error only for a permanent failure", a["result"].AsString(), s.Status.Code)
+			if failed := a["result"].AsString() != "sent"; failed != (s.Status.Code == codes.Error) {
+				t.Errorf("result %q has status %v, want Error exactly when the send failed", a["result"].AsString(), s.Status.Code)
 			}
 		}
 		slices.Sort(results)
-		if want := []string{"failed", "retrying", "sent", "sent"}; !slices.Equal(results, want) {
+		if want := []string{"permanent", "sent", "sent", "transient"}; !slices.Equal(results, want) {
 			t.Errorf("send results = %v, want %v", results, want)
 		}
 	})

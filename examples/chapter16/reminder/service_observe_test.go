@@ -45,7 +45,7 @@ func TestServiceSendsTheLastSpansOnShutdown(t *testing.T) {
 		for _, s := range exporter.GetSpans() {
 			names[s.Name]++
 		}
-		if names["reminder.scan"] != 1 || names["reminder.deliver"] != 2 || len(names) != 2 {
+		if names["reminder.scan"] != 1 || names["reminder.send"] != 2 || len(names) != 2 {
 			t.Errorf("spans exported on shutdown = %v, want one scan and two sends", names)
 		}
 	})
