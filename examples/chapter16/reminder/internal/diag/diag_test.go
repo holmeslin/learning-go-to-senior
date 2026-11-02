@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/buildinfo"
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/diag"
 )
 
@@ -39,7 +40,7 @@ func request(h http.Handler, method, target string) *httptest.ResponseRecorder {
 func TestReadyzFollowsReadiness(t *testing.T) {
 	t.Parallel()
 	ready := &diag.Readiness{}
-	h := diag.NewHandler(ready, fakeSnapshot{})
+	h := diag.NewHandler(ready, fakeSnapshot{}, buildinfo.Info{})
 
 	steps := []struct {
 		name  string
@@ -72,12 +73,13 @@ func TestReadyzFollowsReadiness(t *testing.T) {
 // 沒有 cmdline（命令列可能帶著秘密）；沒有業務路由；不接受 GET 以外的方法。
 func TestHandlerServesOnlyTheChosenEndpoints(t *testing.T) {
 	t.Parallel()
-	h := diag.NewHandler(&diag.Readiness{}, fakeSnapshot{text: "x 1\n"})
+	h := diag.NewHandler(&diag.Readiness{}, fakeSnapshot{text: "x 1\n"}, buildinfo.Info{})
 	tests := []struct {
 		method, target string
 		want           int
 	}{
 		{http.MethodGet, "/healthz", http.StatusOK},
+		{http.MethodGet, "/version", http.StatusOK},
 		{http.MethodGet, "/debug/pprof/", http.StatusOK},
 		{http.MethodGet, "/debug/pprof/heap", http.StatusOK},
 		{http.MethodGet, "/debug/pprof/symbol", http.StatusOK},
@@ -85,6 +87,7 @@ func TestHandlerServesOnlyTheChosenEndpoints(t *testing.T) {
 		{http.MethodGet, "/debug/pprof/cmdline", http.StatusNotFound},
 		{http.MethodGet, "/v1/events/1/reminder-counts", http.StatusNotFound},
 		{http.MethodPost, "/readyz", http.StatusMethodNotAllowed},
+		{http.MethodPost, "/version", http.StatusMethodNotAllowed},
 		{http.MethodPost, "/debug/pprof/", http.StatusMethodNotAllowed},
 	}
 	for _, tt := range tests {
@@ -98,7 +101,7 @@ func TestHandlerServesOnlyTheChosenEndpoints(t *testing.T) {
 
 func TestMetricsEndpointWritesTheSnapshot(t *testing.T) {
 	t.Parallel()
-	rec := request(diag.NewHandler(&diag.Readiness{}, fakeSnapshot{text: "reminder.deliveries{result=\"sent\"} 3\n"}), http.MethodGet, "/debug/metrics")
+	rec := request(diag.NewHandler(&diag.Readiness{}, fakeSnapshot{text: "reminder.deliveries{result=\"sent\"} 3\n"}, buildinfo.Info{}), http.MethodGet, "/debug/metrics")
 	if rec.Code != http.StatusOK || !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/plain") {
 		t.Errorf("GET /debug/metrics = %d %q, want 200 text/plain", rec.Code, rec.Header().Get("Content-Type"))
 	}
@@ -109,8 +112,22 @@ func TestMetricsEndpointWritesTheSnapshot(t *testing.T) {
 
 func TestMetricsEndpointHidesSnapshotErrors(t *testing.T) {
 	t.Parallel()
-	rec := request(diag.NewHandler(&diag.Readiness{}, fakeSnapshot{err: errors.New("collect failed: secret detail")}), http.MethodGet, "/debug/metrics")
+	rec := request(diag.NewHandler(&diag.Readiness{}, fakeSnapshot{err: errors.New("collect failed: secret detail")}, buildinfo.Info{}), http.MethodGet, "/debug/metrics")
 	if rec.Code != http.StatusInternalServerError || strings.Contains(rec.Body.String(), "secret") {
 		t.Errorf("GET /debug/metrics = %d %q, want 500 without the error detail", rec.Code, rec.Body.String())
+	}
+}
+
+// 版本端點把 build 原樣回成 JSON；欄位名稱是給 curl 與值班的人看的契約。
+func TestVersionEndpointServesTheBuildInfo(t *testing.T) {
+	t.Parallel()
+	info := buildinfo.Info{Version: "v1.5.0", Revision: "7a0c240b07b4", Time: "2030-06-10T08:00:00Z", GoVersion: "go1.27.0"}
+	rec := request(diag.NewHandler(&diag.Readiness{}, fakeSnapshot{}, info), http.MethodGet, "/version")
+	if rec.Code != http.StatusOK || rec.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("GET /version = %d %q, want 200 application/json", rec.Code, rec.Header().Get("Content-Type"))
+	}
+	const want = `{"version":"v1.5.0","revision":"7a0c240b07b4","time":"2030-06-10T08:00:00Z","modified":false,"go_version":"go1.27.0"}` + "\n"
+	if got := rec.Body.String(); got != want {
+		t.Errorf("body = %q, want %q", got, want)
 	}
 }
