@@ -6,7 +6,7 @@
 
 ## 情境
 
-前面幾集站在 reviewer 一側，這集換成作者。「加入候補名單」PR（案例見本章〈[先看設計，再看細節](01_design_before_details.md)〉）寫完了，測試全部通過，動了 12 個檔案，功能、改名與搬動的程式碼混在一起。標題寫好了，描述欄是空的。作者按下送出。
+本章〈[先看設計，再看細節](01_design_before_details.md)〉與〈[怎麼寫 review 意見](04_writing_review_comments.md)〉都站在 reviewer 一側，這集換成作者。「加入候補名單」PR 寫完了，測試全部通過，動了 12 個檔案，功能、改名與搬動的程式碼混在一起。標題寫好了，描述欄是空的。作者按下送出。
 
 ## 沒看過的 diff
 
@@ -45,21 +45,25 @@ git diff --no-index -U0 base/event_test.go before/event_test.go
 1. **用 reviewer 的順序讀完整的 diff。** 看整個 PR 對主幹的差異，不是最後一個 commit。先看改了哪些 API、責任放在哪一層，再看細節，順序同本章〈[先看設計，再看細節](01_design_before_details.md)〉。再掃一遍：除錯輸出、註解掉的程式碼、`TODO`、不相干的格式變動、被刪掉的斷言。
 2. **在本機跑 CI 會跑的那串指令。** `gofmt -l`、`go vet`、`go test -race`、lint，指令和 CI 一樣，第 12 章〈[`golangci-lint` 與 CI](../chapter12/05_golangci_lint_ci.md)〉談過。紅燈在 CI 才出現，reviewer 收到通知時看到的是一個還不能合併的 PR。
 3. **對每個新行為問：它壞掉時，哪個測試會失敗？** 用覆蓋率找沒被跑到的分支，第 5 章〈[覆蓋率的意義與限制](../chapter5/11_coverage_meaning_limits.md)〉談過；測試該釘住的是公開 API 看得到的行為，第 5 章〈[測什麼、不測什麼](../chapter5/01_what_to_test.md)〉談過。
-4. **寫描述，標出請 reviewer 特別看的地方。** 下一節。
+4. **寫描述，標出請 reviewer 特別看的地方。** 見下面的〈PR 描述〉。
 
-第 3 步在 `before/` 上的結果（`go test` 那行的輸出省略了耗時，`grep` 只留下三個函式）：
+第 3 步在 `before/` 上的做法如下；輸出省略了 `go test` 那行的耗時，`grep` 只留下三個函式：
+
+```bash
+go test -count=1 -coverprofile=cover.out ./examples/chapter13/01_design_before_details/before
+go tool cover -func=cover.out | grep -E 'Register|Cancel|PromoteNext'
+```
 
 執行結果：
 
 ```text
-$ go test -count=1 -coverprofile=cover.out ./examples/chapter13/01_design_before_details/before
-$ go tool cover -func=cover.out | grep -E 'Register|Cancel|PromoteNext'
-github.com/holmeslin/learning-go-to-senior/examples/chapter13/01_design_before_details/before/event.go:36:	Register	92.9%
+ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter13/01_design_before_details/before	coverage: 85.4% of statements
+github.com/holmeslin/learning-go-to-senior/examples/chapter13/01_design_before_details/before/event.go:38:	Register	92.9%
 github.com/holmeslin/learning-go-to-senior/examples/chapter13/01_design_before_details/before/event.go:63:	Cancel		75.0%
 github.com/holmeslin/learning-go-to-senior/examples/chapter13/01_design_before_details/before/waitlist.go:27:	PromoteNext	100.0%
 ```
 
-`Cancel` 只有 75.0%：沒被跑到的區塊之一，是移除候補者的那一支，沒有任何測試是候補者本人取消（R6）。`Register` 缺的是候補名單也滿時的 `ErrFull`。`PromoteNext` 是 100.0%，但覆蓋率只量「有執行」，量不出遞補該不該放在那裡。
+整個套件是 85.4%。`Cancel` 只有 75.0%：沒被跑到的區塊之一，是移除候補者的那一支，沒有任何測試是候補者本人取消（R6）。`Register` 缺的是候補名單也滿時的 `ErrFull`。`PromoteNext` 是 100.0%，但覆蓋率只量「有執行」，量不出遞補該不該放在那裡。
 
 ## PR 描述
 
@@ -77,6 +81,8 @@ github.com/holmeslin/learning-go-to-senior/examples/chapter13/01_design_before_d
   候補也滿才回 ErrFull。
 - 取消端點在 Cancel 之後呼叫 PromoteNext：遞補第一位，
   並用呼叫端提供的 Notifier 通知。
+- GET 活動多回傳 waitlist 欄位；ErrFull 的訊息從 event is full
+  改成 event and waitlist are full。
 - 順手改名（capacity -> seats、Capacity() -> Seats()、
   Attendees() -> Confirmed()），並把 normalize 搬到 validate.go。
   兩者都沒有行為變更，JSON 欄位名稱不變。
@@ -92,8 +98,11 @@ github.com/holmeslin/learning-go-to-senior/examples/chapter13/01_design_before_d
 - 通知失敗由 Notifier 的實作處理，這個 PR 不重試。
 
 請特別看
-行為變更都在 event.go 的 Register、Cancel 與 waitlist.go，
-其餘檔案只有改名與搬動。
+- 行為變更：event.go 的 Register、Cancel，waitlist.go，
+  handler.go 的取消端點（呼叫 PromoteNext）與 GET（多一個 waitlist 欄位），
+  errors.go 的 ErrFull 訊息。
+- 只有改名與搬動的部分：event.go、store.go、handler.go 與測試檔裡的改名，
+  normalize 搬到 validate.go。
 ```
 
 每一欄都要作者把原本只在腦中的事寫成句子。寫「怎麼驗證」時，沒測到的地方自己浮出來；寫「風險」時，額滿回 201 這個契約變更也得寫成一句話。寫出來不等於看出問題，但 reviewer 不必再猜。「請特別看」把注意力放在行為變更上，12 個檔案才不會把它淹沒。
