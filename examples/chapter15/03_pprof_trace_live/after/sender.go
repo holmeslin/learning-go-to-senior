@@ -33,7 +33,7 @@ type Sender struct {
 
 // 上限與逾時都是示範用的數字。
 const (
-	maxInFlight    = 8               // 同時進行的請求數；供應商限制每秒 50 次，上限要照它定
+	maxInFlight    = 8               // 並行上限（同時幾個），不是限流（每秒幾個）；供應商每秒 50 次要另外用限流器守
 	requestTimeout = 2 * time.Second // 每個請求最多等多久，超過就當它失敗
 )
 
