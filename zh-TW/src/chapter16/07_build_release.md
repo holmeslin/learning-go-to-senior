@@ -10,7 +10,7 @@
 
 ## 映像裡放什麼
 
-形狀照第 12 章〈[容器映像（multi-stage）](../chapter12/04_container_image.md)〉：`golang` 映像建置，`scratch` 執行。下面是這個服務的 Dockerfile（檔頭另有幾行註解，寫的是後面〈發布〉的指令）：
+形狀照第 12 章〈[容器映像（multi-stage）](../chapter12/04_container_image.md)〉：`golang` 映像建置，`scratch` 執行。下面是這個服務的 Dockerfile（檔頭另有幾行註解，寫的是下面部署腳本的指令）：
 
 ```dockerfile
 {{#include ../../../examples/chapter16/reminder/Dockerfile:dockerfile}}
@@ -51,17 +51,18 @@
 {{#include ../../../examples/chapter16/reminder/service_version_test.go:version}}
 ```
 
-映像裡實際看得到什麼？把 Dockerfile 會 `COPY` 的檔案放進一個沒有 `.git` 的目錄，用 `RUN` 那一行的旗標建置，再看 `go version -m`。這是本機（macOS）的建置，不是映像裡的；映像裡 `GOOS` 會是 `linux`：
+映像裡實際看得到什麼？把 Dockerfile 會 `COPY` 的檔案放進一個沒有 `.git` 的目錄，用 `RUN` 那一行的旗標建置，再看 `go version -m`。這是本機的建置，不是映像裡的；映像裡 `GOOS` 會是 `linux`。平台是 `Darwin arm64`（`uname -sm`），`go version` 是 `go1.27.0 darwin/arm64`；輸出省略了 `dep` 開頭的相依套件行，行尾的空白也去掉了：
 
 ```bash
 export GOTOOLCHAIN=go1.27.0
-mkdir -p ctx/examples/chapter16 && cp go.mod go.sum ctx/ && cp -R examples/chapter16/reminder ctx/examples/chapter16/
-cd ctx
+W=$(mktemp -d)   # repo 外面，這樣才沒有 .git
+mkdir -p $W/ctx/examples/chapter16 && cp go.mod go.sum $W/ctx/ && cp -R examples/chapter16/reminder $W/ctx/examples/chapter16/
+cd $W/ctx
 CGO_ENABLED=0 go build -trimpath -ldflags "-X main.version=v1.0.0" -o ../reminder ./examples/chapter16/reminder/cmd/reminder
 go version -m ../reminder | grep -v -e $'^\tdep'
 ```
 
-執行結果（某一次）：平台是 `Darwin arm64`（`uname -sm`），`go version` 是 `go1.27.0 darwin/arm64`。`dep` 開頭的相依套件行省略了，行尾的空白也去掉了：
+執行結果（某一次）：
 
 ```text
 ../reminder: go1.27.0
@@ -76,7 +77,7 @@ go version -m ../reminder | grep -v -e $'^\tdep'
 	build	GOARM64=v8.0
 ```
 
-接著用 `cmd/seed` 灌一場 3 位報名者的活動，讓檢視有東西，再以預設的關閉開關啟動，這是上線的第 1 步。供應商網址必填，開關關閉時不會有請求送出；實際重現時先起 `cmd/slowprovider` 並等它的啟動日誌，下面省略。日誌的 `time` 欄位每次不同，也省略了：
+接著用 `cmd/seed` 灌一場 3 位報名者的活動，讓檢視有東西，再以預設的關閉開關啟動，這是上線的第 1 步。供應商網址必填，開關關閉時不會有請求送出；下面省略三件事：`cmd/seed` 與 `cmd/slowprovider` 的建置（`go build -o ../seed ./examples/chapter16/reminder/cmd/seed`，另一個同理）、先起 `cmd/slowprovider` 並等它的啟動日誌，以及日誌每次都不同的 `time` 欄位：
 
 ```bash
 ../seed -db ../reminder.db -event 1 -registrants 3
@@ -132,7 +133,7 @@ docker logs reminder 2>&1 | grep 'reminder service started'
 這集的取捨都來自前面各章的判斷湊在一起：
 
 - **映像沒有 `.git`，版本號成了沒人檢查的字串。** 第 12 章要 `go build` 自己記 commit，`-X` 只留給建置系統才知道的值；同一章的 `.dockerignore` 又把 `.git` 擋在建置脈絡外。兩個都照做，就是上面的輸出：沒有 `vcs.*`，`v1.0.0` 只是一個建置參數。`ARG VERSION=dev` 讓忘了帶參數的建置也建得成，看到 `dev` 至少知道它不是發布出來的，看到 `v1.0.0` 卻不一定是真的。所以檢查放在流程：腳本只接受乾淨的 tag（`git describe --dirty` 帶 `-dirty` 或 `-N-g…` 就停），發布後比對日誌的版本。另一條路是把 `.git` 帶進建置脈絡拿回 `vcs.*`，連沒碰到程式碼的 commit 也讓編譯的那一層重做。靠流程比靠編譯器弱，單一實例、人手發布的規模用得起。
-- **從容器外問版本，只剩 `docker logs`。** 為了可重現的建置（第 12 章〈[可重現的建置](../chapter12/02_reproducible_builds.md)〉）用了 `-trimpath`，`go version -m` 看不到 `-ldflags`，版本只能從 `/version` 與日誌讀。診斷端點只聽 `127.0.0.1:6060`，因為有 pprof，不能對外（第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉），`Load` 拒絕非 loopback 的位址；容器的 loopback 屬於容器自己的網路命名空間，`-p` 轉發不到，`scratch` 裡又沒有 `curl` 與 shell，所以 `/version` 在容器外問不到。要打端點，得另起一個帶 `curl` 的映像、共用這個容器的網路（`docker run --rm --network container:reminder <帶 curl 的映像> curl -s http://127.0.0.1:6060/version`），或用平台的除錯容器。代價是診斷多一步，平台的健康檢查也探測不到 `/readyz`。把位址改成 `0.0.0.0` 能省掉這一步，pprof 就對整個容器網路開放，`Load` 的檢查也得跟著拿掉。
+- **從容器外問版本，只剩 `docker logs`。** 為了可重現的建置（第 12 章〈[可重現的建置](../chapter12/02_reproducible_builds.md)〉）用了 `-trimpath`，`go version -m` 看不到 `-ldflags`，版本只能從 `/version` 與日誌讀。診斷端點只聽 `127.0.0.1:6060`，因為有 pprof，不能對外（第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉），`Load` 拒絕非 loopback 的位址；容器的 loopback 屬於容器自己的網路命名空間，`-p` 轉發不到，`scratch` 裡又沒有 `curl` 與 shell，所以 `/version` 在容器外問不到。要打端點，得另起一個帶 `curl` 的映像、共用這個容器的網路（`docker run --rm --network container:reminder <帶 curl 的映像> curl -s http://127.0.0.1:6060/version`，這條指令沒有實際跑過），或用平台的除錯容器。代價是診斷多一步，平台的健康檢查也探測不到 `/readyz`。把位址改成 `0.0.0.0` 能省掉這一步，pprof 就對整個容器網路開放，`Load` 的檢查也得跟著拿掉。
 - **寬限期寫在兩個地方，沒有東西檢查它們一致。** `Load` 保證 `REMINDER_SHUTDOWN_TIMEOUT` 不小於最壞的一則送出加餘裕（預設下限 25 秒），平台給的寬限期它看不到：`docker stop` 預設 10 秒就送 `SIGKILL`，比最壞的 15 秒還短，進行中的送出被切斷，紀錄停在「寄送中」，1 小時後記為失敗，就是本章〈[並行](05_concurrency.md)〉的 before。Dockerfile 沒有設定寬限期的指令，只能在 `docker run --stop-timeout` 或平台設定裡給，所以腳本只寫一次 `SHUTDOWN`，`--stop-timeout` 取它再加 10 秒。代價是腳本成了正確性的一部分，直接手打 `docker run` 就繞過它；停舊最久的 40 秒也算進發布的空窗，相對預定時間後的 1 小時用得起（本章〈[設計文件](01_design_doc.md)〉）。
 - **開關預設關閉，只對第一次部署是對的。** 預設的 `false` 讓步驟 1 安全；但之後每一次發布，漏寫開關就是悄悄把送出關掉，連回復版本也一樣，關著超過 1 小時，到期的提醒打開後記為失敗（本章〈上線檢查表〉會談）。所以腳本不給預設值，沒寫就停下來，動到舊容器之前。
 - **回復版本，是舊的執行檔面對新的資料庫。** 單一實例先停舊、再起新，沒有新舊同時跑，第 4 章〈[migration](../chapter4/06_migration.md)〉為滾動更新訂的「先擴充，再收斂」看起來用不上。但回復時舊版本要在新版本 migrate 過的資料庫上啟動：`Migrate` 只套用自己有的檔案，資料庫多出來的版本紀錄它不管，所以舊版本不會拒絕啟動，能不能跑，取決於新的 migration 有沒有動到舊版本讀寫的欄位。`store/schema` 目前只有 `001_deliveries.sql`，沒有這個問題；之後的 migration 照同一條規則寫，理由從「新舊同時跑」換成「回復得了」。回復用的是當初建好的映像，不是重建：基底映像的標籤會移動（第 12 章〈[容器映像（multi-stage）](../chapter12/04_container_image.md)〉），重建出來的不一定是原來那一份。
