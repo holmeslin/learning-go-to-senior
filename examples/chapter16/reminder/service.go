@@ -43,6 +43,8 @@ import (
 // sqlite 同一時間又只有一個寫入者，連線再多也只是排隊。
 const databaseMaxConns = 4
 
+// ANCHOR: service
+
 // Service 是提醒服務。
 type Service struct {
 	// Config 是 config.Load 驗證過的設定。Config.APIAddr 或 Config.DiagAddr 是空字串時，
@@ -60,6 +62,8 @@ type Service struct {
 	// 測試用記憶體的 exporter 檢查關機時送出了什麼；上線時在 main 接真正的 exporter。
 	SpanExporter sdktrace.SpanExporter
 }
+
+// ANCHOR_END: service
 
 // ANCHOR: run
 

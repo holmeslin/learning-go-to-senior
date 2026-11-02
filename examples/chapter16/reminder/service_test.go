@@ -176,6 +176,8 @@ func (h *harness) addEvent(t *testing.T, eventID int64, due time.Time, registran
 }
 
 // run 在背景啟動服務。cancel 代表「收到結束訊號」；Run 的結果從 done 讀。
+// ctx 不從 t.Context() 衍生：它在 bubble 結束前會被取消，忘了停服務的測試反而會過，
+// 沒有人停它就該讓 synctest.Test 報出殘留的 goroutine。
 func (h *harness) run(t *testing.T) (cancel context.CancelFunc, done <-chan error) {
 	t.Helper()
 	logger := h.logger
@@ -183,7 +185,7 @@ func (h *harness) run(t *testing.T) (cancel context.CancelFunc, done <-chan erro
 		logger = slog.New(slog.DiscardHandler)
 	}
 	svc := &reminder.Service{Config: h.cfg, Logger: logger, Transport: h.provider, SpanExporter: h.exporter}
-	ctx, cancel := context.WithCancel(t.Context())
+	ctx, cancel := context.WithCancel(context.Background())
 	result := make(chan error, 1)
 	go func() { result <- svc.Run(ctx) }()
 	return cancel, result
@@ -199,8 +201,6 @@ func (h *harness) state(t *testing.T, eventID, registrantID int64) store.Deliver
 	return d
 }
 
-// ANCHOR_END: harness
-
 // stop 結束服務並檢查它正常回傳。
 func stop(t *testing.T, cancel context.CancelFunc, done <-chan error) {
 	t.Helper()
@@ -209,6 +209,8 @@ func stop(t *testing.T, cancel context.CancelFunc, done <-chan error) {
 		t.Errorf("Run() error = %v, want nil", err)
 	}
 }
+
+// ANCHOR_END: harness
 
 // ANCHOR: once
 
