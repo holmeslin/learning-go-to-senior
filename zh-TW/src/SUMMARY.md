@@ -131,6 +131,7 @@
 - [code review](chapter13/README.md)
     - [先看設計，再看細節](chapter13/01_design_before_details.md)
     - [Go 程式碼的 review 檢查清單](chapter13/02_go_review_checklist.md)
+    - [PR 大小與拆分](chapter13/03_pr_size_and_split.md)
     - [怎麼寫 review 意見](chapter13/04_writing_review_comments.md)
     - [作者的自我審查](chapter13/05_author_self_review.md)
     - [什麼時候該擋、什麼時候可以放行](chapter13/06_block_or_approve.md)
