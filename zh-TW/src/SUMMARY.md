@@ -135,7 +135,13 @@
     - [怎麼寫 review 意見](chapter13/04_writing_review_comments.md)
     - [作者的自我審查](chapter13/05_author_self_review.md)
     - [什麼時候該擋、什麼時候可以放行](chapter13/06_block_or_approve.md)
-- [設計文件]()
+- [設計文件](chapter14/README.md)
+    - [什麼時候需要寫](chapter14/01_when_to_write.md)
+    - [結構：背景、目標、非目標、方案、取捨](chapter14/02_doc_structure.md)
+    - [寫給誰看](chapter14/03_audience.md)
+    - [替代方案怎麼寫](chapter14/04_alternatives.md)
+    - [設計文件的 review](chapter14/05_design_review.md)
+    - [設計文件與 ADR 的關係](chapter14/06_design_doc_and_adr.md)
 - [事故處理]()
 
 # 第七部　綜合實戰
