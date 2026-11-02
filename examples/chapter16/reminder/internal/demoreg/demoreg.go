@@ -36,6 +36,31 @@ func AddEvent(ctx context.Context, db *sql.DB, eventID int64, startsAt time.Time
 	return nil
 }
 
+// Seed 在一個交易裡新增一場活動與 registrants 位報名者（編號 1 到 registrants，全部是報名成功），
+// 給冒煙腳本與壓測工具用：一筆一筆呼叫 AddRegistration，每筆各自提交，灌兩萬人要慢很多。
+// 裝置 token 與 email 是示範用的假值。活動已存在時回傳錯誤，不寫入任何資料。
+func Seed(ctx context.Context, db *sql.DB, eventID int64, startsAt time.Time, registrants int) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("seed event %d: %w", eventID, err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `INSERT INTO events (id, starts_at) VALUES (?, ?)`, eventID, startsAt.Unix()); err != nil {
+		return fmt.Errorf("seed event %d: %w", eventID, err)
+	}
+	stmt, err := tx.PrepareContext(ctx, `INSERT INTO registrations (event_id, registrant_id, device_token, email, status) VALUES (?, ?, ?, ?, 'confirmed')`)
+	if err != nil {
+		return fmt.Errorf("seed event %d: %w", eventID, err)
+	}
+	defer stmt.Close()
+	for id := 1; id <= registrants; id++ {
+		if _, err := stmt.ExecContext(ctx, eventID, id, fmt.Sprintf("token-%d-%d", eventID, id), fmt.Sprintf("registrant%d@example.com", id)); err != nil {
+			return fmt.Errorf("seed registrant %d of event %d: %w", id, eventID, err)
+		}
+	}
+	return tx.Commit()
+}
+
 // Registration 是一筆報名。
 type Registration struct {
 	EventID      int64  // 活動編號
