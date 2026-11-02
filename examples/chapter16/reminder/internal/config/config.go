@@ -17,8 +17,10 @@ import (
 
 // 預設值。送出的開關預設關閉：新服務先以關閉的狀態部署，確認沒問題才打開。
 const (
-	defaultScanInterval    = 5 * time.Minute
-	defaultSendConcurrency = 20
+	defaultScanInterval = 5 * time.Minute
+	// 並行上限取和限流同一個數字：供應商每則在 1 秒內回應時，瓶頸是限流，不是這個上限；
+	// 每則都拖滿 RequestTimeout 的最壞情況，吞吐量仍是每秒 10 則，兩萬人的第一輪約 33 分鐘，在 1 小時之內。
+	defaultSendConcurrency = 50
 	defaultRequestTimeout  = 5 * time.Second
 	defaultRateLimit       = 50.0 // 推播供應商的限制是每秒 50 次
 	defaultQueryTimeout    = 5 * time.Second
@@ -45,7 +47,7 @@ type Config struct {
 	SendEnabled bool
 	// ScanInterval 是掃描的間隔（REMINDER_SCAN_INTERVAL，預設 5m），必須大於零。
 	ScanInterval time.Duration
-	// SendConcurrency 是同時進行中的送出上限（REMINDER_SEND_CONCURRENCY，預設 20），至少 1。
+	// SendConcurrency 是同時進行中的送出上限（REMINDER_SEND_CONCURRENCY，預設 50），至少 1。
 	// 它和供應商每秒 50 次的限流是兩件事：這個擋的是同時有幾個請求在路上，限流擋的是每秒送出幾個。
 	SendConcurrency int
 	// RequestTimeout 是呼叫供應商時每個請求的逾時（REMINDER_REQUEST_TIMEOUT，預設 5s），必須大於零。

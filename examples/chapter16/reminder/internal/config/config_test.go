@@ -27,7 +27,7 @@ func TestLoadDefaults(t *testing.T) {
 	want := config.Config{
 		SendEnabled:     false, // 送出的開關預設關閉
 		ScanInterval:    5 * time.Minute,
-		SendConcurrency: 20,
+		SendConcurrency: 50,
 		RequestTimeout:  5 * time.Second,
 		RateLimit:       50,
 		QueryTimeout:    5 * time.Second,
