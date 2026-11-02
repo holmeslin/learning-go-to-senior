@@ -160,4 +160,5 @@
     - [並行](chapter16/05_concurrency.md)
     - [可觀測性與韌性](chapter16/06_observability_resilience.md)
     - [建置與發布](chapter16/07_build_release.md)
+    - [壓測與調校](chapter16/08_load_test_tuning.md)
     - [上線檢查表](chapter16/09_launch_checklist.md)

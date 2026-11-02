@@ -38,7 +38,7 @@ import (
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/telemetry"
 )
 
-// databaseMaxConns 是資料庫連線池的上限。送出的並行上限（預設 20）不必等於它：
+// databaseMaxConns 是資料庫連線池的上限。送出的並行上限（預設 50）不必等於它：
 // 每一則只在寫紀錄與記結果時各占一條連線一小段時間，呼叫供應商的期間不占連線；
 // sqlite 同一時間又只有一個寫入者，連線再多也只是排隊。
 const databaseMaxConns = 4
