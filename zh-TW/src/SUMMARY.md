@@ -157,3 +157,4 @@
     - [錯誤與資料層](chapter16/03_errors_and_data.md)
     - [並行](chapter16/05_concurrency.md)
     - [可觀測性與韌性](chapter16/06_observability_resilience.md)
+    - [上線檢查表](chapter16/09_launch_checklist.md)
