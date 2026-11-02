@@ -33,13 +33,14 @@ func (f *fakeCounter) CountByState(ctx context.Context, eventID int64) (map[stor
 	return f.fn(eventID)
 }
 
-// ANCHOR_END: fake
-
+// counts 組出四個狀態的數量，和真的 store.CountByState 一樣，四個狀態都在。
 func counts(sending, sent, retrying, failed int) map[store.State]int {
 	return map[store.State]int{
 		store.StateSending: sending, store.StateSent: sent, store.StateRetrying: retrying, store.StateFailed: failed,
 	}
 }
+
+// ANCHOR_END: fake
 
 // do 對 handler 送出請求，回傳狀態碼、標頭與本文。
 func do(h http.Handler, method, target string) (int, http.Header, string) {
