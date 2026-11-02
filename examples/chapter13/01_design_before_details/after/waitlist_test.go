@@ -9,6 +9,8 @@ import (
 	signup "github.com/holmeslin/learning-go-to-senior/examples/chapter13/01_design_before_details/after"
 )
 
+// ANCHOR: fake
+
 // fakeNotifier 記錄被通知的人，供測試斷言。
 type fakeNotifier struct {
 	mu  sync.Mutex
@@ -28,6 +30,8 @@ func (f *fakeNotifier) Notified() []string {
 	defer f.mu.Unlock()
 	return slices.Clone(f.who)
 }
+
+// ANCHOR_END: fake
 
 func TestWaitlistPromotesInOrder(t *testing.T) {
 	n := &fakeNotifier{}
