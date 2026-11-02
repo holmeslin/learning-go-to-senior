@@ -130,6 +130,7 @@
 
 - [code review](chapter13/README.md)
     - [先看設計，再看細節](chapter13/01_design_before_details.md)
+    - [什麼時候該擋、什麼時候可以放行](chapter13/06_block_or_approve.md)
 - [設計文件]()
 - [事故處理]()
 
