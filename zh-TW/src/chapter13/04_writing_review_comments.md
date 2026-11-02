@@ -6,7 +6,7 @@
 
 ## 情境
 
-還是那個「加入候補名單」PR。本集拿三個問題各寫兩個版本，含糊的與具體的：額滿時報名回傳 `nil`（R2）、持有鎖時呼叫通知（R3）、區域變數的縮寫看不出意思（R7）。R7 的含糊版就是本章〈[先看設計，再看細節](01_design_before_details.md)〉列過的那一則；R2、R3 的含糊版是常見的寫法，不是那個 PR 實際收到的意見。怎麼找出這些問題是本章〈Go 程式碼的 review 檢查清單〉的事，本集只談找到之後怎麼寫。
+還是那個「加入候補名單」PR。本集拿三個問題各寫兩個版本，含糊的與具體的：額滿時報名回傳 `nil`（R2）、持有鎖時呼叫通知（R3）、區域變數的縮寫看不出意思（R7）。R7 的含糊版就是本章〈[先看設計，再看細節](01_design_before_details.md)〉列過的那一則；R2、R3 的含糊版是常見的寫法，不是那個 PR 實際收到的意見。怎麼找出這些問題是本章〈[Go 程式碼的 review 檢查清單](02_go_review_checklist.md)〉的事，本集只談找到之後怎麼寫。
 
 意見是寫在 PR 對應那一行旁邊的文字，作者與 reviewer 往往不在同一時間讀，作者不能當面問「這句是什麼意思」。三則意見指的程式碼是：
 
@@ -18,7 +18,7 @@
 {{#include ../../../examples/chapter13/01_design_before_details/before/waitlist.go:promote}}
 ```
 
-`Register` 把人排進候補時 `return nil`（R2）。`PromoteNext` 持有鎖直到函式結束（`defer e.mu.Unlock()`），`Notify` 就在這段時間裡呼叫（R3），區域變數叫 `cf`、`wl`、`nx`（R7）。
+`Register` 把人排進候補時 `return nil`（R2）；它用到的 `normalize` 與 `MaxWaitlist`，本章〈[Go 程式碼的 review 檢查清單](02_go_review_checklist.md)〉交代過。`PromoteNext` 持有鎖直到函式結束（`defer e.mu.Unlock()`），`Notify` 就在這段時間裡呼叫（R3），區域變數叫 `cf`、`wl`、`nx`（R7）。
 
 ## 含糊的意見讓作者猜
 

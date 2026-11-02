@@ -3,6 +3,8 @@
 //
 // 這是 review 前的版本：作者送出「候補名單」PR 時的樣子。
 // 其中的問題是刻意保留的（review 意見 R1 到 R7，見本章各集），不要照用。
+// handler.go 取消端點裡的除錯輸出（fmt.Printf）也是刻意留下的，沒有 R 編號，
+// 見本章〈作者的自我審查〉。
 package signup
 
 import (
@@ -56,8 +58,6 @@ func (e *Event) Register(who string) error {
 
 // ANCHOR_END: register
 
-// ANCHOR: cancel
-
 // Cancel 取消 who 的報名，正式名單與候補名單都找。沒有這個人的報名紀錄回傳 ErrNotRegistered。
 // 它只移除這個人；空出來的名額由 PromoteNext 遞補。
 func (e *Event) Cancel(who string) error {
@@ -77,8 +77,6 @@ func (e *Event) Cancel(who string) error {
 	}
 	return ErrNotRegistered
 }
-
-// ANCHOR_END: cancel
 
 // Confirmed 回傳已確定報名的人，依報名順序。
 func (e *Event) Confirmed() []string {

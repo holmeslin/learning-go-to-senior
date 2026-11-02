@@ -37,21 +37,29 @@ event_test.go   測試名稱建議統一成 Test<型別>_<方法>。
 
 取消之後呼叫 `ev.PromoteNext()` 的是 handler。`Event.Cancel` 本身只把人移除，空出來的名額沒有人遞補。所以任何不經過這個端點的取消（之後要加的管理員取消、逾期未付款自動取消）都不會遞補：名額空著，候補的人也收不到通知。
 
-作者的測試全部通過，因為它們走的路徑剛好避開問題：一個經過 handler，一個自己呼叫 `PromoteNext`。要證明問題是真的，測試得直接對 domain 取消：
+作者的測試全部通過，因為它們走的路徑剛好避開問題：一個經過 handler，一個自己呼叫 `PromoteNext`。要證明問題是真的，測試得直接對 domain 取消。測試用到三個輔助，都在 `after/` 的測試檔裡：`newEvent` 建立候補上限固定為 10 人的活動，`join` 為某人報名（`after/` 的 `Register` 排進候補時回傳 `ErrWaitlisted`，是 R2 的修正，`join` 把它當成功），`fakeNotifier` 記下被通知的人：
+
+```go,ignore
+{{#include ../../../examples/chapter13/01_design_before_details/after/helpers_test.go:newevent}}
+{{#include ../../../examples/chapter13/01_design_before_details/after/review_test.go:join}}
+{{#include ../../../examples/chapter13/01_design_before_details/after/waitlist_test.go:fake}}
+```
+
+用它們寫成的 R1 測試：
 
 ```go,ignore
 {{#include ../../../examples/chapter13/01_design_before_details/after/review_test.go:r1}}
 ```
 
-這個測試放到 `before/` 會失敗。做法是把 `after/review_test.go` 放進 `before/` 的副本（副本在 repo 外，不進本書的 repo）執行；副本只補兩個轉接，不改任何行為：`newEvent` 改成呼叫 before 的 `NewEvent(seats, n)`，另一個檔案宣告 `ErrWaitlisted` 這個名稱，讓同一個檔案裡的其他測試編得過。輸出省略了耗時與最後的套件那一行：
+這個測試放到 `before/` 會失敗。重現的步驟：在 repo 外的暫存目錄，把 `before/` 複製成獨立的 module，再把 `after/review_test.go` 複製進去、只換 import 路徑；補兩個轉接，不改行為：`newEvent` 改成呼叫 before 的 `NewEvent(seats, n)`，並宣告 `ErrWaitlisted` 這個名稱，讓同一個檔案裡的其他測試編得過。輸出省略了耗時與最後兩行（套件那一行與總結的 `FAIL`）：
 
-執行結果：
+執行結果（某一次）：
 
 ```text
 --- FAIL: TestCancelPromotesFirstWaitlisted_R1
-    review_test.go:36: Confirmed() = [], want [u2]
-    review_test.go:39: Waitlisted() = [u2 u3], want [u3]
-    review_test.go:42: Notified() = [], want [u2]
+    review_test.go:40: Confirmed() = [], want [u2]
+    review_test.go:43: Waitlisted() = [u2 u3], want [u3]
+    review_test.go:46: Notified() = [], want [u2]
 FAIL
 ```
 
@@ -63,7 +71,7 @@ review 的順序：
 
 1. 讀 PR 描述：要解決什麼問題，不做什麼。沒有描述就先問。
 2. 看改了哪些套件與公開 API：這個 PR 新增了匯出的 `Notifier`、`PromoteNext`、`MaxWaitlist`，`NewEvent` 與 `NewStore` 的簽名也變了。`PromoteNext` 要求呼叫端「取消之後記得呼叫」，這個匯出本身就是警訊。
-3. 看責任放在哪一層：HTTP 的職責是把請求翻成對 domain 的呼叫，規則不放在那裡，第 1 章〈[套件切分的依據（依職責，不依型別）](../chapter1/01_package_by_responsibility.md)〉談過；各層只做自己那一層該做的事，第 2 章〈[在哪一層處理、哪一層只回傳](../chapter2/03_handle_at_boundary.md)〉談過同樣的分工。遞補是名額規則，屬於 `Event`。
+3. 看責任放在哪一層：HTTP 的職責是把請求翻成對 domain 的呼叫，規則不放在那裡，第 1 章〈[套件切分的依據（依職責，不依型別）](../chapter1/01_package_by_responsibility.md)〉談過；同樣是分層，錯誤該在哪一層處理，第 2 章〈[在哪一層處理、哪一層只回傳](../chapter2/03_handle_at_boundary.md)〉談過。遞補是名額規則，屬於 `Event`。
 4. 方向對了，才看細節：命名、註解、格式、測試的寫法。
 
 方向有問題時，先留一則設計層級的意見，然後暫停逐行 review：
@@ -76,7 +84,7 @@ review 的順序：
 {{#include ../../../examples/chapter13/01_design_before_details/after/event.go:cancel}}
 ```
 
-handler 的取消端點只剩下把請求翻成 `ev.Cancel`；同一個 R1 測試在 `after/` 通過。鎖外通知（`Notify` 放在 `remove` 之外）是另一則意見，不在本集的範圍。
+`normalize` 是同套件 `validate.go` 的輔助函式，去掉名稱前後的空白，結果是空的回傳 `ErrEmptyName`。handler 的取消端點只剩下把請求翻成 `ev.Cancel`；同一個 R1 測試在 `after/` 通過。鎖外通知（`Notify` 放在 `remove` 之外）是另一則意見，不在本集的範圍。
 
 這個 PR 裡其他的意見，包括錯誤契約、持鎖通知、重複報名、匯出的可變變數、缺的測試與命名，本章〈Go 程式碼的 review 檢查清單〉會談怎麼用清單找出來，本章〈什麼時候該擋、什麼時候可以放行〉會談各則要不要擋。
 
