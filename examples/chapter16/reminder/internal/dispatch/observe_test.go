@@ -39,7 +39,11 @@ func newReader(t *testing.T) (*sdkmetric.ManualReader, *sdkmetric.MeterProvider)
 	t.Helper()
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
-	t.Cleanup(func() { mp.Shutdown(context.Background()) })
+	t.Cleanup(func() {
+		if err := mp.Shutdown(context.Background()); err != nil {
+			t.Errorf("Shutdown() error = %v", err)
+		}
+	})
 	return reader, mp
 }
 
@@ -241,8 +245,8 @@ func TestScanRecordsOneSpanPerBatchWithOneChildPerSend(t *testing.T) {
 				t.Errorf("send span attributes = %v, want only event.id 1 and the result", s.Attributes)
 			}
 			for _, kv := range s.Attributes {
-				if strings.Contains(kv.Value.Emit(), "token-") { // setup 的裝置 token 都是 token-N
-					t.Errorf("attribute %s = %q contains a device token", kv.Key, kv.Value.Emit())
+				if strings.Contains(kv.Value.String(), "token-") { // setup 的裝置 token 都是 token-N
+					t.Errorf("attribute %s = %q contains a device token", kv.Key, kv.Value.String())
 				}
 			}
 			if failed := a["result"].AsString() != "sent"; failed != (s.Status.Code == codes.Error) {
