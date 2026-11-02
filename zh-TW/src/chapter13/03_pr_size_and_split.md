@@ -38,13 +38,15 @@ git diff --no-index --stat base before
 - **搬動（行為不變）**：`normalize` 從 `event.go` 搬到新檔 `validate.go`，內容一字不差。
 - **功能**：`Notifier`、候補名單、遞補，涵蓋 `notifier.go`、`waitlist.go`、`waitlist_test.go` 三個新檔，以及其他檔案裡的功能部分。
 
-大部分的檔案不只一種：`event.go` 三種都有，`store.go`、`handler.go` 和三個測試檔是改名加功能，只有 `errors.go`、`handler_test.go` 與新檔是單純的功能或搬動。行為變更就埋在改名之間。底下是 `event.go` 的 diff，指令如下：
+12 個檔案裡有一半不只一種：`event.go` 三種都有，`store.go`、`handler.go` 和三個測試檔是改名加功能，只有 `errors.go`、`handler_test.go` 與新檔是單純的功能或搬動。行為變更就埋在改名之間。底下是 `event.go` 的 diff，指令如下：
 
 ```bash
 git diff --no-index base/event.go before/event.go
 ```
 
-輸出有 3 個 hunk。下面只貼第 1 個 hunk 裡 `Event` 型別、`NewEvent` 與 `Seats` 的部分，省略標頭、`@@` 行、開頭的套件說明與 import，以及第 2、3 個 hunk：
+輸出有 3 個 hunk。下面只貼第 1 個 hunk 裡 `Event` 型別、`NewEvent` 與 `Seats` 的部分，省略標頭、`@@` 行、開頭的套件說明與 import，以及第 2、3 個 hunk。
+
+執行結果：
 
 ```diff
  // Event 是一場有名額上限的活動。零值不可用，請用 NewEvent 建立。
@@ -85,13 +87,15 @@ reviewer 看到這個形狀，不逐行讀，先要求拆分：
 
 順序與依據：
 
-1. **改名先送。** 它碰到的檔案最多，最容易和別人在途的分支衝突，越早合併、衝突越少。審起來也快：測試只改名字，斷言沒動，漏改的地方編譯器會找出來。但它不是零風險：`Capacity()` 與 `Attendees()` 是匯出的方法，外部呼叫端會編譯失敗。PR 描述要寫明這一點，reviewer 要問 repo 外還有沒有呼叫端；想讓外部平順遷移，可以保留舊名並標 `// Deprecated:`。第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉與〈[棄用（deprecation）與相容性](../chapter1/08_deprecation_and_compatibility.md)〉談過這些判斷；這類一旦合併就難以回頭的變更要不要放行，本章〈什麼時候該擋、什麼時候可以放行〉會談。
+1. **改名先送。** 它的修改小而散在每個呼叫的地方，最容易和別人在途的分支衝突，越早合併、衝突越少。審起來也快：測試只改名字，斷言沒動，漏改的地方編譯器會找出來。但它不是零風險：`Capacity()` 與 `Attendees()` 是匯出的方法，外部呼叫端會編譯失敗。PR 描述要寫明這一點，reviewer 要問 repo 外還有沒有呼叫端；想讓外部平順遷移，可以保留舊名並標 `// Deprecated:`。第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉與〈[棄用（deprecation）與相容性](../chapter1/08_deprecation_and_compatibility.md)〉談過這些判斷；這類一旦合併就難以回頭的變更要不要放行，本章〈什麼時候該擋、什麼時候可以放行〉會談。
 2. **搬動第二個送。** 只動 `event.go` 與 `validate.go`，reviewer 只要確認刪掉的與新增的是同一段。搬動不能和修改混在一起：diff 會把搬動顯示成整段刪除、整段新增，同時改了內容，reviewer 也看不出來。
 3. **功能最後送。** 前兩個合併之後，功能 PR 的 diff 只剩行為變更，注意力可以全放在設計與正確性。R1 要作者改的只有這一個 PR，改名與搬動不受影響，可以先合併。
 
 順序的依據是：不改行為、能機械驗證的先送，需要判斷的最後送。每個 PR 只有一種性質，各自編譯、各自通過測試，功能出問題時可以單獨 revert，不必連改名一起退回去。這和第 12 章〈[`go.mod` 與相依升級](../chapter12/06_go_mod_dependency_upgrade.md)〉一次升一個相依是同一個道理：一次只動一種東西，出問題才知道是哪一步。
 
-三個中間狀態不在 repo 裡（本章只有 `base/`、`before/`、`after/` 三個目錄）。下面是在 repo 外，用 `base/` 與 `before/` 的檔案組合出三個狀態，各自與前一個狀態比較的 `git diff --no-index --stat` 最後一行；三個狀態各自都能編譯、通過 `go test -race`：
+三個中間狀態不在 repo 裡（本章只有 `base/`、`before/`、`after/` 三個目錄）。下面是在 repo 外，用 `base/` 與 `before/` 的檔案組合出三個狀態，各自與前一個狀態比較的 `git diff --no-index --stat` 最後一行；三個狀態各自都能編譯、通過 `go test -race`。三行加起來不等於上面的 235 與 79：同一行在兩個步驟都被改到會算兩次。
+
+執行結果：
 
 ```text
 改名   6 files changed, 29 insertions(+), 29 deletions(-)
