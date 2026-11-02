@@ -104,8 +104,6 @@ func OpenDB(path string, maxConns int) (*sql.DB, error) {
 	return db, nil
 }
 
-func fromUnix(sec int64) time.Time { return time.Unix(sec, 0).UTC() }
-
 // CheckCandidates 確認報名服務的唯讀檢視存在、契約的欄位都在。啟動時呼叫：
 // 檢視不見了或欄位被改掉，服務要在這時就拒絕啟動，而不是等到第一次掃描才出錯；
 // 開關關閉的部署也一樣會檢查，上線的第一步就是確認「讀得到檢視」。
@@ -185,6 +183,9 @@ func (s *Store) queryReminders(ctx context.Context, query string, args []any) ([
 	}
 	return out, nil
 }
+
+// fromUnix 把資料庫裡的 unix 秒轉回 UTC 的時間。
+func fromUnix(sec int64) time.Time { return time.Unix(sec, 0).UTC() }
 
 // ANCHOR_END: due
 
