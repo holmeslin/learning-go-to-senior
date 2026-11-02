@@ -47,6 +47,7 @@
 | `examples/chapterN/NN_slug/before/` | 該集「常見寫法」的程式碼 |
 | `examples/chapterN/NN_slug/after/` | 該集「較好的做法」的程式碼與測試 |
 | `go.mod`、`go.sum` | 範例共用的 module，看得到使用的 Go 版本與第三方相依；解壓後可以直接 `go test ./...`；加上 `-tags integration` 才會跑第 5 章示範的整合測試 |
+| `.golangci.yml`、`tools/lint/` | 第 12 章〈`golangci-lint` 與 CI〉的 lint 設定與鎖定版本的工具模組；解壓後在根目錄執行 `go tool -modfile=tools/lint/go.mod golangci-lint run ./...` |
 
 ### 讀懂一集
 
