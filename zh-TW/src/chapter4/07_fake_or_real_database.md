@@ -107,7 +107,7 @@ SQLite 也不是正式環境，常見的差異：
 - **方言**：`COLLATE NOCASE` 是 SQLite 的寫法；PostgreSQL 要用 `citext` 或 `lower(email)` 的唯一索引。契約沒變，實作是另一套。
 - **錯誤碼**：`Add` 認的是 SQLite 的 `SQLITE_CONSTRAINT_UNIQUE`，PostgreSQL 的唯一約束錯誤是 SQLSTATE `23505`。SQLite 的測試全綠，不代表正式環境那條翻譯分支跑過。
 
-所以這幾種情況要對正式環境用的資料庫跑測試：用到方言功能的查詢、取決於鎖與隔離層級的行為、migration 套上真資料庫的結果，以及 driver 錯誤的翻譯。做法是在 CI 起一個真的資料庫（例如測試容器 testcontainers，或 CI 提供的服務容器），`testStore` 多呼叫一次就行。整合測試與 build tags、替身的一般選擇，第 5 章會談。
+所以這幾種情況要對正式環境用的資料庫跑測試：用到方言功能的查詢、取決於鎖與隔離層級的行為、migration 套上真資料庫的結果，以及 driver 錯誤的翻譯。做法是在 CI 起一個真的資料庫（例如測試容器 testcontainers，或 CI 提供的服務容器），`testStore` 多呼叫一次就行。整合測試與 build tags，第 5 章〈[整合測試與 build tags](../chapter5/05_integration_tests_build_tags.md)〉談過；替身的一般選擇，見〈[fake、stub、mock 的選擇](../chapter5/03_fake_stub_mock.md)〉。
 
 before 在這些情況下反而是對的：
 

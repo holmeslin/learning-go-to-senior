@@ -75,7 +75,7 @@ func main() {
 
 三個差別：
 
-- 回傳 `*Logger`：`Flush` 呼叫端拿得到。日後再加匯出的方法，只是多一個方法，不會讓既有的呼叫端編譯失敗，也就是第 1 章說的「只新增、不修改」。
+- 回傳 `*Logger`：`Flush` 呼叫端拿得到。日後再加匯出的方法，只是多一個方法，不會讓既有的呼叫端編譯失敗，也就是第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉談過的「只新增、不修改」。
 - 函式裡沒有任何「具體型別轉成介面」的地方，nil 指標不會變成不等於 nil 的介面。
 - 參數收 `io.Writer`，一個方法的小介面（基本原則見前作〈[小介面設計](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/10_small_interfaces.html)〉）。呼叫端傳什麼都行，不想記錄就傳 `io.Discard`，不用再靠 nil 表示。
 
@@ -98,7 +98,7 @@ before 要靠 nil 表示的「不記錄」，現在是：
 回傳具體型別有代價：
 
 - 匯出的型別就是 API。欄位與方法一旦匯出就要維持；`Logger` 把欄位 `w` 留成不匯出，日後換掉緩衝的做法，呼叫端不受影響。第 1 章〈[什麼時候讓零值可用，什麼時候該強制用建構函式](../chapter1/06_zero_value_or_constructor.md)〉也是這個做法：匯出型別、不匯出欄位。
-- 呼叫端想在測試裡換掉 `*audit.Logger`，得在自己的套件宣告一個小介面，只放用到的方法，`*audit.Logger` 自動符合（本章〈[在使用端定義介面](01_define_interface_at_consumer.md)〉談過；測試替身怎麼選，第 5 章會談）。回傳 `*Logger` 之後，原本那個只有一種實作的 `Logger` 介面也用不到了，介面何時是多餘的，本章〈介面何時是多餘的〉會談。
+- 呼叫端想在測試裡換掉 `*audit.Logger`，得在自己的套件宣告一個小介面，只放用到的方法，`*audit.Logger` 自動符合（本章〈[在使用端定義介面](01_define_interface_at_consumer.md)〉談過；測試替身怎麼選，第 5 章〈[fake、stub、mock 的選擇](../chapter5/03_fake_stub_mock.md)〉談過）。回傳 `*Logger` 之後，原本那個只有一種實作的 `Logger` 介面也用不到了，介面何時是多餘的，本章〈介面何時是多餘的〉會談。
 - 參數收介面，也收得進有型別的 nil：呼叫端傳 `(*os.File)(nil)`，介面就不等於 nil，`New` 即使檢查 `w == nil` 也擋不住，所以 `New` 不檢查，改在文件寫明 `w` 不可為 nil。
 
 回傳介面在這些情況下才是對的：

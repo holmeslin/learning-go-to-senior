@@ -28,7 +28,7 @@ HTTP client 與 `httptest` 前作教過：〈[HTTP client](https://holmeslin.git
 {{#include ../../../examples/chapter10/08_bulkhead/before/gateway_test.go:stubs}}
 ```
 
-時間用 `testing/synctest`（用法見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉）。`synctest.Wait` 等到 bubble 裡所有 goroutine 都卡住，這時 `search` 的兩個請求已經占滿兩個 worker。bubble 裡的時間是假的，經過的時間是確定的，所以可以斷言恰好 1 秒：
+時間用 `testing/synctest`（用法見前作〈[`testing/synctest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/19_synctest.html)〉與第 6 章〈[goroutine 的生命週期歸誰管](../chapter6/01_goroutine_ownership.md)〉）。`synctest.Wait` 等到 bubble 裡所有 goroutine 都卡住，這時 `search` 的兩個請求已經占滿兩個 worker。bubble 裡的時間是假的，經過的時間是確定的，所以可以斷言恰好 1 秒：
 
 ```go,ignore
 {{#include ../../../examples/chapter10/08_bulkhead/before/gateway_test.go:starved}}
