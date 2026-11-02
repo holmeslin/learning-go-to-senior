@@ -9,6 +9,8 @@ import (
 	signup "github.com/holmeslin/learning-go-to-senior/examples/chapter13/01_design_before_details/after"
 )
 
+// ANCHOR: join
+
 // join 為 who 報名。排進候補（ErrWaitlisted）也算報名成功，其他錯誤讓測試失敗。
 func join(t *testing.T, ev *signup.Event, who string) {
 	t.Helper()
@@ -16,6 +18,8 @@ func join(t *testing.T, ev *signup.Event, who string) {
 		t.Fatalf("Register(%q) = %v", who, err)
 	}
 }
+
+// ANCHOR_END: join
 
 // ANCHOR: r1
 
@@ -45,8 +49,6 @@ func TestCancelPromotesFirstWaitlisted_R1(t *testing.T) {
 
 // ANCHOR_END: r1
 
-// ANCHOR: r2
-
 // R2：額滿時報名，呼叫端要分得出「報名成功」與「排進候補」。
 func TestRegisterReportsWaitlisted_R2(t *testing.T) {
 	ev := newEvent(1, &fakeNotifier{})
@@ -57,8 +59,6 @@ func TestRegisterReportsWaitlisted_R2(t *testing.T) {
 		t.Errorf("Register(u2) when full = %v, want ErrWaitlisted", err)
 	}
 }
-
-// ANCHOR_END: r2
 
 // blockingNotifier 的 Notify 先送出 entered，再一直卡到 release 關閉，模擬很慢的通知服務。
 type blockingNotifier struct {
@@ -71,8 +71,6 @@ func (b blockingNotifier) Notify(string) {
 	b.entered <- struct{}{}
 	<-b.release
 }
-
-// ANCHOR: r3
 
 // R3：通知卡住時，其他報名仍然要完成。
 // 測試假設取消會遞補並通知（R1 已修）；通知卡在 release 上，另一個 goroutine 的報名不能被擋住。
@@ -102,10 +100,6 @@ func TestSlowNotifierDoesNotBlockRegister_R3(t *testing.T) {
 	})
 }
 
-// ANCHOR_END: r3
-
-// ANCHOR: r4
-
 // R4：已經在候補名單裡的人再報名，要被拒絕，不能重複排入。
 func TestRegisterWaitlistedTwice_R4(t *testing.T) {
 	ev := newEvent(1, &fakeNotifier{})
@@ -119,8 +113,6 @@ func TestRegisterWaitlistedTwice_R4(t *testing.T) {
 		t.Errorf("Waitlisted() = %v, want %v", got, want)
 	}
 }
-
-// ANCHOR_END: r4
 
 // ANCHOR: r6
 
