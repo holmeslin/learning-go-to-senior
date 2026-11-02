@@ -16,7 +16,7 @@ git diff --no-index --stat base before
 
 ```text
  {base => before}/errors.go           |  4 +-
- {base => before}/event.go            | 79 ++++++++++++++++++++----------------
+ {base => before}/event.go            | 77 +++++++++++++++++++----------------
  {base => before}/event_test.go       | 19 ++++-----
  {base => before}/example_test.go     | 12 +++---
  {base => before}/handler.go          | 28 +++++++++----
@@ -27,7 +27,7 @@ git diff --no-index --stat base before
  /dev/null => before/validate.go      | 12 ++++++
  /dev/null => before/waitlist.go      | 41 +++++++++++++++++++
  /dev/null => before/waitlist_test.go | 79 ++++++++++++++++++++++++++++++++++++
- 12 files changed, 235 insertions(+), 79 deletions(-)
+ 12 files changed, 233 insertions(+), 79 deletions(-)
 ```
 
 `{base => before}` 與 `/dev/null =>` 是 git 比較兩個目錄的寫法。這個數字不算嚇人，麻煩的是裡面有三種性質不同的變更，作者一次送出。
@@ -77,7 +77,7 @@ git diff --no-index base/event.go before/event.go
  }
 ```
 
-型別那段刪了 2 行、加了 4 行，沒辦法逐行對應：`seats`、`confirmed` 是改名，`notifier`、`waitlist` 是新欄位。reviewer 得自己比對，才分得出哪幾行需要判斷。這個檔案的 79 行 diff 裡，真正需要想的是 `Register` 與 `Cancel` 的候補分支，其餘是改名與搬動。
+型別那段刪了 2 行、加了 4 行，沒辦法逐行對應：`seats`、`confirmed` 是改名，`notifier`、`waitlist` 是新欄位。reviewer 得自己比對，才分得出哪幾行需要判斷。這個檔案的 77 行 diff 裡，真正需要想的是 `Register` 與 `Cancel` 的候補分支，其餘是改名與搬動。
 
 ## 拆成三個 PR
 
@@ -87,23 +87,15 @@ reviewer 看到這個形狀，不逐行讀，先要求拆分：
 
 順序與依據：
 
-1. **改名先送。** 它的修改小而散在每個呼叫的地方，最容易和別人在途的分支衝突，越早合併、衝突越少。審起來也快：測試只改名字，斷言沒動，漏改的地方編譯器會找出來。但它不是零風險：`Capacity()` 與 `Attendees()` 是匯出的方法，外部呼叫端會編譯失敗。PR 描述要寫明這一點，reviewer 要問 repo 外還有沒有呼叫端；想讓外部平順遷移，可以保留舊名並標 `// Deprecated:`。第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉與〈[棄用（deprecation）與相容性](../chapter1/08_deprecation_and_compatibility.md)〉談過這些判斷；這類一旦合併就難以回頭的變更要不要放行，本章〈什麼時候該擋、什麼時候可以放行〉會談。
+1. **改名先送。** 它的修改小而散在每個呼叫的地方，最容易和別人在途的分支衝突，越早合併、衝突越少。審起來也快：測試只改名字，斷言沒動，漏改的地方編譯器會找出來。但它不是零風險：`Capacity()` 與 `Attendees()` 是匯出的方法，外部呼叫端會編譯失敗，PR 描述要寫明；repo 外有沒有呼叫端、舊名要不要保留，本章〈什麼時候該擋、什麼時候可以放行〉會談。
 2. **搬動第二個送。** 只動 `event.go` 與 `validate.go`，reviewer 只要確認刪掉的與新增的是同一段。搬動不能和修改混在一起：diff 會把搬動顯示成整段刪除、整段新增，同時改了內容，reviewer 也看不出來。
 3. **功能最後送。** 前兩個合併之後，功能 PR 的 diff 只剩行為變更，注意力可以全放在設計與正確性。R1 要作者改的只有這一個 PR，改名與搬動不受影響，可以先合併。
 
 順序的依據是：不改行為、能機械驗證的先送，需要判斷的最後送。每個 PR 只有一種性質，各自編譯、各自通過測試，功能出問題時可以單獨 revert，不必連改名一起退回去。這和第 12 章〈[`go.mod` 與相依升級](../chapter12/06_go_mod_dependency_upgrade.md)〉一次升一個相依是同一個道理：一次只動一種東西，出問題才知道是哪一步。
 
-三個中間狀態不在 repo 裡（本章只有 `base/`、`before/`、`after/` 三個目錄）。下面是在 repo 外，用 `base/` 與 `before/` 的檔案組合出三個狀態，各自與前一個狀態比較的 `git diff --no-index --stat` 最後一行；三個狀態各自都能編譯、通過 `go test -race`。三行加起來不等於上面的 235 與 79：同一行在兩個步驟都被改到會算兩次。
+三個中間狀態不在 repo 裡（本章只有 `base/`、`before/`、`after/` 三個目錄），要由作者自己拆出來。改名那一步要同時改 `event.go`、`store.go`、`handler.go` 與三個測試檔，搬動那一步只動 `event.go` 與 `validate.go`，功能那一步加上其餘；三個狀態各自都要能編譯、通過測試。
 
-執行結果：
-
-```text
-改名   6 files changed, 29 insertions(+), 29 deletions(-)
-搬動   2 files changed, 12 insertions(+), 10 deletions(-)
-功能  11 files changed, 199 insertions(+), 45 deletions(-)
-```
-
-功能 PR 還是最大的，但裡面每一行都是行為變更，不必再從改名裡分辨。
+功能 PR 最大（上面的 `--stat` 裡，三個新檔都在它裡面），但裡面每一行都是行為變更，不必再從改名裡分辨。
 
 ## 沒有固定的行數門檻
 

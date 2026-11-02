@@ -63,8 +63,6 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ANCHOR: cancel
-
 func (h *handler) cancel(w http.ResponseWriter, r *http.Request) {
 	ev, ok := h.store.Get(r.PathValue("id"))
 	if !ok {
@@ -82,8 +80,6 @@ func (h *handler) cancel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}
 }
-
-// ANCHOR_END: cancel
 
 func (h *handler) show(w http.ResponseWriter, r *http.Request) {
 	ev, ok := h.store.Get(r.PathValue("id"))

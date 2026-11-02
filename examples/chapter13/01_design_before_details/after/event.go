@@ -30,8 +30,6 @@ func (e *Event) Seats() int {
 	return e.seats
 }
 
-// ANCHOR: register
-
 // Register 為 who 報名。名額已滿時排進候補名單，並回傳 ErrWaitlisted；
 // 候補名單也滿了回傳 ErrFull。已經報名過（正式或候補）回傳 ErrAlreadyRegistered，
 // 名稱是空的回傳 ErrEmptyName。
@@ -55,8 +53,6 @@ func (e *Event) Register(who string) error {
 	e.waitlist = append(e.waitlist, who)
 	return ErrWaitlisted
 }
-
-// ANCHOR_END: register
 
 // ANCHOR: cancel
 
