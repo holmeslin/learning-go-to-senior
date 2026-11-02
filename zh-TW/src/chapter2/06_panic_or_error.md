@@ -75,7 +75,7 @@ main.main.func2()
 created by main.main in goroutine 1
 ```
 
-程式以結束碼 2 結束，`recovered:` 和 `done` 都沒有印出來。`recover` 只能攔下同一個 goroutine 裡的 panic，`main` 的 `defer` 管不到別的 goroutine，所以一個請求寫錯字串，整個服務跟著結束（goroutine 的細節第 6 章會談）。輸出省略了檔案路徑與參數位址，goroutine 的編號每次不一定相同。
+程式以結束碼 2 結束，`recovered:` 和 `done` 都沒有印出來。`recover` 只能攔下同一個 goroutine 裡的 panic，`main` 的 `defer` 管不到別的 goroutine，所以一個請求寫錯字串，整個服務跟著結束。輸出省略了檔案路徑與參數位址，goroutine 的編號每次不一定相同。
 
 套件的作者沒辦法預期呼叫端會在哪裡呼叫它，所以不能把「輸入不合法」留給呼叫端去 `recover`。
 

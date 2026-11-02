@@ -6,7 +6,7 @@
 
 ## 情境
 
-批次抓取頁面標題：給一串 id，對每個 id 呼叫 `fetch`，同一時間最多 `limit` 個（上限由下游的容量決定，見第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉）。結果要和 id 同順序，第一個錯誤要取消其餘的 `fetch`。
+批次抓取頁面標題：給一串 id，對每個 id 呼叫 `fetch`，同一時間最多 `limit` 個（上限由下游的容量決定；下游是資料庫時，怎麼從連線上限推出每個副本的份，見第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉）。結果要和 id 同順序，第一個錯誤要取消其餘的 `fetch`。
 
 worker pool 的機制前作教過：〈[worker pool](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/17_worker_pool.html)〉，這集不重講。`errgroup` 的 `Go`、`Wait`、`WithContext` 本章〈[`errgroup`](02_errgroup.md)〉談過，`SetLimit` 本章〈[`errgroup` 的並行上限](03_errgroup_limit.md)〉談過，這裡直接用。
 
