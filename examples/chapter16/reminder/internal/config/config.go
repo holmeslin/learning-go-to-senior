@@ -27,8 +27,11 @@ const (
 	defaultAPIAddr         = ":8080"
 	defaultDiagAddr        = "127.0.0.1:6060"
 
-	// shutdownMargin 是關機期限至少要比每個請求的逾時多出來的時間：
-	// 進行中的送出最久要等一個請求逾時，之後還要關 HTTP 伺服器、送出指標與追蹤、關資料庫。
+	// shutdownMargin 是關機期限在最壞耗時之外留的餘裕，給送出指標與追蹤、關資料庫。
+	// 最壞耗時是 RequestTimeout 加三個 QueryTimeout：進行中的一則最久要等寫紀錄的查詢、請求、記結果的查詢，
+	// 各自逾時（QueryTimeout 兩次、RequestTimeout 一次）；再來 HTTP 伺服器收尾，等進行中的 API 請求，
+	// 請求裡只有一個查詢（QueryTimeout 一次）。所以 ShutdownTimeout 至少是
+	// RequestTimeout + 3×QueryTimeout + shutdownMargin，預設是 5s + 3×5s + 5s = 25s，預設的期限是 30 秒。
 	shutdownMargin = 5 * time.Second
 )
 
@@ -52,7 +55,7 @@ type Config struct {
 	// QueryTimeout 是每個資料庫查詢的逾時（REMINDER_QUERY_TIMEOUT，預設 5s），必須大於零。
 	QueryTimeout time.Duration
 	// ShutdownTimeout 是收到結束訊號之後，整個關機的期限（REMINDER_SHUTDOWN_TIMEOUT，預設 30s）。
-	// 必須比 RequestTimeout 至少多 5 秒。
+	// 必須涵蓋最壞的一則送出，至少是 RequestTimeout + 3×QueryTimeout + 5 秒，見 shutdownMargin。
 	ShutdownTimeout time.Duration
 	// DatabasePath 是 sqlite 資料庫的路徑（REMINDER_DB_PATH，預設 reminder.db）。
 	DatabasePath string
@@ -86,8 +89,9 @@ func Load(env func(key string) string) (Config, error) {
 		DiagAddr:        l.str("REMINDER_DIAG_ADDR", defaultDiagAddr),
 	}
 	l.check("REMINDER_SEND_CONCURRENCY", cfg.SendConcurrency >= 1, "must be at least 1")
-	l.check("REMINDER_SHUTDOWN_TIMEOUT", cfg.ShutdownTimeout >= cfg.RequestTimeout+shutdownMargin,
-		"must be at least REMINDER_REQUEST_TIMEOUT plus "+shutdownMargin.String())
+	minShutdown := cfg.RequestTimeout + 3*cfg.QueryTimeout + shutdownMargin
+	l.check("REMINDER_SHUTDOWN_TIMEOUT", cfg.ShutdownTimeout >= minShutdown, fmt.Sprintf(
+		"must be at least %s (REMINDER_REQUEST_TIMEOUT + 3 x REMINDER_QUERY_TIMEOUT + %s)", minShutdown, shutdownMargin))
 	l.fail("REMINDER_PROVIDER_URL", checkProviderURL(cfg.ProviderURL))
 	l.fail("REMINDER_API_ADDR", checkAddr(cfg.APIAddr, false))
 	l.fail("REMINDER_DIAG_ADDR", checkAddr(cfg.DiagAddr, true))

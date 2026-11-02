@@ -22,6 +22,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -68,10 +69,14 @@ type Service struct {
 //
 //  1. readiness 先變成未就緒：流量與編排系統先知道這個實例要走了。
 //  2. 停止新的掃描：掃描迴圈不再拿新的提醒。
-//  3. 等進行中的送出做完：每一則最久是一個請求逾時，期限大於它加上餘裕，所以正常會在期限內結束；
-//     期限到了仍未結束，回傳錯誤並記錄。
-//  4. 關 HTTP 伺服器（內部 API 與診斷端點），再送出指標與追蹤。
+//  3. 等進行中的送出做完：每一則最久是寫紀錄的查詢、請求、記結果的查詢各自逾時
+//     （QueryTimeout 兩次加 RequestTimeout 一次，預設共 15 秒）。
+//  4. 關 HTTP 伺服器（內部 API 與診斷端點），等進行中的請求，最久再一個 QueryTimeout；再送出指標與追蹤。
 //  5. 關資料庫：一定在最後，進行中的送出才寫得進結果，收集指標的查詢也還查得到。
+//
+// 期限 ShutdownTimeout 要涵蓋第 3、4 步的最壞耗時加第 4 步送出的餘裕：
+// config.Load 檢查它至少是 RequestTimeout + 3×QueryTimeout + 5 秒（預設 25 秒，預設的期限是 30 秒）。
+// 期限到了第 3 步仍未結束，回傳錯誤並記錄；之後的步驟仍然做，不過用的是已經過期的 context。
 //
 // shortcut: 轉成未就緒之後立刻停掃描，沒有再等一段時間讓負載平衡發現；這個服務是單一實例、
 // 內部 API 前面沒有負載平衡，不需要。有多個副本時，在第 1、2 步之間加上等待。
@@ -171,9 +176,15 @@ func (s *Service) shutdown(ctx context.Context, log *slog.Logger, scanDone <-cha
 		log.Error("shutdown deadline passed", "error", err)
 		errs = append(errs, err)
 	}
-	for _, srv := range servers {
-		errs = append(errs, srv.close(grace))
+	// 兩個伺服器同時收尾：等進行中的請求，最久各是一個 QueryTimeout，同時等就只要一個。
+	// pprof 的 profile 可以跑 30 秒，超過期限的請求會被強制切斷，診斷用的請求可以這樣處理。
+	closeErrs := make([]error, len(servers))
+	var wg sync.WaitGroup
+	for i, srv := range servers {
+		wg.Go(func() { closeErrs[i] = srv.close(grace) })
 	}
+	wg.Wait()
+	errs = append(errs, closeErrs...)
 	if err := tel.Shutdown(grace); err != nil {
 		errs = append(errs, fmt.Errorf("shutdown telemetry: %w", err))
 	}
