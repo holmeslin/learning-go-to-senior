@@ -135,7 +135,8 @@
     - [怎麼寫 review 意見](chapter13/04_writing_review_comments.md)
     - [作者的自我審查](chapter13/05_author_self_review.md)
     - [什麼時候該擋、什麼時候可以放行](chapter13/06_block_or_approve.md)
-- [設計文件]()
+- [設計文件](chapter14/README.md)
+    - [什麼時候需要寫](chapter14/01_when_to_write.md)
 - [事故處理]()
 
 # 第七部　綜合實戰
