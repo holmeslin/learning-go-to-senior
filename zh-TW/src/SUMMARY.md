@@ -148,6 +148,7 @@
     - [用 `pprof` 與 trace 在現場診斷](chapter15/03_pprof_trace_live.md)
     - [事後檢討（blameless postmortem）](chapter15/04_blameless_postmortem.md)
     - [行動項目與追蹤](chapter15/05_action_items.md)
+    - [runbook](chapter15/06_runbook.md)
 
 # 第七部　綜合實戰
 
