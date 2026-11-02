@@ -136,6 +136,7 @@
     - [作者的自我審查](chapter13/05_author_self_review.md)
     - [什麼時候該擋、什麼時候可以放行](chapter13/06_block_or_approve.md)
 - [設計文件]()
+    - [設計文件與 ADR 的關係](chapter14/06_design_doc_and_adr.md)
 - [事故處理]()
 
 # 第七部　綜合實戰
