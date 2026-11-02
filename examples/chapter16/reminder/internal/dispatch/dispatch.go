@@ -3,6 +3,9 @@
 //
 // 送出用並行上限（errgroup 的 SetLimit）加每秒的限流；暫時失敗用退避加 jitter 重試，
 // 重試的時間點只會落在掃描的時間，期限是預定時間後 store.SendWindow。
+//
+// 每批掃描留下一個 span、每次送出一個子 span，以及三個指標：reminder.deliveries（標籤只有 result）、
+// reminder.scan.duration、reminder.overdue.unsent。Options 的 Meter 與 Tracer 是 nil 時什麼也不記。
 package dispatch
 
 import (
@@ -14,6 +17,12 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
+	"go.opentelemetry.io/otel/trace"
+	tracenoop "go.opentelemetry.io/otel/trace/noop"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
@@ -58,6 +67,11 @@ type Options struct {
 
 	// Logger 記錄掃描的結果與錯誤；nil 時用 slog.Default()。日誌不記裝置 token。
 	Logger *slog.Logger
+
+	// Meter 建立指標用；nil 時不記錄指標。指標只有 result 這個標籤，沒有活動、報名者這類高基數的標籤。
+	Meter metric.Meter
+	// Tracer 建立 span 用：每批一個，每次送出一個子 span；nil 時不記錄追蹤。
+	Tracer trace.Tracer
 }
 
 // Summary 是一次掃描的結果。
@@ -78,6 +92,10 @@ type Dispatcher struct {
 	limiter *rate.Limiter
 	opts    Options
 	log     *slog.Logger
+
+	tracer     trace.Tracer
+	deliveries metric.Int64Counter     // 每個結果的提醒數，標籤只有 result
+	duration   metric.Float64Histogram // 每一批掃描花的時間（秒）
 }
 
 // New 回傳 Dispatcher；opts 不合法時回傳錯誤。
@@ -104,14 +122,26 @@ func New(st *store.Store, sender Sender, opts Options) (*Dispatcher, error) {
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Dispatcher{
+	d := &Dispatcher{
 		store:  st,
 		sender: sender,
 		// burst 是 1：每秒 50 次是供應商的限制，請求要均勻地分散，不能一開始就湧出一整批。
 		limiter: rate.NewLimiter(rate.Limit(opts.RatePerSecond), 1),
 		opts:    opts,
 		log:     log,
-	}, nil
+		tracer:  opts.Tracer,
+	}
+	if d.tracer == nil {
+		d.tracer = tracenoop.NewTracerProvider().Tracer("")
+	}
+	meter := opts.Meter
+	if meter == nil {
+		meter = metricnoop.NewMeterProvider().Meter("")
+	}
+	if err := d.instrument(meter); err != nil {
+		return nil, err
+	}
+	return d, nil
 }
 
 // ANCHOR: run
@@ -142,12 +172,97 @@ func (d *Dispatcher) Run(ctx context.Context) {
 
 // ANCHOR_END: run
 
+// ANCHOR: observe
+
+// Scan 做一次掃描（見 scan），並留下這一批的觀測資料：一個 span、批次花的時間，以及各個結果的提醒數。
+// 回傳時，這次開始送出的提醒都已經有結果。ctx 結束時不再開始新的提醒，進行中的做完。
+// 只有「失敗記錄」與「挑出提醒」這兩個查詢失敗才回傳錯誤；單一提醒的失敗記在 Summary、指標與日誌裡。
+func (d *Dispatcher) Scan(ctx context.Context) (Summary, error) {
+	ctx, span := d.tracer.Start(ctx, "reminder.scan")
+	defer span.End()
+	start := time.Now()
+
+	sum, err := d.scan(ctx)
+
+	d.duration.Record(ctx, time.Since(start).Seconds())
+	for _, r := range sum.results() {
+		d.deliveries.Add(ctx, int64(r.n), metric.WithAttributes(attribute.String("result", r.name)))
+		span.SetAttributes(attribute.Int(r.name, r.n))
+	}
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "scan failed")
+	}
+	return sum, err
+}
+
+// result 是一種結果與這一批裡有幾則；名稱同時是指標的 result 標籤與 span 的屬性名稱。
+type result struct {
+	name string
+	n    int
+}
+
+// results 把 Summary 展開成固定的七種結果。標籤的值只有這七種，所以時間序列的數量不隨提醒的數量成長。
+func (s Summary) results() []result {
+	return []result{
+		{"expired", s.Expired}, {"missed", s.Missed}, {"sent", s.Sent}, {"retrying", s.Retrying},
+		{"failed", s.Failed}, {"skipped", s.Skipped}, {"errored", s.Errored},
+	}
+}
+
+// startSend 開啟一次送出的 span，回傳的函式在結果出來時記下結果並結束它。
+// 屬性可以有活動編號（追蹤不是指標，高基數沒關係），不能有裝置 token。
+func (d *Dispatcher) startSend(ctx context.Context, r store.Reminder) (context.Context, func(outcome)) {
+	ctx, span := d.tracer.Start(ctx, "reminder.deliver", trace.WithAttributes(
+		attribute.Int64("event.id", r.EventID), attribute.Int("attempt", r.Attempts+1)))
+	return ctx, func(o outcome) {
+		span.SetAttributes(attribute.String("result", o.String()))
+		if o == failed || o == errored {
+			span.SetStatus(codes.Error, o.String())
+		}
+		span.End()
+	}
+}
+
+// instrument 建立指標：送出結果的計數、批次時間，以及逾期未寄的數量。
+// 逾期未寄的數量在收集時才查資料庫：服務卡住、沒有在掃描的時候，它仍然是準的。
+func (d *Dispatcher) instrument(m metric.Meter) error {
+	var errs [3]error
+	d.deliveries, errs[0] = m.Int64Counter("reminder.deliveries",
+		metric.WithDescription("每個結果的提醒數"), metric.WithUnit("{reminder}"))
+	d.duration, errs[1] = m.Float64Histogram("reminder.scan.duration",
+		metric.WithDescription("每一批掃描花的時間"), metric.WithUnit("s"),
+		// 預設的區間是為毫秒設計的；一批的時間從不到一秒到超過掃描間隔（一批送不完）。
+		metric.WithExplicitBucketBoundaries(0.1, 1, 5, 15, 30, 60, 120, 300, 600, 1200, 3600))
+	_, errs[2] = m.Int64ObservableGauge("reminder.overdue.unsent",
+		metric.WithDescription("已過預定時間、還沒寄出的提醒數"), metric.WithUnit("{reminder}"),
+		metric.WithInt64Callback(d.observeOverdue))
+	if err := errors.Join(errs[:]...); err != nil {
+		return fmt.Errorf("create instruments: %w", err)
+	}
+	return nil
+}
+
+// observeOverdue 是 reminder.overdue.unsent 的 callback。查詢失敗只記錄：
+// 資料庫一時有問題，不該讓整份指標快照跟著失敗。
+func (d *Dispatcher) observeOverdue(ctx context.Context, o metric.Int64Observer) error {
+	ctx, cancel := context.WithTimeout(ctx, d.opts.QueryTimeout)
+	defer cancel()
+	n, err := d.store.CountOverdue(ctx, time.Now())
+	if err != nil {
+		d.log.Warn("count overdue reminders failed", "error", err)
+		return nil
+	}
+	o.Observe(int64(n))
+	return nil
+}
+
+// ANCHOR_END: observe
+
 // ANCHOR: scan
 
-// Scan 做一次掃描：先把超過期限的記為失敗，再挑出到期的與該重試的，在並行上限與限流之內送出。
-// 回傳時，這次開始送出的提醒都已經有結果。ctx 結束時不再開始新的提醒，進行中的做完。
-// 只有「失敗記錄」與「挑出提醒」這兩個查詢失敗才回傳錯誤；單一提醒的失敗記在 Summary 與日誌裡。
-func (d *Dispatcher) Scan(ctx context.Context) (Summary, error) {
+// scan 做一次掃描：先把超過期限的記為失敗，再挑出到期的與該重試的，在並行上限與限流之內送出。
+func (d *Dispatcher) scan(ctx context.Context) (Summary, error) {
 	var sum Summary
 	now := time.Now()
 
@@ -210,10 +325,15 @@ const (
 	errored                 // 資料庫操作失敗
 )
 
+// String 回傳結果的名稱，與 Summary 的七種結果同名（aborted 沒有寫紀錄，不計入）。
+func (o outcome) String() string {
+	return [...]string{"aborted", "sent", "retrying", "failed", "skipped", "errored"}[o]
+}
+
 // ANCHOR: deliver
 
 // deliver 處理一則提醒：限流、寫紀錄、送出、更新狀態。
-func (d *Dispatcher) deliver(ctx context.Context, r store.Reminder) outcome {
+func (d *Dispatcher) deliver(ctx context.Context, r store.Reminder) (out outcome) {
 	// 限流在寫紀錄之前：等的時候 ctx 結束，丟掉的只是還沒寫紀錄的提醒，下次掃描會再挑到。
 	// 寫完紀錄到送出之間，沒有任何會被取消的等待。
 	if err := d.limiter.Wait(ctx); err != nil {
@@ -222,6 +342,8 @@ func (d *Dispatcher) deliver(ctx context.Context, r store.Reminder) outcome {
 	// 從這裡起這一則要做完：取消只決定「要不要開始下一則」，不切斷進行中的送出，
 	// 也不讓結果寫不進去而留下停在寄送中的紀錄。逾時由每個請求與每個查詢自己的期限負責。
 	ctx = context.WithoutCancel(ctx)
+	ctx, end := d.startSend(ctx, r)
+	defer func() { end(out) }()
 	attempt := r.Attempts + 1
 
 	ok, err := d.begin(ctx, r)

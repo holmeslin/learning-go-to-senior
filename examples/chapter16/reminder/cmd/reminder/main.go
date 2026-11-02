@@ -1,7 +1,8 @@
 // Command reminder 是提醒服務的行程入口：讀環境變數、處理 signal、組裝，其他的事都交給 reminder.Service。
 //
 // 執行時至少要設 REMINDER_PROVIDER_URL；送出的開關（REMINDER_SEND_ENABLED）預設關閉。
-// 全部的設定名稱與預設值見 config.Config。
+// 全部的設定名稱與預設值見 config.Config。內部 API 預設在 :8080，診斷端點（健康檢查、readiness、
+// /debug/pprof、/debug/metrics）預設在 127.0.0.1:6060，只聽 loopback。
 package main
 
 import (
