@@ -74,13 +74,13 @@ func TestSnapshotIncludesRuntimeGauges(t *testing.T) {
 	}
 }
 
+// ANCHOR: flush
+
 // keepSpans 是 Shutdown 之後仍留著 span 的記憶體 exporter：tracetest.InMemoryExporter 的 Shutdown 會清空已收到的 span，
 // 而要檢查的正是 Shutdown 送出了什麼。
 type keepSpans struct{ *tracetest.InMemoryExporter }
 
 func (keepSpans) Shutdown(context.Context) error { return nil }
-
-// ANCHOR: flush
 
 // 關機時送出最後一段追蹤：span 先在批次處理器的緩衝裡，要等到批次的時間到或 Shutdown 才會送到 exporter。
 // bubble 裡的時間是假的，「還沒送出」與「Shutdown 之後送出了」都是確定的。
