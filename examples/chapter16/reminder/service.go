@@ -46,7 +46,8 @@ type Service struct {
 
 // Run 啟動服務，直到 ctx 結束，再依序關機；正常關機回傳 nil。
 //
-// 送出的開關關閉時，服務照常啟動、套用 migration，但不掃描、不寫任何紀錄、不呼叫供應商。
+// 啟動時先套用自己的 migration，並確認報名服務的唯讀檢視讀得到、欄位齊全，否則拒絕啟動。
+// 送出的開關關閉時，服務照常啟動，但不掃描、不寫任何紀錄、不呼叫供應商。
 // 上線的第一步就是以這個狀態部署，此時報名服務裡的舊 worker 還在運作，新服務不能碰它的提醒。
 //
 // ctx 結束（收到 SIGTERM）之後的順序，期限從這一刻起算，全部包含在 Config.ShutdownTimeout 之內：
@@ -66,13 +67,17 @@ func (s *Service) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	st := store.New(db)
 	if err := store.Migrate(ctx, db); err != nil {
 		return errors.Join(fmt.Errorf("migrate: %w", err), db.Close())
+	}
+	if err := st.CheckCandidates(ctx); err != nil {
+		return errors.Join(err, db.Close())
 	}
 
 	scanDone := make(chan struct{})
 	if cfg.SendEnabled {
-		d, err := dispatch.New(store.New(db), push.NewClient(cfg.ProviderURL, cfg.RequestTimeout, s.Transport), dispatch.Options{
+		d, err := dispatch.New(st, push.NewClient(cfg.ProviderURL, cfg.RequestTimeout, s.Transport), dispatch.Options{
 			Interval:      cfg.ScanInterval,
 			Concurrency:   cfg.SendConcurrency,
 			RatePerSecond: cfg.RateLimit,

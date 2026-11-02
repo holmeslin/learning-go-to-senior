@@ -349,6 +349,28 @@ func TestQueriesHonorTheContext(t *testing.T) {
 	}
 }
 
+func TestCheckCandidates(t *testing.T) {
+	t.Parallel()
+	s, db := newStore(t)
+	if err := s.CheckCandidates(t.Context()); err != nil {
+		t.Errorf("CheckCandidates() with the view error = %v, want nil", err)
+	}
+
+	// 契約的欄位被改掉：檢查要在啟動時就發現，而不是等到第一次掃描。
+	for _, stmt := range []string{
+		`DROP VIEW reminder_candidates`,
+		`CREATE VIEW reminder_candidates AS SELECT event_id, registrant_id, device_token, starts_at FROM registrations JOIN events ON events.id = event_id`,
+	} {
+		if _, err := db.ExecContext(t.Context(), stmt); err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := s.CheckCandidates(t.Context())
+	if err == nil || !strings.Contains(err.Error(), "reminder_candidates") {
+		t.Errorf("CheckCandidates() without the email column error = %v, want it to name the view", err)
+	}
+}
+
 func TestMigrateCanRunAgain(t *testing.T) {
 	t.Parallel()
 	_, db := newStore(t)
