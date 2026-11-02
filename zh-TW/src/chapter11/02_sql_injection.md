@@ -36,7 +36,7 @@
 
 ## 問題在哪
 
-先用一個包住 `Querier` 的記錄器，看實際送進資料庫的 SQL（`Querier` 與第 4 章同一個做法）：
+先用一個包住 `Querier` 的記錄器，看實際送進資料庫的 SQL（包住 `Querier` 來觀察查詢的做法，第 4 章〈[N+1 與查詢組裝](../chapter4/05_n_plus_one.md)〉談過）：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/02_sql_injection/before/example_test.go:recorder}}

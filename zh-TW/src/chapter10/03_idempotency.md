@@ -58,7 +58,7 @@ client 的每個動作都合理：逾時、重試、第二次拿到 201。結果
 {{#include ../../../examples/chapter10/03_idempotency/after/example_test.go:example}}
 ```
 
-並行的重複請求是最容易寫錯的地方。測試用 `testing/synctest`（用法見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉）：handler 真的阻塞在 channel 上，三個同鍵的請求同時送出，`synctest.Wait` 等到全部停住，才檢查「放行之前，進到 handler 的只有一個」，再放行並確認三個請求拿到同一份回應：
+並行的重複請求是最容易寫錯的地方。測試用 `testing/synctest`（用法見前作〈[`testing/synctest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/19_synctest.html)〉與第 6 章〈[goroutine 的生命週期歸誰管](../chapter6/01_goroutine_ownership.md)〉）：handler 真的阻塞在 channel 上，三個同鍵的請求同時送出，`synctest.Wait` 等到全部停住，才檢查「放行之前，進到 handler 的只有一個」，再放行並確認三個請求拿到同一份回應：
 
 ```go,ignore
 {{#include ../../../examples/chapter10/03_idempotency/after/payment_test.go:concurrent}}

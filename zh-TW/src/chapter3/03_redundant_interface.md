@@ -72,7 +72,7 @@ review 時有人留言：「每個元件都該有介面，以後才能換實作�
 {{#include ../../../examples/chapter3/03_redundant_interface/after/example_test.go:example}}
 ```
 
-測試替身要用 fake、stub 還是 mock、放在哪裡，第 5 章〈測試策略〉會談。完整程式碼在 `examples/chapter3/03_redundant_interface/after/`。
+測試替身要用 fake、stub 還是 mock，第 5 章〈[fake、stub、mock 的選擇](../chapter5/03_fake_stub_mock.md)〉談過；放在哪裡，見〈[測試替身放在哪裡](../chapter5/04_where_test_doubles_live.md)〉。完整程式碼在 `examples/chapter3/03_redundant_interface/after/`。
 
 ## 取捨
 
