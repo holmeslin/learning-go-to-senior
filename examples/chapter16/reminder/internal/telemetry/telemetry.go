@@ -154,7 +154,7 @@ func labels(set attribute.Set) string {
 	var parts []string
 	for iter := set.Iter(); iter.Next(); {
 		kv := iter.Attribute()
-		parts = append(parts, fmt.Sprintf("%s=%q", kv.Key, kv.Value.Emit()))
+		parts = append(parts, fmt.Sprintf("%s=%q", kv.Key, kv.Value.String()))
 	}
 	return "{" + strings.Join(parts, ",") + "}"
 }
