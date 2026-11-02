@@ -137,6 +137,7 @@
     - [什麼時候該擋、什麼時候可以放行](chapter13/06_block_or_approve.md)
 - [設計文件](chapter14/README.md)
     - [什麼時候需要寫](chapter14/01_when_to_write.md)
+    - [結構：背景、目標、非目標、方案、取捨](chapter14/02_doc_structure.md)
 - [事故處理]()
 
 # 第七部　綜合實戰
