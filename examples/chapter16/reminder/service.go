@@ -10,7 +10,8 @@
 //	telemetry   指標與追蹤（OpenTelemetry SDK）
 //	dispatch    掃描與送出，依賴 store 與 push（Sender 是定義在使用端的介面）
 //	api         內部 HTTP API，依賴 store 的型別（Counter 是定義在使用端的介面）
-//	diag        診斷端點，只依賴標準庫
+//	buildinfo   版本資訊，只依賴標準庫
+//	diag        診斷端點，依賴 buildinfo 的型別
 //	reminder    依賴以上全部
 package reminder
 
@@ -28,6 +29,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/api"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/buildinfo"
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/config"
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/diag"
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/dispatch"
@@ -48,6 +50,8 @@ type Service struct {
 	// Config 是 config.Load 驗證過的設定。Config.APIAddr 或 Config.DiagAddr 是空字串時，
 	// Service 不啟動那個 HTTP 伺服器：Load 不會產生空字串，這是留給測試的接縫（synctest 的 bubble 裡不能有真的 socket）。
 	Config config.Config
+	// Build 是這個執行檔的版本資訊（見 buildinfo.From）：啟動日誌與診斷端點的 /version 用它。零值代表沒有。
+	Build buildinfo.Info
 	// Logger 記錄服務的事件；nil 時用 slog.Default()。日誌不記裝置 token。
 	Logger *slog.Logger
 	// Transport 是呼叫推播供應商用的傳輸；nil 時用 http.DefaultTransport。
@@ -136,7 +140,7 @@ func (s *Service) Run(ctx context.Context) error {
 	if err != nil {
 		return abort(err)
 	}
-	diagSrv, err := startServer(log, "diagnostic", cfg.DiagAddr, diag.NewHandler(ready, tel))
+	diagSrv, err := startServer(log, "diagnostic", cfg.DiagAddr, diag.NewHandler(ready, tel, s.Build))
 	if err != nil {
 		return abort(err, apiSrv)
 	}
@@ -154,7 +158,7 @@ func (s *Service) Run(ctx context.Context) error {
 		close(scanDone)
 	}
 	ready.Set(true)
-	log.Info("reminder service started", "send_enabled", cfg.SendEnabled)
+	log.Info("reminder service started", "send_enabled", cfg.SendEnabled, "version", s.Build.String())
 
 	<-ctx.Done() // 收到結束訊號
 	ready.Set(false)
