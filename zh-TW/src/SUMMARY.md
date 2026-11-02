@@ -139,6 +139,7 @@
     - [什麼時候需要寫](chapter14/01_when_to_write.md)
     - [結構：背景、目標、非目標、方案、取捨](chapter14/02_doc_structure.md)
     - [寫給誰看](chapter14/03_audience.md)
+    - [替代方案怎麼寫](chapter14/04_alternatives.md)
 - [事故處理]()
 
 # 第七部　綜合實戰
