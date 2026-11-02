@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/config"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/demoreg"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/store"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/config"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/demoreg"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/store"
 )
 
 // ANCHOR: provider

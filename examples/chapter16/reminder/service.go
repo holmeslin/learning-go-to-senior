@@ -19,10 +19,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/config"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/dispatch"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/push"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/store"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/config"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/dispatch"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/push"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/store"
 )
 
 // databaseMaxConns 是資料庫連線池的上限。送出的並行上限（預設 20）不必等於它：

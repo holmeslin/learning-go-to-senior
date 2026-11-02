@@ -13,10 +13,10 @@ import (
 	"testing/synctest"
 	"time"
 
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/demoreg"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/dispatch"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/push"
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/store"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/demoreg"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/dispatch"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/push"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/store"
 )
 
 // ANCHOR: sender

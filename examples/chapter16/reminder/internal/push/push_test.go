@@ -11,7 +11,7 @@ import (
 	"testing/synctest"
 	"time"
 
-	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/push"
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/push"
 )
 
 // ANCHOR: fake
