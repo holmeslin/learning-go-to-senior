@@ -144,6 +144,7 @@
     - [設計文件與 ADR 的關係](chapter14/06_design_doc_and_adr.md)
 - [事故處理](chapter15/README.md)
     - [事故中的角色分工](chapter15/01_incident_roles.md)
+    - [事後檢討（blameless postmortem）](chapter15/04_blameless_postmortem.md)
 
 # 第七部　綜合實戰
 
