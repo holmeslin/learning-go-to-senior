@@ -40,9 +40,9 @@
 | 預防 | 新 ADR 取代 ADR-0012：worker 拆成獨立部署 | 提醒 worker 的作者 | 6 週 | ADR 經 review 合併；遷移另開 issue，不算在這一項 |
 | 善後 | 決定已放棄的提醒要不要補寄 | 產品負責人 | 活動開始前 | 決定與理由寫進檢討文件；補寄就先確認不會重複，不補就記為接受的風險 |
 
-最後一項不改系統，是對已經造成的影響做決定。「寧可不寄，也不重複」在這次事故裡真的發生了，補寄得先確定上一次有沒有寄出，確定不了就可能重複，所以這是產品負責人要做的取捨，不是 worker 的作者能獨自決定的。設定開關在事故中才第一次真的用到，演練是為了平常就知道它關得掉。告警指標用第 8 章〈[`runtime/metrics`](../chapter8/06_runtime_metrics.md)〉清單裡的 `/sched/goroutines:goroutines` 與 `/gc/heap/live:bytes`；T+45 分響的是第 9 章〈[SLI 與 SLO](../chapter9/08_sli_slo.md)〉的錯誤預算告警，使用者已經受影響了，原因端的告警要更早。runbook 本章〈runbook〉會談。
+最後一項不改系統，是對已經造成的影響做決定。「寧可不寄，也不重複」在這次事故裡真的發生了，補寄得先確定上一次有沒有寄出，確定不了就可能重複，所以這是產品負責人要做的取捨，不是 worker 的作者能獨自決定的。設定開關從未演練過，這次剛好能用；演練是為了平常就知道它關得掉，而不是靠運氣。告警指標用第 8 章〈[`runtime/metrics`](../chapter8/06_runtime_metrics.md)〉清單裡的 `/sched/goroutines:goroutines` 與 `/gc/heap/live:bytes`；T+45 分響的是第 9 章〈[SLI 與 SLO](../chapter9/08_sli_slo.md)〉的錯誤預算告警，使用者已經受影響了，原因端的告警要更早。runbook 本章〈runbook〉會談。
 
-### 完成的定義是一個會失敗的測試
+## 完成的定義是一個會失敗的測試
 
 「加逾時與並行上限」若完成的定義只是「PR 合併」，下一個人改掉那兩行也不會有人發現。把它寫成測試：假的供應商讓請求一直阻塞到 `context` 結束，斷言逾時之後回傳錯誤、同時進行的請求不超過上限、結束時沒有殘留的 goroutine。逾時怎麼分，第 10 章〈[逾時預算](../chapter10/01_timeout_budget.md)〉談過；上限怎麼設，第 6 章〈[`errgroup` 的並行上限](../chapter6/03_errgroup_limit.md)〉談過；殘留的 goroutine 怎麼在測試裡抓，第 6 章〈[goroutine 洩漏怎麼發生、怎麼在測試裡抓到](../chapter6/09_goroutine_leak.md)〉談過；本章〈[用 `pprof` 與 trace 在現場診斷](03_pprof_trace_live.md)〉附的範例是這種寫法。
 
