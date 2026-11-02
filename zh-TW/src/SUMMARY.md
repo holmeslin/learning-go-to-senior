@@ -146,6 +146,7 @@
     - [事故中的角色分工](chapter15/01_incident_roles.md)
     - [先止血，再找原因](chapter15/02_mitigate_first.md)
     - [事後檢討（blameless postmortem）](chapter15/04_blameless_postmortem.md)
+    - [行動項目與追蹤](chapter15/05_action_items.md)
 
 # 第七部　綜合實戰
 
