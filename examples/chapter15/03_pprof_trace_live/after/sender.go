@@ -13,13 +13,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// 供應商一般 100 毫秒內回應、限制每秒 50 次：同時 8 個請求綽綽有餘；等 2 秒還沒回應就當它失敗。
-// shortcut: 寫死成常數，正式環境要從設定讀（第 12 章〈設定與環境變數〉），範例不做。
-const (
-	maxInFlight    = 8
-	requestTimeout = 2 * time.Second
-)
-
 // Push 是一則要送給推播供應商的提醒。
 type Push struct {
 	// Key 是「活動 + 報名者」組成的冪等鍵，供應商用它辨識重複的請求。
@@ -34,7 +27,14 @@ type Sender struct {
 	URL string
 }
 
-// ANCHOR: sendall
+// ANCHOR: sender
+
+// 上限與逾時都是示範用的數字。
+// shortcut: 寫死成常數，正式環境要從設定讀（第 12 章〈設定與環境變數〉），範例不做。
+const (
+	maxInFlight    = 8               // 同時進行的請求數；供應商限制每秒 50 次，上限要照它定
+	requestTimeout = 2 * time.Second // 每個請求最多等多久，超過就當它失敗
+)
 
 // SendAll 送出全部提醒，等每一則都有結果才回傳。
 // 同時進行的請求最多 maxInFlight 個，每個請求最多等 requestTimeout；
@@ -53,9 +53,7 @@ func (s Sender) SendAll(ctx context.Context, pushes []Push) error {
 	return errors.Join(errs...)
 }
 
-// ANCHOR_END: sendall
-
-// post 送出一則提醒。
+// post 送出一則提醒；等待供應商的時間最多 requestTimeout。
 func (s Sender) post(ctx context.Context, p Push) error {
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
@@ -74,3 +72,5 @@ func (s Sender) post(ctx context.Context, p Push) error {
 	}
 	return nil
 }
+
+// ANCHOR_END: sender

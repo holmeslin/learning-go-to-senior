@@ -13,9 +13,10 @@ import (
 // roundTripFunc 讓一個函式充當 http.RoundTripper：測試不連網路，供應商的行為由它決定。
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
+// RoundTrip 呼叫 f。
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
-// 供應商正常回應的路徑：before 只測這一條，而且會通過。
+// TestSendAllDelivers 只測供應商正常回應的路徑：before 只測這一條，而且會通過。
 // SendAll 不等結果，所以測試用 synctest.Wait 等所有 goroutine 都做完。
 func TestSendAllDelivers(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {

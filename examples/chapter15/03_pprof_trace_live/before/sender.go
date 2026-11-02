@@ -24,7 +24,7 @@ type Sender struct {
 	URL string
 }
 
-// ANCHOR: sendall
+// ANCHOR: send
 
 // SendAll 把每則提醒交給一個新的 goroutine 送出，然後立刻回傳 nil。
 func (s Sender) SendAll(ctx context.Context, pushes []Push) error {
@@ -34,9 +34,7 @@ func (s Sender) SendAll(ctx context.Context, pushes []Push) error {
 	return nil
 }
 
-// ANCHOR_END: sendall
-
-// post 送出一則提醒。
+// post 送出一則提醒；等待供應商的時間沒有上限。
 func (s Sender) post(ctx context.Context, p Push) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.URL, http.NoBody)
 	if err != nil {
@@ -53,3 +51,5 @@ func (s Sender) post(ctx context.Context, p Push) error {
 	}
 	return nil
 }
+
+// ANCHOR_END: send
