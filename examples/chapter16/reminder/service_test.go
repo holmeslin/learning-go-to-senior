@@ -15,6 +15,8 @@ import (
 	"testing/synctest"
 	"time"
 
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder"
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/config"
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/demoreg"
@@ -35,6 +37,10 @@ type provider struct {
 	start   time.Time
 	delay   time.Duration
 	respond func(r *http.Request) int // 回傳 HTTP 狀態碼；nil 代表 200
+	// arrived 與 gate 給不在 bubble 裡的測試用（真的時間）：每個請求到達時先通知 arrived，
+	// 再等 gate 關閉才回應；兩個都是 nil 代表不等。
+	arrived chan<- struct{}
+	gate    <-chan struct{}
 
 	mu       sync.Mutex
 	requests []request
@@ -45,6 +51,16 @@ func (p *provider) RoundTrip(r *http.Request) (*http.Response, error) {
 	p.requests = append(p.requests, request{Key: r.Header.Get("Idempotency-Key"), At: time.Since(p.start)})
 	p.mu.Unlock()
 
+	if p.arrived != nil {
+		p.arrived <- struct{}{}
+	}
+	if p.gate != nil {
+		select {
+		case <-p.gate:
+		case <-r.Context().Done():
+			return nil, r.Context().Err()
+		}
+	}
 	if p.delay > 0 {
 		select {
 		case <-time.After(p.delay):
@@ -100,6 +116,9 @@ type harness struct {
 	store    *store.Store
 	provider *provider
 	start    time.Time
+
+	logger   *slog.Logger          // 服務用的日誌；預設丟棄
+	exporter sdktrace.SpanExporter // 追蹤送去的地方；預設 nil（不送出）
 }
 
 // loadConfig 用 config.Load 載入設定：預設的環境變數是開關打開、供應商網址、每個測試各自的記憶體資料庫，
@@ -117,6 +136,10 @@ func loadConfig(t *testing.T, overrides map[string]string) config.Config {
 	if err != nil {
 		t.Fatalf("config.Load() error = %v", err)
 	}
+	// 空位址代表不啟動 HTTP 伺服器：synctest 的 bubble 裡不能有真的 socket。
+	// config.Load 不會產生空位址（空字串視為沒設，會用預設值），所以在這裡直接清掉；
+	// 要測真的伺服器的測試，在 bubble 外自己設成 127.0.0.1:0。
+	cfg.APIAddr, cfg.DiagAddr = "", ""
 	return cfg
 }
 
@@ -155,7 +178,11 @@ func (h *harness) addEvent(t *testing.T, eventID int64, due time.Time, registran
 // run 在背景啟動服務。cancel 代表「收到結束訊號」；Run 的結果從 done 讀。
 func (h *harness) run(t *testing.T) (cancel context.CancelFunc, done <-chan error) {
 	t.Helper()
-	svc := &reminder.Service{Config: h.cfg, Logger: slog.New(slog.DiscardHandler), Transport: h.provider}
+	logger := h.logger
+	if logger == nil {
+		logger = slog.New(slog.DiscardHandler)
+	}
+	svc := &reminder.Service{Config: h.cfg, Logger: logger, Transport: h.provider, SpanExporter: h.exporter}
 	ctx, cancel := context.WithCancel(t.Context())
 	result := make(chan error, 1)
 	go func() { result <- svc.Run(ctx) }()

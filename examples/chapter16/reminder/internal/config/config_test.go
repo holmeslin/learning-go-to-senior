@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"maps"
 	"strings"
 	"testing"
 	"time"
@@ -95,7 +96,7 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		{"rate limit is not a number", "REMINDER_RATE_LIMIT", "fast"},
 		{"rate limit is zero", "REMINDER_RATE_LIMIT", "0"},
 		{"query timeout is zero", "REMINDER_QUERY_TIMEOUT", "0s"},
-		{"shutdown timeout leaves no margin over the request timeout", "REMINDER_SHUTDOWN_TIMEOUT", "5s"},
+		{"shutdown timeout is shorter than the worst-case send", "REMINDER_SHUTDOWN_TIMEOUT", "5s"},
 		{"provider url has no host", "REMINDER_PROVIDER_URL", "https://"},
 		{"provider url is not http", "REMINDER_PROVIDER_URL", "ftp://push.example.com"},
 		{"api address has no port", "REMINDER_API_ADDR", "localhost"},
@@ -121,6 +122,55 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 }
 
 // ANCHOR_END: invalid
+
+// ANCHOR: shutdownbudget
+
+// 關機期限要涵蓋最壞的一則送出：寫紀錄的查詢、請求、記結果的查詢，加上 HTTP 伺服器收尾的一個查詢，
+// 再加 5 秒餘裕。預設的請求與查詢逾時都是 5 秒，所以下限是 5 + 3×5 + 5 = 25 秒。
+func TestLoadChecksTheShutdownTimeoutAgainstTheWorstCaseSend(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		vars map[string]string
+		ok   bool
+	}{
+		{"just below the minimum", map[string]string{"REMINDER_SHUTDOWN_TIMEOUT": "24s"}, false},
+		{"exactly the minimum", map[string]string{"REMINDER_SHUTDOWN_TIMEOUT": "25s"}, true},
+		{"the default", nil, true},
+		// 查詢逾時調大，下限跟著變：5 + 3×10 + 5 = 40 秒，預設的 30 秒不夠了。
+		{"a longer query timeout needs a longer shutdown timeout", map[string]string{"REMINDER_QUERY_TIMEOUT": "10s"}, false},
+		{"and then it fits", map[string]string{"REMINDER_QUERY_TIMEOUT": "10s", "REMINDER_SHUTDOWN_TIMEOUT": "40s"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			vars := map[string]string{"REMINDER_PROVIDER_URL": "https://push.example.com"}
+			maps.Copy(vars, tt.vars)
+			_, err := config.Load(env(vars))
+			if tt.ok {
+				if err != nil {
+					t.Errorf("Load() error = %v, want none", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), "REMINDER_SHUTDOWN_TIMEOUT") {
+				t.Errorf("Load() error = %v, want it to name REMINDER_SHUTDOWN_TIMEOUT", err)
+			}
+		})
+	}
+}
+
+// 錯誤訊息直接說出下限與算式，改設定的人不必回頭查程式。
+func TestLoadShutdownTimeoutErrorStatesTheMinimum(t *testing.T) {
+	t.Parallel()
+	_, err := config.Load(env(map[string]string{"REMINDER_PROVIDER_URL": "https://push.example.com", "REMINDER_SHUTDOWN_TIMEOUT": "20s"}))
+	want := "REMINDER_SHUTDOWN_TIMEOUT: must be at least 25s (REMINDER_REQUEST_TIMEOUT + 3 x REMINDER_QUERY_TIMEOUT + 5s)"
+	if err == nil || err.Error() != want {
+		t.Errorf("Load() error = %v, want %q", err, want)
+	}
+}
+
+// ANCHOR_END: shutdownbudget
 
 func TestLoadRequiresProviderURL(t *testing.T) {
 	t.Parallel()
