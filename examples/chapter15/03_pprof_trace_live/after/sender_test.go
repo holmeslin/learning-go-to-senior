@@ -21,6 +21,7 @@ const supplierURL = "http://supplier.invalid/push"
 // roundTripFunc 讓一個函式充當 http.RoundTripper：測試不連網路，供應商的行為由它決定。
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
+// RoundTrip 呼叫 f。
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 // status 回傳只有狀態碼的回應。
@@ -37,6 +38,7 @@ func pushes(n int) []reminder.Push {
 	return out
 }
 
+// TestSendAllDelivers 檢查供應商正常回應時，每一則提醒都送到、沒有錯誤。
 func TestSendAllDelivers(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		var calls atomic.Int32
@@ -57,7 +59,7 @@ func TestSendAllDelivers(t *testing.T) {
 	})
 }
 
-// ANCHOR: stuck
+// ANCHOR: timeout
 
 // stuckSupplier 模擬卡住的供應商：連線建好、請求送出，就是不回應，直到呼叫端放棄。
 func stuckSupplier(r *http.Request) (*http.Response, error) {
@@ -65,7 +67,7 @@ func stuckSupplier(r *http.Request) (*http.Response, error) {
 	return nil, r.Context().Err()
 }
 
-// 呼叫端傳進來的 ctx 沒有 deadline；逾時要由 SendAll 自己負責。
+// TestSendAllTimesOut 傳進沒有 deadline 的 ctx：逾時要由 SendAll 自己負責。
 // 時間是 bubble 的假時間，2 秒瞬間走完。
 func TestSendAllTimesOut(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -83,11 +85,7 @@ func TestSendAllTimesOut(t *testing.T) {
 	})
 }
 
-// ANCHOR_END: stuck
-
-// ANCHOR: noleak
-
-// 供應商整個卡住、提醒比上限多：每一輪等 2 秒，20 則分 3 輪，6 秒後全部放棄。
+// TestSendAllLeavesNoGoroutine 讓供應商整個卡住、提醒比上限多：每一輪等 2 秒，20 則分 3 輪，6 秒後全部放棄。
 // SendAll 回傳時不能還有 goroutine 卡著：bubble 結束時若還有，synctest.Test 會 panic。
 func TestSendAllLeavesNoGoroutine(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -105,9 +103,7 @@ func TestSendAllLeavesNoGoroutine(t *testing.T) {
 	})
 }
 
-// ANCHOR_END: noleak
-
-// ANCHOR: limit
+// ANCHOR_END: timeout
 
 // gauge 記錄同時進行的請求數與它的最大值。
 type gauge struct {
@@ -128,7 +124,7 @@ func (g *gauge) peak() int {
 	return g.maximum
 }
 
-// 供應商正常，每個請求花 100 毫秒（假時間）。30 則提醒、上限 8：
+// TestSendAllRespectsLimit 讓供應商正常、每個請求花 100 毫秒（假時間）。30 則提醒、上限 8：
 // 同時進行的請求最多 8 個，分 4 輪送完。
 func TestSendAllRespectsLimit(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -154,8 +150,7 @@ func TestSendAllRespectsLimit(t *testing.T) {
 	})
 }
 
-// ANCHOR_END: limit
-
+// TestSendAllReportsRejection 檢查供應商拒絕時，錯誤指出是哪一則提醒。
 func TestSendAllReportsRejection(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		s := reminder.Sender{
