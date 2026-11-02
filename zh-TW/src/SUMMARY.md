@@ -143,6 +143,7 @@
     - [設計文件的 review](chapter14/05_design_review.md)
     - [設計文件與 ADR 的關係](chapter14/06_design_doc_and_adr.md)
 - [事故處理]()
+    - [先止血，再找原因](chapter15/02_mitigate_first.md)
 
 # 第七部　綜合實戰
 
