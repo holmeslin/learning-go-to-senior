@@ -1,4 +1,4 @@
-// Package diag 是提醒服務的診斷端點：健康檢查、readiness、pprof 與指標快照。
+// Package diag 是提醒服務的診斷端點：健康檢查、readiness、版本、pprof 與指標快照。
 //
 // 它掛在自己的 ServeMux 上，和內部 API 是兩個 handler、兩個 listener；
 // 呼叫端只能把它交給只聽 loopback 的位址，因為 pprof 不能對外。
@@ -7,10 +7,13 @@ package diag
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/pprof"
 	"sync/atomic"
+
+	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/buildinfo"
 )
 
 // Readiness 是服務「能不能接新工作」的旗標。零值是未就緒：服務啟動完成才設成就緒，
@@ -40,11 +43,12 @@ type Snapshotter interface {
 //
 //	GET /healthz              行程還活著就是 200
 //	GET /readyz               就緒 200，未就緒（啟動中、關機中）503
+//	GET /version              build 的 JSON：版本、commit、commit 時間、Go 版本
 //	GET /debug/metrics        指標快照，純文字
 //	GET /debug/pprof/...      具名的 profile、profile、symbol、trace；沒有 cmdline
 //
 // 這個伺服器不能設 WriteTimeout：/debug/pprof/profile 預設要跑 30 秒才回應。
-func NewHandler(ready *Readiness, metrics Snapshotter) http.Handler {
+func NewHandler(ready *Readiness, metrics Snapshotter, build buildinfo.Info) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		io.WriteString(w, "ok\n")
@@ -55,6 +59,10 @@ func NewHandler(ready *Readiness, metrics Snapshotter) http.Handler {
 			return
 		}
 		io.WriteString(w, "ready\n")
+	})
+	mux.HandleFunc("GET /version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(build)
 	})
 	mux.HandleFunc("GET /debug/metrics", func(w http.ResponseWriter, r *http.Request) {
 		// 先寫進緩衝區：收集失敗時才來得及回 500，不是送出一半的快照。
