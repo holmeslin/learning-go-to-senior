@@ -329,3 +329,73 @@ FROM reminder_deliveries WHERE event_id = ? AND registrant_id = ?`, eventID, reg
 	}
 	return d, nil
 }
+
+// CountByState 回傳某場活動各狀態的寄送紀錄數量，內部 API 用它回答「這場活動的提醒送到哪了」。
+// 四個狀態都會出現在結果裡，沒有紀錄的是 0。檢視裡沒有這場活動的報名者、也沒有任何紀錄時，
+// 回傳 ErrNotFound：呼叫端才分得出「活動存在、還沒有紀錄」與「沒有這場活動」。
+func (s *Store) CountByState(ctx context.Context, eventID int64) (map[State]int, error) {
+	counts := map[State]int{StateSending: 0, StateSent: 0, StateRetrying: 0, StateFailed: 0}
+	recorded, err := s.countRecorded(ctx, eventID, counts)
+	if err != nil {
+		return nil, err
+	}
+	if recorded > 0 {
+		return counts, nil
+	}
+	var known bool
+	err = s.db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM reminder_candidates WHERE event_id = ?)`, eventID).Scan(&known)
+	if err != nil {
+		return nil, fmt.Errorf("check event %d: %w", eventID, err)
+	}
+	if !known {
+		return nil, fmt.Errorf("count deliveries of event %d: %w", eventID, ErrNotFound)
+	}
+	return counts, nil
+}
+
+// countRecorded 把這場活動各狀態的筆數填進 counts，回傳總筆數；rows 在回傳前關閉，不占著連線。
+func (s *Store) countRecorded(ctx context.Context, eventID int64, counts map[State]int) (int, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT state, COUNT(*) FROM reminder_deliveries WHERE event_id = ? GROUP BY state`, eventID)
+	if err != nil {
+		return 0, fmt.Errorf("count deliveries of event %d: %w", eventID, err)
+	}
+	defer rows.Close()
+	total := 0
+	for rows.Next() {
+		var state string
+		var n int
+		if err := rows.Scan(&state, &n); err != nil {
+			return 0, fmt.Errorf("scan delivery count of event %d: %w", eventID, err)
+		}
+		counts[State(state)] = n
+		total += n
+	}
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("count deliveries of event %d: %w", eventID, err)
+	}
+	return total, nil
+}
+
+// CountOverdue 回傳 now 這個時間點，已經過了預定時間、還沒寄出的提醒數量：
+// 寄送中與待重試的紀錄，加上已到預定時間、還在 SendWindow 之內、卻還沒有紀錄的。
+// 已寄出與已記為失敗的不算。取消報名的人若還留著未結束的紀錄，會算到期限到了記為失敗為止；數量很小，不另外排除。
+func (s *Store) CountOverdue(ctx context.Context, now time.Time) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx, `
+SELECT
+  (SELECT COUNT(*) FROM reminder_deliveries WHERE state IN ('sending', 'retrying'))
++ (SELECT COUNT(*) FROM reminder_candidates AS c
+   WHERE c.starts_at - :lead <= :now
+     AND :now < c.starts_at - :lead + :window
+     AND NOT EXISTS (
+         SELECT 1 FROM reminder_deliveries AS d
+         WHERE d.event_id = c.event_id AND d.registrant_id = c.registrant_id))`,
+		sql.Named("now", now.Unix()),
+		sql.Named("lead", int64(LeadTime/time.Second)),
+		sql.Named("window", int64(SendWindow/time.Second)),
+	).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("count overdue reminders: %w", err)
+	}
+	return n, nil
+}
