@@ -28,8 +28,6 @@ func status(code int) roundTripFunc {
 	}
 }
 
-// ANCHOR_END: fake
-
 var notification = push.Notification{
 	Key:         "reminder-7-42",
 	DeviceToken: "device-token-1",
@@ -38,9 +36,12 @@ var notification = push.Notification{
 	Body:        "你報名的活動將在一天後開始。",
 }
 
+// send 用 rt 當傳輸，送出上面那則通知。
 func send(rt http.RoundTripper) error {
 	return push.NewClient("http://provider.test", time.Second, rt).Send(context.Background(), notification)
 }
+
+// ANCHOR_END: fake
 
 // ANCHOR: classify
 
