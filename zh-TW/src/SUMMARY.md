@@ -136,6 +136,7 @@
     - [作者的自我審查](chapter13/05_author_self_review.md)
     - [什麼時候該擋、什麼時候可以放行](chapter13/06_block_or_approve.md)
 - [設計文件]()
+    - [替代方案怎麼寫](chapter14/04_alternatives.md)
 - [事故處理]()
 
 # 第七部　綜合實戰
