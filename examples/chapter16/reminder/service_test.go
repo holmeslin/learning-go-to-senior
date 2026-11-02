@@ -102,9 +102,9 @@ type harness struct {
 	start    time.Time
 }
 
-// newHarness 用 config.Load 載入設定（overrides 蓋過預設的環境變數），開資料庫並建立報名的示範 schema。
-// 資料庫在 bubble 裡開，就在 bubble 裡關。
-func newHarness(t *testing.T, overrides map[string]string) *harness {
+// loadConfig 用 config.Load 載入設定：預設的環境變數是開關打開、供應商網址、每個測試各自的記憶體資料庫，
+// overrides 蓋過它們。
+func loadConfig(t *testing.T, overrides map[string]string) config.Config {
 	t.Helper()
 	name := strings.NewReplacer("/", "_", " ", "_").Replace(t.Name())
 	vars := map[string]string{
@@ -117,6 +117,13 @@ func newHarness(t *testing.T, overrides map[string]string) *harness {
 	if err != nil {
 		t.Fatalf("config.Load() error = %v", err)
 	}
+	return cfg
+}
+
+// newHarness 載入設定、開資料庫並建立報名的示範 schema。資料庫在 bubble 裡開，就在 bubble 裡關。
+func newHarness(t *testing.T, overrides map[string]string) *harness {
+	t.Helper()
+	cfg := loadConfig(t, overrides)
 	db, err := store.OpenDB(cfg.DatabasePath, 2)
 	if err != nil {
 		t.Fatal(err)
@@ -362,3 +369,21 @@ func TestServiceRecordsAsFailedWhatItMissedWhileDown(t *testing.T) {
 }
 
 // ANCHOR_END: missed
+
+// 報名服務的唯讀檢視不在：服務啟動時就拒絕，不是等到第一次掃描才出錯；開關關閉的部署也一樣。
+func TestServiceRefusesToStartWithoutTheView(t *testing.T) {
+	for _, enabled := range []string{"true", "false"} {
+		t.Run("switch "+enabled, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				svc := &reminder.Service{
+					Config: loadConfig(t, map[string]string{"REMINDER_SEND_ENABLED": enabled}),
+					Logger: slog.New(slog.DiscardHandler),
+				}
+				err := svc.Run(t.Context())
+				if err == nil || !strings.Contains(err.Error(), "reminder_candidates") {
+					t.Errorf("Run() error = %v, want it to refuse to start and name the view", err)
+				}
+			})
+		})
+	}
+}
