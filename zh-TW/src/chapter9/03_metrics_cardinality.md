@@ -6,7 +6,7 @@
 
 ## 情境
 
-會員服務要看每個端點的請求量與錯誤，於是在 HTTP 中介層加一個計數器。屬性放什麼，寫的人通常覺得「越詳細越好查」：誰打的、打的是哪個網址。同一個服務還有一個 `*sql.DB`，第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉談過它的 `Stats()` 要長期收集與告警，這集示範怎麼把它匯出。HTTP 伺服器、`ServeMux` 與 middleware 前作教過：〈[`ServeMux` 路由](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/02_servemux.html)〉、〈[middleware](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/05_middleware.html)〉。
+會員服務要看每個端點的請求量與錯誤，於是在 HTTP 中介層加一個計數器。屬性放什麼，寫的人通常覺得「越詳細越好查」：誰打的、打的是哪個網址。同一個服務還有一個 `*sql.DB`，第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉談過它的 `Stats()` 要長期收集，這集示範怎麼把它匯出。HTTP 伺服器、`ServeMux` 與 middleware 前作教過：〈[`ServeMux` 路由](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/02_servemux.html)〉、〈[middleware](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter14/05_middleware.html)〉。
 
 ## 常見寫法
 

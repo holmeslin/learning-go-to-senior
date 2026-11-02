@@ -67,7 +67,7 @@
 {{#include ../../../examples/chapter3/07_di_without_framework/after/signup/signup_test.go:graph}}
 ```
 
-`fakeMailer` 只實作 `Send` 一個方法就能放進圖裡（前作〈[隱式實作](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/02_implicit_implementation.html)〉）。替身該用 fake 還是 mock、放在哪裡，第 5 章會談。同樣兩個 `Example`：
+`fakeMailer` 只實作 `Send` 一個方法就能放進圖裡（前作〈[隱式實作](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/02_implicit_implementation.html)〉）。替身該用 fake 還是 mock，第 5 章〈[fake、stub、mock 的選擇](../chapter5/03_fake_stub_mock.md)〉談過；放在哪裡，見〈[測試替身放在哪裡](../chapter5/04_where_test_doubles_live.md)〉。同樣兩個 `Example`：
 
 ```go,ignore
 {{#include ../../../examples/chapter3/07_di_without_framework/after/signup/example_test.go:example}}

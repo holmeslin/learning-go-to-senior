@@ -84,7 +84,7 @@ CPU 密集的工作，並行數對齊 P 的數量：開 `runtime.GOMAXPROCS(0)` 
 
 `GOMAXPROCS(0)` 只讀不改，回傳目前的值。這和第 6 章〈[什麼時候需要 worker pool，什麼時候每個任務一個 goroutine 就夠](../chapter6/06_worker_pool_or_goroutine_per_task.md)〉的判斷不衝突：那一集的上限由下游的容量決定，這裡由 CPU 決定。用 `errgroup` 的 `SetLimit(runtime.GOMAXPROCS(0))` 效果相同，這集只用標準庫。
 
-測試要證明並行數「跟著」`GOMAXPROCS`，而不是剛好等於這台機器的值：把它設成 1、2、4，同時執行的 `fn` 的最大值必須分別是 1、2、4。每個 `fn` 都卡在一個 channel 上，`synctest.Wait` 在所有 goroutine 都卡住時回來，這時數同時卡住的 `fn` 有幾個，再放行（第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉談過）。測試改了全域設定，所以用 `t.Cleanup` 還原，也不呼叫 `t.Parallel`；呼叫 `GOMAXPROCS` 還會關掉 runtime 的自動調整，只該出現在測試裡，細節本章〈容器內的 `GOMAXPROCS`〉會談：
+測試要證明並行數「跟著」`GOMAXPROCS`，而不是剛好等於這台機器的值：把它設成 1、2、4，同時執行的 `fn` 的最大值必須分別是 1、2、4。每個 `fn` 都卡在一個 channel 上，`synctest.Wait` 在所有 goroutine 都卡住時回來，這時數同時卡住的 `fn` 有幾個，再放行（`synctest.Wait` 與 bubble 的規則見前作〈[`testing/synctest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/19_synctest.html)〉與第 6 章〈[goroutine 的生命週期歸誰管](../chapter6/01_goroutine_ownership.md)〉）。測試改了全域設定，所以用 `t.Cleanup` 還原，也不呼叫 `t.Parallel`；呼叫 `GOMAXPROCS` 還會關掉 runtime 的自動調整，只該出現在測試裡，細節本章〈容器內的 `GOMAXPROCS`〉會談：
 
 ```go,ignore
 {{#include ../../../examples/chapter8/01_scheduler_gmp/after/sum_test.go:follows}}

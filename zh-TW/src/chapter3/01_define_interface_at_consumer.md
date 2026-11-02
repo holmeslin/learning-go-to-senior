@@ -93,7 +93,7 @@ after 的代價：
 
 就算放在提供端，這些介面也都很小：`io.Reader` 與 `fs.FS` 都只有一個方法。判斷的方法是問「這個介面是誰的需求？」：使用端需要它，就由使用端宣告；它是提供者想讓別人照著實作的約定，就由提供者宣告。
 
-替身（fake、stub、mock）怎麼選、放在哪裡，第 5 章會談。
+替身（fake、stub、mock）怎麼選，第 5 章〈[fake、stub、mock 的選擇](../chapter5/03_fake_stub_mock.md)〉談過；放在哪裡，見〈[測試替身放在哪裡](../chapter5/04_where_test_doubles_live.md)〉。
 
 ## 重點整理
 
