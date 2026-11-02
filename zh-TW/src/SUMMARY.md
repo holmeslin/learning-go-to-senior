@@ -130,6 +130,7 @@
 
 - [code review](chapter13/README.md)
     - [先看設計，再看細節](chapter13/01_design_before_details.md)
+    - [PR 大小與拆分](chapter13/03_pr_size_and_split.md)
 - [設計文件]()
 - [事故處理]()
 
