@@ -210,6 +210,8 @@ func (s Summary) results() []result {
 	}
 }
 
+// ANCHOR: tracedsender
+
 // tracedSender 在每次送出外面包一個 span，成為這一批 span 的子 span：它只量供應商那一段花的時間。
 // 屬性有活動編號（追蹤不是指標，高基數沒關係）與結果，不帶裝置 token，也不記錄錯誤訊息。
 // 包在 Sender 外面而不是寫進 deliver：限流與寫紀錄的程式不必知道追蹤的存在，
@@ -237,6 +239,10 @@ func (s tracedSender) Send(ctx context.Context, n push.Notification) error {
 	}
 	return err
 }
+
+// ANCHOR_END: tracedsender
+
+// ANCHOR: instrument
 
 // instrument 建立指標：送出結果的計數、批次時間，以及逾期未寄的數量。
 // 逾期未寄的數量在收集時才查資料庫：服務卡住、沒有在掃描的時候，它仍然是準的。
@@ -270,6 +276,8 @@ func (d *Dispatcher) observeOverdue(ctx context.Context, o metric.Int64Observer)
 	o.Observe(int64(n))
 	return nil
 }
+
+// ANCHOR_END: instrument
 
 // ANCHOR_END: observe
 
