@@ -15,6 +15,8 @@ import (
 	reminder "github.com/holmeslin/learning-go-to-senior/examples/chapter15/03_pprof_trace_live/after"
 )
 
+// ANCHOR: helpers
+
 // supplierURL 只用來組請求：測試的 RoundTripper 不連網路。
 const supplierURL = "http://supplier.invalid/push"
 
@@ -24,11 +26,6 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 // RoundTrip 呼叫 f。
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
-// status 回傳只有狀態碼的回應。
-func status(r *http.Request, code int) *http.Response {
-	return &http.Response{StatusCode: code, Body: http.NoBody, Request: r}
-}
-
 // pushes 產生 n 則提醒。
 func pushes(n int) []reminder.Push {
 	out := make([]reminder.Push, n)
@@ -36,6 +33,13 @@ func pushes(n int) []reminder.Push {
 		out[i] = reminder.Push{Key: "event-1/attendee-" + strconv.Itoa(i)}
 	}
 	return out
+}
+
+// ANCHOR_END: helpers
+
+// status 回傳只有狀態碼的回應。
+func status(r *http.Request, code int) *http.Response {
+	return &http.Response{StatusCode: code, Body: http.NoBody, Request: r}
 }
 
 // TestSendAllDelivers 檢查供應商正常回應時，每一則提醒都送到、沒有錯誤。
