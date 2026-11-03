@@ -56,7 +56,7 @@ route.go:55:16: string(buf) escapes to heap
 
 - `&Entry{...} escapes to heap`：`ParseLine` 回傳指標，`Entry` 得比這次呼叫活得久，只能放在 heap。
 - `string(buf) escapes to heap`：`Route` 回傳字串，字串的內容同樣要活過呼叫。
-- `make(...) does not escape`：緩衝區本身沒有逃逸，這一行不是成本。但容量是執行期才算出來的，Go 1.27 只有容量不超過 32 位元組時放在 stack（另外以 `AllocsPerRun` 量過：32 位元組零次配置，33 位元組起一次）；這四行的緩衝區都在 32 位元組以內，所以沒有算進那 2 次。
+- `make(...) does not escape`：緩衝區本身沒有逃逸，這一行不是成本。但容量是執行期才算出來的，Go 1.27 只有容量不超過 32 位元組時放在 stack（另外以 `AllocsPerRun` 量過：32 位元組零次配置，33 位元組起一次）。這四行的緩衝區都在 32 位元組以內，所以沒有算進那 2 次。
 
 省略的行裡還有 `status escapes to heap`，那是 `fmt.Errorf` 的參數轉成 `any`，只發生在錯誤路徑，不在熱點上。
 
