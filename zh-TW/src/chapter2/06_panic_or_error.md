@@ -12,7 +12,7 @@
 
 ## 常見寫法
 
-輸入不合法就 `panic`，呼叫端不用寫 `if err != nil`，用起來很乾淨：
+輸入不合法就 `panic`，呼叫端不用寫 `if err != nil`：
 
 ```go,ignore
 {{#include ../../../examples/chapter2/06_panic_or_error/before/sched/sched.go:parse}}
@@ -109,15 +109,15 @@ created by main.main in goroutine 1
 
 ## 取捨
 
-不變條件被破壞時，`panic` 比回傳一個沒人處理的錯誤誠實。如果 `MustParse` 改成回傳 `(Schedule, error)`，套件層級的變數宣告沒有地方寫 `if err != nil`，只能 `nightly, _ = ...` 把錯誤吞掉；`Parse` 出錯時回傳零值 `Schedule`，之後整個程式就帶著 `Interval` 為 0 的排程默默跑下去。`panic` 讓問題在啟動的當下浮現，堆疊指向寫錯的那一行。
+不變條件被破壞時，`panic` 比回傳一個沒人處理的錯誤更能暴露問題。如果 `MustParse` 改成回傳 `(Schedule, error)`，套件層級的變數宣告沒有地方寫 `if err != nil`，只能 `nightly, _ = ...` 把錯誤吞掉；`Parse` 出錯時回傳零值 `Schedule`，之後整個程式就帶著 `Interval` 為 0 的排程默默跑下去。`panic` 讓問題在啟動的當下浮現，堆疊指向寫錯的那一行。
 
 `Must` 版本也有界線：
 
-- 只給寫死的常數。`MustParse(req.Spec)` 等於把 before 的問題請回來。
+- 只給寫死的常數。`MustParse(req.Spec)` 等於重現 before 的問題。
 - 多一個匯出的函式要維護，而且要讓它和 `Parse` 的行為一致，所以它只該轉呼 `Parse`。
 - 標準庫的 `regexp.MustCompile` 與 `template.Must` 也是這個慣例：給寫死的字串用，另有回傳 `error` 的版本。
 
-before 在什麼情況下反而是對的：所有輸入都在你自己控制之下的小工具或腳本，寫錯就是要立刻停下來，這時 `panic` 比到處傳 `error` 省事。函式庫的內部也一樣：標準庫的 `time.NewTicker` 收到零或負的間隔就 `panic`，因為間隔必須為正，是呼叫端寫程式時就該保證的前提；傳進 0 是程式寫錯，不是執行時會發生的狀況，回傳 `error` 也沒有呼叫端處理得了。
+before 在什麼情況下反而是對的：所有輸入都在你自己控制之下的小工具或腳本，寫錯就是要立刻停下來，這時 `panic` 比到處傳 `error` 省事。函式庫的內部也一樣：標準庫的 `time.NewTicker` 收到零或負的間隔就 `panic`，因為間隔必須為正，是呼叫端寫程式時就該保證的前提。傳進 0 是程式寫錯，不是執行時會發生的狀況，回傳 `error` 也沒有呼叫端處理得了。
 
 ## 重點整理
 
