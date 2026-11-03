@@ -101,7 +101,7 @@ go tool pprof -list='before.summarize$' before.test cpu.out
 {{#include ../../../examples/chapter7/01_measure_before_optimizing/after/logstat_test.go:same}}
 ```
 
-第五步，**再量一次**。after 的子 benchmark 也叫 `impl=simple`，名稱相同，`benchstat` 才能並排；`-filter` 讓 before 只留沒有手寫解析的那一列，比的就只有 `seen` 的改動；兩份檔案來自不同套件，`-ignore pkg` 讓它們不被分成兩張表（細節本章〈`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信〉會談）。第一次執行時 `go run` 會先下載 benchstat，輸出省略了下載訊息：
+第五步，**再量一次**。after 的子 benchmark 也叫 `impl=simple`，名稱相同，`benchstat` 才能並排。`-filter` 讓 before 只留沒有手寫解析的那一列，比的就只有 `seen` 的改動。兩份檔案來自不同套件，`-ignore pkg` 讓它們不被分成兩張表（細節本章〈`b.Loop` 與 `benchstat`：怎麼比較前後結果才可信〉會談）。第一次執行時 `go run` 會先下載 benchstat，輸出省略了下載訊息：
 
 ```bash
 go test -run='^$' -bench=. -benchmem -count=10 ./examples/chapter7/01_measure_before_optimizing/after > after.txt
