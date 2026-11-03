@@ -114,7 +114,7 @@ store、push、config、diag、telemetry、demoreg → 沒有
 ## 哪裡會衝突
 
 - **接縫是匯出的，承諾卻不大。** 第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉說匯出就是承諾，而上面三個接縫是 `reminder` 的匯出欄位。`reminder` 沒有放進 `internal`，別的 module 也 import 得到它，`Config` 的型別雖在 `internal`，外部程式碼仍可逐欄設值。但它的呼叫端只有 `cmd/reminder` 與端對端測試，同一個 repo、一次就能一起改，正是第 1 章〈[什麼時候用 `internal`，什麼時候該公開](../chapter1/03_internal_or_public.md)〉說公開反而合理的情況：服務的契約是 HTTP、環境變數與檢視，不是 Go 的識別字。要把接縫也藏起來，就把 `reminder` 一起移進 `internal`，代價是 `reminder/` 底下只剩 `cmd` 與 `internal`。
-- **介面縮小了替身，沒有切斷 import。** `Sender` 的簽名用 `push.Notification`、`Counter` 的簽名用 `store.State`，所以 `dispatch` 仍 import `push`、`api` 仍 import `store`。想切斷就得在使用端另訂一份型別、再翻譯一次，這個翻譯層要測、要維護，換來的只是箭頭好看；這裡不做。只有 `diag.Snapshotter` 的簽名純用標準庫，`diag` 才真的不依賴指標的實作。
+- **介面縮小了替身，沒有切斷 import。** `Sender` 的簽名用 `push.Notification`、`Counter` 的簽名用 `store.State`，所以 `dispatch` 仍 import `push`、`api` 仍 import `store`。想切斷就得在使用端另訂一份型別、再翻譯一次，這個翻譯層要測、要維護，換來的只是少一條 import；這裡不做。只有 `diag.Snapshotter` 的簽名純用標準庫，`diag` 才真的不依賴指標的實作。
 - **只讀是為了守住唯一的寫入者。** 本章〈[設計文件](01_design_doc.md)〉說唯一限制擋得住重複、擋不住互搶；API 若能「重送」或「改狀態」，就成了第二個寄送者，同一件事再來一次。要不要補寄超過期限的提醒，是第 15 章〈[行動項目與追蹤](../chapter15/05_action_items.md)〉裡由產品負責人決定的行動項目 5，這支 API 不預設答案。只讀也是沒有驗證還撐得住的前提：先有寫入的需求，才輪到驗證與授權。
 
 ## 取捨
