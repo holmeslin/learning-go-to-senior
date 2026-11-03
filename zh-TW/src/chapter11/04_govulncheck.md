@@ -34,7 +34,7 @@ EOF
 go get golang.org/x/text@v0.3.7 && go mod tidy
 ```
 
-`govulncheck` 一律固定版本用 `go run` 執行，不寫進 `go.mod`。以下輸出在 macOS（arm64）、Go 1.27.0、`govulncheck` v1.9.0 上取得，弱點資料庫的版本是 2026-10-27 更新的（`-format json` 輸出的第一筆 `config.db_last_modified`）；輸出完整，最後一行 `exit status 3` 是 `go run` 轉述 `govulncheck` 的結束碼，`go run` 自己以 1 結束：
+`govulncheck` 一律固定版本用 `go run` 執行，不寫進 `go.mod`。以下輸出在 macOS（arm64）、Go 1.27.0、`govulncheck` v1.9.0 上取得。弱點資料庫的版本是 2026-10-27 更新的（`-format json` 輸出的第一筆 `config.db_last_modified`）。輸出完整，最後一行 `exit status 3` 是 `go run` 轉述 `govulncheck` 的結束碼，`go run` 自己以 1 結束：
 
 執行結果（某一次）：
 
@@ -144,7 +144,7 @@ Use '-show verbose' for more details.
 
 ## 重點整理
 
-- `govulncheck` 分析呼叫關係，輸出分符號、套件、模組三層；符號層級才是你的程式碼呼叫得到的，要先處理；「乾淨」是符號層級為空、結束碼 0，標準庫的弱點要靠升級工具鏈，不是升級相依。
+- `govulncheck` 分析呼叫關係，輸出分符號、套件、模組三層。符號層級才是你的程式碼呼叫得到的，要先處理。「乾淨」是符號層級為空、結束碼 0。標準庫的弱點要靠升級工具鏈，不是升級相依。
 - 判斷靠輸出的結構（`Example traces found`、`Platforms`、`Fixed in`），不靠某個弱點編號；資料庫天天更新，重跑結果會變。
 - 排程執行比每次部署都擋更穩；JSON 類輸出的結束碼永遠是 0，用 `go run` 時要自己處理結束碼。
 - 呼叫圖有限制：`reflect` 看不到、二進位檔沒有呼叫路徑；升級不了就要有記錄過的評估，不是靜音。
