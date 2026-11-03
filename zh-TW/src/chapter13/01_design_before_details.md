@@ -51,7 +51,7 @@ event_test.go   測試名稱建議統一成 Test<型別>_<方法>。
 {{#include ../../../examples/chapter13/01_design_before_details/after/review_test.go:r1}}
 ```
 
-這個測試放到 `before/` 會失敗。重現的步驟：在 repo 外的暫存目錄，把 `before/` 複製成獨立的 module，再把 `after/review_test.go` 複製進去、只換 import 路徑；補兩個轉接，不改行為：`newEvent` 改成呼叫 before 的 `NewEvent(seats, n)`，並宣告 `ErrWaitlisted` 這個名稱，讓同一個檔案裡的其他測試編得過。輸出省略了耗時與最後兩行（套件那一行與總結的 `FAIL`）：
+這個測試放到 `before/` 會失敗。重現的步驟：在 repo 外的暫存目錄，把 `before/` 複製成獨立的 module，再把 `after/review_test.go` 複製進去、只換 import 路徑。接著補兩個轉接，不改行為：`newEvent` 改成呼叫 before 的 `NewEvent(seats, n)`，並宣告 `ErrWaitlisted` 這個名稱，讓同一個檔案裡的其他測試編得過。輸出省略了耗時與最後兩行（套件那一行與總結的 `FAIL`）：
 
 執行結果（某一次）：
 
