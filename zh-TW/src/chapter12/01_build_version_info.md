@@ -63,9 +63,9 @@ $ go version -m ../bin/versiond | grep -e ': go1' -e $'\tmod' -e ldflags -e vcs
 
 ## 較好的做法
 
-`go build` 在 git 工作目錄裡建置時（Go 1.18 起）會把 `vcs.revision`、`vcs.time`、`vcs.modified` 記進執行檔；Go 1.24 起，主模組版本也由 tag 與 commit 推出（見 [Go 1.24 發行說明](https://go.dev/doc/go1.24#go-command)）：剛好在 tag 上而且乾淨是 `v1.4.0`，否則是上面那種偽版本，有未提交的修改再加 `+dirty`。程式用 `debug.ReadBuildInfo` 讀，不用人記得更新任何東西。`go version -m` 看的就是同一份資訊，第 7 章〈[PGO](../chapter7/07_pgo.md)〉提過它會多一行 `-pgo=`。
+`go build` 在 git 工作目錄裡建置時（Go 1.18 起）會把 `vcs.revision`、`vcs.time`、`vcs.modified` 記進執行檔。Go 1.24 起，主模組版本也由 tag 與 commit 推出（見 [Go 1.24 發行說明](https://go.dev/doc/go1.24#go-command)）：剛好在 tag 上而且乾淨是 `v1.4.0`，否則是上面那種偽版本，有未提交的修改再加 `+dirty`。程式用 `debug.ReadBuildInfo` 讀，不用人記得更新任何東西。`go version -m` 看的就是同一份資訊，第 7 章〈[PGO](../chapter7/07_pgo.md)〉提過它會多一行 `-pgo=`。
 
-整理成 `Info`。`FromBuildInfo` 收 `*debug.BuildInfo`，不在函式裡自己呼叫 `ReadBuildInfo`：讀的事交給呼叫端，測試才能傳假的。它與 `Info` 是匯出的，因為使用它們的 `main` 在另一個套件；一行格式（`String`）與 JSON 端點（`Handler`）也在這裡：
+整理成 `Info`。`FromBuildInfo` 收 `*debug.BuildInfo`，不在函式裡自己呼叫 `ReadBuildInfo`：讀的事交給呼叫端，測試才能傳假的。它與 `Info` 是匯出的，因為使用它們的 `main` 在另一個套件。一行格式（`String`）與 JSON 端點（`Handler`）也在這裡：
 
 ```go,ignore
 {{#include ../../../examples/chapter12/01_build_version_info/after/version/version.go:info}}
@@ -138,7 +138,7 @@ dev
 
 所以 `-X` 的值要用一次真的建置確認，也不要拿它放時間戳（`$(date)`）：每次建置的結果都不同，本章〈可重現的建置〉會談。它適合放只有建置系統才知道、不在 VCS 裡的值，例如 CI 的執行編號、發布通道（`release` 或 `nightly`）；給使用者看的版本號（命令列工具的 `1.4.0`）由人在發布時決定，tag 就是它的來源。
 
-before 在什麼情況下是對的？建置不在 VCS 目錄（原始碼 tarball），或版本號本來就是人在發布時決定、又由建置指令從 tag 帶入（`-X main.version=$(git describe --tags)`），單一來源，不會對不上。
+before 在什麼情況下是對的？建置不在 VCS 目錄（原始碼 tarball），或版本號本來就是人在發布時決定、又由建置指令從 tag 帶入（`-X main.version=$(git describe --tags)`），來源只有一個，不會對不上。
 
 ## 重點整理
 
