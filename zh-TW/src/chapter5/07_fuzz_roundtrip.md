@@ -6,7 +6,7 @@
 
 ## 情境
 
-你寫了一個連續長度編碼（run-length encoding）：`Encode` 把連續相同的位元組寫成「長度加位元組」，`"aaab"` 變成 `"3a1b"`；`Decode` 把它還原。編碼與解碼互為反函式，所以有一條很明確的性質：任何字串編碼再解碼，都要得到原本的字串。這裡的「任何」有一個上限：`Decode` 拒絕超過 `maxRun`（約一百萬）的單一連續長度，免得惡意輸入逼它配置巨大的記憶體，所以性質只涵蓋單一連續段不超過這個上限的字串。
+你寫了一個連續長度編碼（run-length encoding）：`Encode` 把連續相同的位元組寫成「長度加位元組」，`"aaab"` 變成 `"3a1b"`；`Decode` 把它還原。編碼與解碼互為反函式，所以有一條很明確的性質：任何字串編碼再解碼，都要得到原本的字串。這裡的「任何」有一個上限。`Decode` 拒絕超過 `maxRun`（約一百萬）的單一連續長度，免得惡意輸入逼它配置巨大的記憶體。所以性質只涵蓋單一連續段不超過這個上限的字串。
 
 fuzz 的語法與機制前作已經教過：〈[fuzzing](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter8/14_fuzzing.html)〉。這集不教寫法，只談什麼時候值得寫。
 
@@ -32,7 +32,7 @@ fuzz 的語法與機制前作已經教過：〈[fuzzing](https://holmeslin.githu
 {{#include ../../../examples/chapter5/07_fuzz_roundtrip/before/example_test.go:example}}
 ```
 
-`"7"` 編碼成 `"17"`，`Decode` 讀完數字後沒有位元組可接，回傳錯誤。`"1a"` 更糟：編碼成 `"111a"`，`Decode` 把 `111` 當成長度，悄悄回傳 111 個 `a`，沒有任何錯誤。解碼的人分不出哪裡是長度的結尾、哪裡是原字串裡的數字。
+`"7"` 編碼成 `"17"`，`Decode` 讀完數字後沒有位元組可接，回傳錯誤。`"1a"` 更糟：編碼成 `"111a"`，`Decode` 把 `111` 當成長度，回傳 111 個 `a`，沒有任何錯誤。解碼的人分不出哪裡是長度的結尾、哪裡是原字串裡的數字。
 
 這種錯誤用手挑輸入很難想到，但檢查性質的測試不必想到它。把同一條性質寫成 fuzz 測試，再用 `-fuzz` 跑：
 
@@ -71,7 +71,7 @@ FAIL
 {{#include ../../../examples/chapter5/07_fuzz_roundtrip/after/example_test.go:example}}
 ```
 
-fuzz 測試留在 after 的測試檔裡，被找到的輸入存在 `testdata/fuzz/FuzzRoundTrip/` 底下，之後每次普通的 `go test` 都會把它當成種子重跑，同一個 bug 不會再回來。這個目錄放在 after，不放在 before：before 的程式有這個 bug，corpus 檔放進去，預設的 `go test` 就會失敗。
+fuzz 測試留在 after 的測試檔裡。fuzz 找到的輸入存在 `testdata/fuzz/FuzzRoundTrip/` 底下，之後每次普通的 `go test` 都會把它當成種子重跑，同一個 bug 不會再回來。這個目錄放在 after，不放在 before：before 的程式有這個 bug，corpus 檔放進去，預設的 `go test` 就會失敗。
 
 after 的 `go test` 只花一瞬間（輸出省略了耗時）：
 

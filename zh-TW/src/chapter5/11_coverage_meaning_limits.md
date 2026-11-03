@@ -35,7 +35,7 @@ ok  	github.com/holmeslin/learning-go-to-senior/examples/chapter5/11_coverage_me
 {{#include ../../../examples/chapter5/11_coverage_meaning_limits/before/example_test.go:example}}
 ```
 
-權重是負的，該回 `weight must be positive`，卻回了 `no weights`，錯誤的種類不對。金額是負的，該回錯誤，卻靜靜地回了兩份 0，這筆錢就消失了。
+權重是負的，該回 `weight must be positive`，卻回了 `no weights`，錯誤的種類不對。金額是負的，該回錯誤，卻回了兩份 0，這筆錢就消失了。
 
 第一個 bug 在被執行過的程式裡：`TestSplitBadWeight` 跑過那一行，覆蓋率算它有測到，但結果沒有人檢查。第二個 bug 在沒有被執行過的分支裡，93.8% 裡缺的那 6.2% 就是它。覆蓋率高，不代表這些測試抓得到任何東西；三個測試都用 `_, _ =` 丟掉結果，沒有任何斷言，所以只要 `Split` 不 panic，測試就不會失敗，演算法壞了也一樣。
 
@@ -90,7 +90,7 @@ FAIL
 
 ## 取捨
 
-- **覆蓋率只說明「有執行」。** 100% 的意思是每個陳述式都跑過，不是每個行為都驗證過。after 的測試是 100%，before 加上 `Example` 之後也是 100%（`Example` 的輸出雖然有比對，卻只比對三組輸入）。不加 `-run`，把 `Example` 一起算進去，兩個目錄的覆蓋率：
+- **覆蓋率只說明「有執行」。** 100% 的意思是每個陳述式都跑過，不是每個行為都驗證過。after 的測試是 100%，before 加上 `Example` 之後也是 100%（`Example` 的輸出雖然有比對，卻只比對三組輸入）。不加 `-run`，把 `Example` 一起算進去，兩個目錄的覆蓋率如下：
 
 執行結果：
 
