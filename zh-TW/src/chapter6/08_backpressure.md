@@ -28,7 +28,7 @@ buffered channel 與 `select` 加 `default` 前作教過：〈[buffered channel]
 {{#include ../../../examples/chapter6/08_backpressure/before/example_test.go:example}}
 ```
 
-工作量多十倍，排隊的數量也多十倍，沒有任何地方會喊停。真實的 `Job` 帶的是圖片，記憶體跟著排隊數量一路長上去，最後耗盡記憶體。
+工作量多十倍，排隊的數量也多十倍，沒有任何地方會拒絕新的工作。真實的 `Job` 帶的是圖片，記憶體跟著排隊數量一路長上去，最後耗盡記憶體。
 
 記憶體只是其中一個代價，另一個是等待時間：第 N 筆要等前面 N-1 筆做完。使用者早就放棄、重新整理了，那筆工作還在隊伍裡，輪到它時做出來的縮圖沒人要。很大的 buffered channel，或每個進來的工作開一個 goroutine，都是同樣的問題：只是換了排隊的地方。
 
@@ -77,7 +77,7 @@ buffered channel 與 `select` 加 `default` 前作教過：〈[buffered channel]
 
 - **容量是在決定願意讓工作等多久。** 最壞的等待約為容量乘以單筆的處理時間，不是越大越好；容量大到跟沒有上限差不多時，問題又回來了。容量 0（無緩衝）也合法，producer 和 consumer 直接交接。
 - **上限擋不住長期的失衡。** 佇列只能吸收短暫的突波。producer 長期比 consumer 快，有上限只是把「記憶體長大」換成「一直被擋、一直被拒絕」，要解決得增加 consumer 或減少進來的量。consumer 的形式（worker pool 或每個任務一個 goroutine），本章〈[什麼時候需要 worker pool，什麼時候每個任務一個 goroutine 就夠](06_worker_pool_or_goroutine_per_task.md)〉談過；開幾個最好是要量測的效能問題，第 7 章〈[先量測，再最佳化](../chapter7/01_measure_before_optimizing.md)〉談過。
-- **丟掉工作也是一種選擇，但要讓呼叫端知道。** `TrySubmit` 就是丟掉新的，而且用 `ErrFull` 明說了。有些資料只有最新的才有意義（例如即時位置），可以改成丟掉最舊的。用 channel 做的話，要先取出最舊的、再放進新的，這兩步之間 consumer 或別的 producer 可能插進來：consumer 已經取走，取出那一步就會等；別的 producer 已經補上，放入那一步就會等。所以得把兩步包成一個不可分的動作，既然要上鎖，用 mutex 保護、只留最新一筆比較直接。不管丟哪一個，都要有人知道：回錯誤、記計數或 log。靜默丟棄是資料遺失。
+- **丟掉工作也是一種選擇，但要讓呼叫端知道。** `TrySubmit` 就是丟掉新的，而且用 `ErrFull` 明說了。有些資料只有最新的才有意義（例如即時位置），可以改成丟掉最舊的。用 channel 做的話，要先取出最舊的、再放進新的，這兩步之間 consumer 或別的 producer 可能插進來：consumer 已經取走，取出那一步就會等；別的 producer 已經補上，放入那一步就會等。所以得把兩步包成一個不可分的動作。既然要上鎖，用 mutex 保護、只留最新一筆比較直接。不管丟哪一個，都要有人知道：回錯誤、記計數或 log。靜默丟棄是資料遺失。
 - **負載卸載與降級是下一步。** 佇列滿了之後整個服務要怎麼縮小服務範圍，第 10 章〈[負載卸載與降級](../chapter10/07_load_shedding.md)〉談過。
 - **範例的 `Close` 有前提。** 它要在所有 producer 停止之後才呼叫，否則對已關閉的 channel 送出會 panic。誰負責停誰，本章〈[goroutine 的生命週期歸誰管](01_goroutine_ownership.md)〉談過。
 
