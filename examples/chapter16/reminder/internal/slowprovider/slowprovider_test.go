@@ -48,6 +48,31 @@ func TestHandlerWaitsThenAnswersByTheShare(t *testing.T) {
 	})
 }
 
+// Status 不為 0 時，每個請求都回這個狀態碼，不管 429 的比例與亂數；延遲照樣先等。
+func TestHandlerAnswersEveryRequestWithTheStatus(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h, err := slowprovider.NewHandler(slowprovider.Options{
+			Delay:           200 * time.Millisecond,
+			TooManyRequests: 1,
+			Status:          http.StatusServiceUnavailable,
+			Rand:            func() float64 { return 0 },
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := range 3 {
+			start := time.Now()
+			rec := serve(t.Context(), h, http.MethodPost)
+			if rec.Code != http.StatusServiceUnavailable {
+				t.Errorf("request %d = %d, want 503", i, rec.Code)
+			}
+			if got := time.Since(start); got != 200*time.Millisecond {
+				t.Errorf("request %d took %v, want 200ms", i, got)
+			}
+		}
+	})
+}
+
 // 客戶端已經放棄（逾時、斷線）的請求，不再等、也不回應。
 func TestHandlerStopsWaitingWhenTheClientGivesUp(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -89,6 +114,9 @@ func TestNewHandlerRejectsInvalidOptions(t *testing.T) {
 		"share below zero":     {TooManyRequests: -0.1},
 		"share above one":      {TooManyRequests: 1.1},
 		"share is not a ratio": {TooManyRequests: 10},
+		"negative status":      {Status: -1},
+		"status below 100":     {Status: 99},
+		"status above 599":     {Status: 600},
 	} {
 		if _, err := slowprovider.NewHandler(opts); err == nil {
 			t.Errorf("%s: NewHandler() error = nil, want an error", name)

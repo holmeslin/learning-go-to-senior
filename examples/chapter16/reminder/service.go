@@ -65,8 +65,6 @@ type Service struct {
 
 // ANCHOR_END: service
 
-// ANCHOR: run
-
 // Run 啟動服務，直到 ctx 結束，再依序關機；正常關機回傳 nil。
 //
 // 啟動時先套用自己的 migration，並確認報名服務的唯讀檢視讀得到、欄位齊全，否則拒絕啟動。
@@ -166,8 +164,6 @@ func (s *Service) Run(ctx context.Context) error {
 	log.Info("shutting down", "timeout", cfg.ShutdownTimeout.String())
 	return s.shutdown(ctx, log, scanDone, []*server{apiSrv, diagSrv}, tel, db)
 }
-
-// ANCHOR_END: run
 
 // ANCHOR: shutdown
 

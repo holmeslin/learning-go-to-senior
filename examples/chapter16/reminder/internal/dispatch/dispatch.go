@@ -172,8 +172,6 @@ func (d *Dispatcher) Run(ctx context.Context) {
 
 // ANCHOR_END: run
 
-// ANCHOR: observe
-
 // Scan 做一次掃描（見 scan），並留下這一批的觀測資料：一個 span、批次花的時間，以及各個結果的提醒數。
 // 回傳時，這次開始送出的提醒都已經有結果。ctx 結束時不再開始新的提醒，進行中的做完。
 // 只有「失敗記錄」與「挑出提醒」這兩個查詢失敗才回傳錯誤；單一提醒的失敗記在 Summary、指標與日誌裡。
@@ -279,10 +277,6 @@ func (d *Dispatcher) observeOverdue(ctx context.Context, o metric.Int64Observer)
 
 // ANCHOR_END: instrument
 
-// ANCHOR_END: observe
-
-// ANCHOR: scan
-
 // scan 做一次掃描：先把超過期限的記為失敗，再挑出到期的與該重試的，在並行上限與限流之內送出。
 func (d *Dispatcher) scan(ctx context.Context) (Summary, error) {
 	var sum Summary
@@ -332,8 +326,6 @@ func (d *Dispatcher) scan(ctx context.Context) (Summary, error) {
 	_ = g.Wait() // 每個函式都回傳 nil；errgroup 在這裡只負責並行上限
 	return sum, nil
 }
-
-// ANCHOR_END: scan
 
 // outcome 是一則提醒這次處理的結果。
 type outcome int
@@ -406,8 +398,6 @@ func (d *Dispatcher) begin(ctx context.Context, r store.Reminder) (bool, error) 
 
 // ANCHOR_END: deliver
 
-// ANCHOR: backoff
-
 // backoff 是第 attempt 次（從 1 起算）嘗試失敗之後要等多久：
 // 上限從 RetryBase 起每次加倍、最多到 RetryMax，在 [0, 上限) 之間隨機取一個（full jitter）。
 // 實際重試的時間是下一次掃描，等待時間不到一個間隔時就是下一個間隔。
@@ -422,5 +412,3 @@ func (d *Dispatcher) backoff(attempt int) time.Duration {
 	}
 	return rand.N(limit)
 }
-
-// ANCHOR_END: backoff

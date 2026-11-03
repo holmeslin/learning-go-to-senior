@@ -6,7 +6,7 @@
 
 ## 情境
 
-提醒服務要發第一個版本，`v1.0.0`（版本號是教材虛構的）。依本章〈[設計文件](01_design_doc.md)〉，它只跑一個實例，發布時先停舊、再起新，新舊行程不重疊；送出的開關是環境變數，預設關閉。建置與設定的做法，第 8 章與第 12 章都談過，這集看的是它們湊在一起時，哪些地方沒有人替你檢查。Dockerfile 與 `docker` 指令不進 CI（同第 12 章〈[容器映像（multi-stage）](../chapter12/04_container_image.md)〉），本書也沒有實際建過這個映像，所以不貼 `docker build` 與 `docker run` 的輸出；貼出的輸出來自 Dockerfile 裡 `go build` 那一行的等效建置，做法在下面說明。
+提醒服務要發第一個版本，`v1.0.0`（版本號是教材虛構的）。依本章〈[設計文件](01_design_doc.md)〉，它只跑一個實例，發布時先停舊、再起新，新舊行程不重疊；送出的開關是環境變數，預設關閉。建置與設定的做法，第 12 章〈[`go build` 與用 `-ldflags` 注入版本](../chapter12/01_build_version_info.md)〉、〈[設定與環境變數](../chapter12/08_config_env.md)〉都談過，這集看的是它們湊在一起時，哪些地方沒有人替你檢查。Dockerfile 與 `docker` 指令不進 CI（同第 12 章〈[容器映像（multi-stage）](../chapter12/04_container_image.md)〉），本書也沒有實際建過這個映像，所以不貼 `docker build` 與 `docker run` 的輸出；貼出的輸出來自 Dockerfile 裡 `go build` 那一行的等效建置，做法在下面說明。
 
 ## 映像裡放什麼
 
@@ -16,7 +16,7 @@
 {{#include ../../../examples/chapter16/reminder/Dockerfile:dockerfile}}
 ```
 
-和第 12 章不同的幾處，都來自這個服務的條件：
+和第 12 章〈[容器映像（multi-stage）](../chapter12/04_container_image.md)〉不同的幾處，都來自這個服務的條件：
 
 - **`ARG VERSION=dev` 與 `-X main.version`。** 建置脈絡沒有 `.git`（`Dockerfile.dockerignore` 排除了它），版本只能由建置參數帶進來；沒帶參數也建得成，版本是 `dev`。
 - **`CGO_ENABLED=0`。** `modernc.org/sqlite` 是純 Go，靜態執行檔就夠，不必帶 libc。
@@ -130,9 +130,9 @@ docker logs reminder 2>&1 | grep 'reminder service started'
 
 ## 取捨
 
-這集的取捨都來自前面各章的判斷湊在一起：
+版本、映像、設定與平台各照前面章節的做法，沒有人替你檢查的是它們之間的對應：
 
-- **映像沒有 `.git`，版本號成了沒人檢查的字串。** 第 12 章要 `go build` 自己記 commit，`-X` 只留給建置系統才知道的值；同一章的 `.dockerignore` 又把 `.git` 擋在建置脈絡外。兩個都照做，就是上面的輸出：沒有 `vcs.*`，`v1.0.0` 只是一個建置參數。`ARG VERSION=dev` 讓忘了帶參數的建置也建得成，看到 `dev` 至少知道它不是發布出來的，看到 `v1.0.0` 卻不一定是真的。所以檢查放在流程：腳本只接受乾淨的 tag（`git describe --dirty` 帶 `-dirty` 或 `-N-g…` 就停），發布後比對日誌的版本。另一條路是把 `.git` 帶進建置脈絡拿回 `vcs.*`，連沒碰到程式碼的 commit 也讓編譯的那一層重做。靠流程比靠編譯器弱，單一實例、人手發布的規模用得起。
+- **映像沒有 `.git`，版本號成了沒人檢查的字串。** 第 12 章〈[`go build` 與用 `-ldflags` 注入版本](../chapter12/01_build_version_info.md)〉要 `go build` 自己記 commit，`-X` 只留給建置系統才知道的值；〈[容器映像（multi-stage）](../chapter12/04_container_image.md)〉的 `.dockerignore` 又把 `.git` 擋在建置脈絡外。兩個都照做，就是上面的輸出：沒有 `vcs.*`，`v1.0.0` 只是一個建置參數。`ARG VERSION=dev` 讓忘了帶參數的建置也建得成，看到 `dev` 至少知道它不是發布出來的，看到 `v1.0.0` 卻不一定是真的。所以檢查放在流程：腳本只接受乾淨的 tag（`git describe --dirty` 帶 `-dirty` 或 `-N-g…` 就停），發布後比對日誌的版本。另一條路是把 `.git` 帶進建置脈絡拿回 `vcs.*`，連沒碰到程式碼的 commit 也讓編譯的那一層重做。靠流程比靠編譯器弱，單一實例、人手發布的規模用得起。
 - **從容器外問版本，只剩 `docker logs`。** 為了可重現的建置（第 12 章〈[可重現的建置](../chapter12/02_reproducible_builds.md)〉）用了 `-trimpath`，`go version -m` 看不到 `-ldflags`，版本只能從 `/version` 與日誌讀。診斷端點只聽 `127.0.0.1:6060`，因為有 pprof，不能對外（第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉），`Load` 拒絕非 loopback 的位址；容器的 loopback 屬於容器自己的網路命名空間，`-p` 轉發不到，`scratch` 裡又沒有 `curl` 與 shell，所以 `/version` 在容器外問不到。要打端點，得另起一個帶 `curl` 的映像、共用這個容器的網路（`docker run --rm --network container:reminder <帶 curl 的映像> curl -s http://127.0.0.1:6060/version`，這條指令沒有實際跑過），或用平台的除錯容器。代價是診斷多一步，平台的健康檢查也探測不到 `/readyz`。把位址改成 `0.0.0.0` 能省掉這一步，pprof 就對整個容器網路開放，`Load` 的檢查也得跟著拿掉。
 - **寬限期寫在兩個地方，沒有東西檢查它們一致。** `Load` 保證 `REMINDER_SHUTDOWN_TIMEOUT` 不小於最壞的一則送出加餘裕（預設下限 25 秒），平台給的寬限期它看不到：`docker stop` 預設 10 秒就送 `SIGKILL`，比最壞的 15 秒還短，進行中的送出被切斷，紀錄停在「寄送中」，1 小時後記為失敗，就是本章〈[並行](05_concurrency.md)〉的 before。Dockerfile 沒有設定寬限期的指令，只能在 `docker run --stop-timeout` 或平台設定裡給，所以腳本只寫一次 `SHUTDOWN`，`--stop-timeout` 取它再加 10 秒。代價是腳本成了正確性的一部分，直接手打 `docker run` 就繞過它；停舊最久的 40 秒也算進發布的空窗，相對預定時間後的 1 小時用得起（本章〈[設計文件](01_design_doc.md)〉）。
 - **開關預設關閉，只對第一次部署是對的。** 預設的 `false` 讓步驟 1 安全；但之後每一次發布，漏寫開關就是悄悄把送出關掉，連回復版本也一樣，關著超過 1 小時，到期的提醒打開後記為失敗（本章〈上線檢查表〉會談）。所以腳本不給預設值，沒寫就停下來，動到舊容器之前。

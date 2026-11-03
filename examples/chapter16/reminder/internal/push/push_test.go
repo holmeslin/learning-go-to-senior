@@ -43,8 +43,6 @@ func send(rt http.RoundTripper) error {
 
 // ANCHOR_END: fake
 
-// ANCHOR: classify
-
 func TestSendClassifiesFailures(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -81,8 +79,6 @@ func TestSendClassifiesFailures(t *testing.T) {
 	}
 }
 
-// ANCHOR_END: classify
-
 func TestSendTransportErrorIsTransient(t *testing.T) {
 	t.Parallel()
 	errRefused := errors.New("connection refused")
@@ -91,8 +87,6 @@ func TestSendTransportErrorIsTransient(t *testing.T) {
 		t.Errorf("Send() error = %v, want transient and wrapping the transport error", err)
 	}
 }
-
-// ANCHOR: timeout
 
 func TestSendTimesOutPerRequest(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -112,10 +106,6 @@ func TestSendTimesOutPerRequest(t *testing.T) {
 		}
 	})
 }
-
-// ANCHOR_END: timeout
-
-// ANCHOR: request
 
 func TestSendRequestShape(t *testing.T) {
 	t.Parallel()
@@ -147,8 +137,6 @@ func TestSendRequestShape(t *testing.T) {
 		t.Errorf("body = %v, want the device token and event id", payload)
 	}
 }
-
-// ANCHOR_END: request
 
 func TestSendBadBaseURLIsPermanent(t *testing.T) {
 	t.Parallel()

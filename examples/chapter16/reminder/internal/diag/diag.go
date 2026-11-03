@@ -28,16 +28,10 @@ func (r *Readiness) Set(ready bool) { r.ready.Store(ready) }
 // Ready 回傳目前是否就緒。
 func (r *Readiness) Ready() bool { return r.ready.Load() }
 
-// ANCHOR: snapshotter
-
 // Snapshotter 把指標的快照寫進 w。介面定義在使用端：診斷端點不需要知道指標從哪裡收。
 type Snapshotter interface {
 	Snapshot(ctx context.Context, w io.Writer) error
 }
-
-// ANCHOR_END: snapshotter
-
-// ANCHOR: handler
 
 // NewHandler 回傳診斷端點的 handler：
 //
@@ -80,5 +74,3 @@ func NewHandler(ready *Readiness, metrics Snapshotter, build buildinfo.Info) htt
 	mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
 	return mux
 }
-
-// ANCHOR_END: handler

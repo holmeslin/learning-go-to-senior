@@ -7,8 +7,6 @@ import (
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/buildinfo"
 )
 
-// ANCHOR: table
-
 // fake 是假的 debug.BuildInfo：go test 的測試執行檔沒有 VCS 資訊，測試不去讀真的 ReadBuildInfo。
 func fake(mainVersion string, settings ...debug.BuildSetting) *debug.BuildInfo {
 	return &debug.BuildInfo{GoVersion: "go1.27.0", Main: debug.Module{Version: mainVersion}, Settings: settings}
@@ -69,8 +67,6 @@ func TestFrom(t *testing.T) {
 		})
 	}
 }
-
-// ANCHOR_END: table
 
 func TestInfoString(t *testing.T) {
 	t.Parallel()

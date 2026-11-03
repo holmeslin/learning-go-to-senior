@@ -23,8 +23,6 @@ type keepSpans struct{ *tracetest.InMemoryExporter }
 
 func (keepSpans) Shutdown(context.Context) error { return nil }
 
-// ANCHOR: flush
-
 // 關機時送出最後一段追蹤：掃描與送出的 span 先留在批次處理器的緩衝裡（5 秒才送一次），
 // 收到結束訊號之後，Run 在關資料庫之前把它們送到 exporter。
 func TestServiceSendsTheLastSpansOnShutdown(t *testing.T) {
@@ -50,8 +48,6 @@ func TestServiceSendsTheLastSpansOnShutdown(t *testing.T) {
 		}
 	})
 }
-
-// ANCHOR_END: flush
 
 // 日誌不記裝置 token：失敗、重試、放棄都走過一遍，整份日誌裡找不到任何一個 token。
 func TestServiceLogsNeverContainDeviceTokens(t *testing.T) {
@@ -127,8 +123,6 @@ func get(t *testing.T, url string) (int, string) {
 	return resp.StatusCode, string(body)
 }
 
-// ANCHOR: http
-
 // 真的伺服器：內部 API 與診斷端點各自在隨機 port 上服務。收到結束訊號之後，readiness 先變成未就緒，
 // 但兩個伺服器都等到進行中的送出做完才關：這段時間 /healthz 與 API 還答得出來，之後連線被拒。
 // 這個測試不在 bubble 裡（bubble 裡不能有真的 socket），用 channel 與日誌同步，沒有 time.Sleep。
@@ -196,5 +190,3 @@ func TestServiceServesHTTPAndTurnsUnreadyBeforeWaitingForInFlightSends(t *testin
 		t.Error("the second reminder has a record, want none: it never started")
 	}
 }
-
-// ANCHOR_END: http

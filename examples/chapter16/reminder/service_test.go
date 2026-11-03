@@ -253,8 +253,6 @@ func TestServiceSendsEachDueReminderOnce(t *testing.T) {
 
 // ANCHOR_END: once
 
-// ANCHOR: giveup
-
 // 供應商持續失敗：預定時間後 1 小時記為失敗，之後不再送。
 func TestServiceGivesUpAfterOneHour(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -287,10 +285,6 @@ func TestServiceGivesUpAfterOneHour(t *testing.T) {
 	})
 }
 
-// ANCHOR_END: giveup
-
-// ANCHOR: disabled
-
 // 開關關閉：服務照常啟動，但不掃描、不呼叫供應商、不寫任何紀錄。
 func TestServiceDoesNotSendWhenSwitchIsOff(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -309,8 +303,6 @@ func TestServiceDoesNotSendWhenSwitchIsOff(t *testing.T) {
 		stop(t, cancel, done)
 	})
 }
-
-// ANCHOR_END: disabled
 
 // ANCHOR: shutdown
 
@@ -375,8 +367,6 @@ func TestServiceReportsAnErrorWhenShutdownDeadlinePasses(t *testing.T) {
 	})
 }
 
-// ANCHOR: missed
-
 // 服務停機超過 1 小時：預定時間後 1 小時內一次都沒送過，第一次掃描就直接記為失敗，不送出。
 func TestServiceRecordsAsFailedWhatItMissedWhileDown(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -396,8 +386,6 @@ func TestServiceRecordsAsFailedWhatItMissedWhileDown(t *testing.T) {
 		stop(t, cancel, done)
 	})
 }
-
-// ANCHOR_END: missed
 
 // 報名服務的唯讀檢視不在：服務啟動時就拒絕，不是等到第一次掃描才出錯；開關關閉的部署也一樣。
 func TestServiceRefusesToStartWithoutTheView(t *testing.T) {
