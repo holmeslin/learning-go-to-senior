@@ -28,7 +28,7 @@
 {{#include ../../../examples/chapter2/05_join_or_first_error/before/example_test.go:example}}
 ```
 
-三次呼叫的結果就是 `// Output:` 的三行：每次只看到一個，改完才看到下一個。這些檢查彼此獨立，姓名有沒有填，跟 email 有沒有 `@` 無關，驗證函式明明一次就能全部檢查完，卻只講了第一個。
+三次呼叫的結果就是 `// Output:` 的三行：每次只看到一個，改完才看到下一個。這些檢查彼此獨立，姓名有沒有填，跟 email 有沒有 `@` 無關。驗證函式明明一次就能全部檢查完，卻只講了第一個。
 
 ## 較好的做法
 
@@ -72,7 +72,7 @@
 {{#include ../../../examples/chapter2/05_join_or_first_error/after/form.go:checkage}}
 ```
 
-`"abc"` 解析失敗時，`n` 沒有意義，再比較範圍只會多出一個誤導的錯誤，所以 `checkAge` 在這裡直接回傳。回傳的是這個套件自己的 `ErrNotNumber`，不是 `strconv` 的錯誤：`strconv.ErrSyntax` 不該成為表單驗證的 API（理由見本章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](02_wrap_or_expose.md)〉），測試也確認 `errors.Is(err, strconv.ErrSyntax)` 是 `false`。整份表單是欄位之間收集，但同一個欄位裡，前一步是後一步的前提時，第一個錯誤就停。測試 `TestValidateAgeStopsAtFirstError` 鎖住這一點。
+`"abc"` 解析失敗時，`n` 沒有意義，再比較範圍只會多出一個誤導的錯誤，所以 `checkAge` 在這裡直接回傳。回傳的是這個套件自己的 `ErrNotNumber`，不是 `strconv` 的錯誤。`strconv.ErrSyntax` 不該成為表單驗證的 API（理由見本章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](02_wrap_or_expose.md)〉），測試也確認 `errors.Is(err, strconv.ErrSyntax)` 是 `false`。整份表單是欄位之間收集，但同一個欄位裡，前一步是後一步的前提時，第一個錯誤就停。測試 `TestValidateAgeStopsAtFirstError` 鎖住這一點。
 
 ## 取捨
 
