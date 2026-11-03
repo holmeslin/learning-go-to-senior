@@ -40,7 +40,7 @@ webhook 接收服務每收到一筆通知（最多 64 KiB）就讀進一塊緩�
 
 長度是 16，容量卻是整塊緩衝區剩下的長度。只要這個切片還被存著，整個 64 KiB 的陣列都不能回收。
 
-三個元件各用 `demo` 量一次。`demo` 在讀數前先呼叫 `runtime.GC()`，再讀 `/gc/heap/live:bytes`（上一次 GC 標記為還活著的 heap；怎麼讀指標，本章〈`runtime/metrics`〉會談）；強制 GC 只是為了量測，不是調校手法。它會刻意配置數百 MiB，所以放在 `main` 套件，`go test` 不會跑。平台是 macOS（arm64）、14 個 P，每次輸出的第一行 `GOMAXPROCS 14` 省略了：
+三個元件各用 `demo` 量一次。`demo` 在讀數前先呼叫 `runtime.GC()`，再讀 `/gc/heap/live:bytes`（上一次 GC 標記為還活著的 heap；怎麼讀指標，本章〈`runtime/metrics`〉會談）；強制 GC 只是為了量測，不是調校手法。`demo` 會刻意配置數百 MiB，所以放在 `main` 套件，`go test` 不會跑。平台是 macOS（arm64）、14 個 P，每次輸出的第一行 `GOMAXPROCS 14` 省略了：
 
 執行結果（某一次）：
 
