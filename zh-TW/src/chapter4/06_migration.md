@@ -87,7 +87,7 @@
 - **每個檔案包進交易，靠的是 SQLite 的 DDL 可以回滾。** MySQL 的 DDL 會隱式提交，PostgreSQL 的 `CREATE INDEX CONCURRENTLY` 不能放在交易裡，換了資料庫，「失敗就整個回滾」不一定還成立。
 - **down migration 值不值得寫，要看你敢不敢跑它。** 寫了就得測，沒測過的 down 在出事時比沒有更危險；`DROP COLUMN` 之後資料也回不來。不少團隊出事時選擇再寫一個往前的 migration。
 
-**零停機：先擴充，再收斂。** 滾動更新期間新舊兩版同時跑，所以每個 migration 都得讓舊版與新版都能用。`003` 只新增有預設值的欄位，舊版的 `INSERT INTO users (email)` 照常成功（`TestOldReleaseStillWorksAfterExpand`）。如果把 `email` 直接改名或刪掉：因為舊版程式的 SQL 寫死了 `email` 這個欄位名，而滾動更新期間舊版還在跑，所以新 schema 一套用，那些 SQL 就會失敗。要改名，拆成幾步：先新增 `login`（擴充），新版同時寫兩個欄位並補齊舊資料；等所有實例都換成新版、不會再回頭，下一次部署才刪掉 `email`（收斂）。
+**零停機：先擴充，再收斂。** 滾動更新期間新舊兩版同時跑，所以每個 migration 都得讓舊版與新版都能用。`003` 只新增有預設值的欄位，舊版的 `INSERT INTO users (email)` 照常成功（`TestOldReleaseStillWorksAfterExpand`）。如果把 `email` 直接改名或刪掉呢？舊版程式的 SQL 寫死了 `email` 這個欄位名，而滾動更新期間舊版還在跑，所以新 schema 一套用，那些 SQL 就會失敗。要改名，拆成幾步：先新增 `login`（擴充），新版同時寫兩個欄位並補齊舊資料；等所有實例都換成新版、不會再回頭，下一次部署才刪掉 `email`（收斂）。
 
 正式專案通常直接用現成工具，例如 goose、golang-migrate。骨架和這集相同（編號的檔案加一張版本表），另外處理鎖、down、命令列這些最小版本沒做的事。本書不示範，也不引入。migration 在測試裡怎麼套用，本章〈測試資料層：fake 與真實資料庫〉會談。
 
