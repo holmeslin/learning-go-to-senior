@@ -16,7 +16,7 @@
 {{#include ../../../examples/chapter8/02_when_to_tune_gogc/before/roster.go:handle}}
 ```
 
-另一種常見的做法是把環境變數 `GOGC` 設得很低（例如 10），逼 GC 勤快一點。完整程式碼在 `examples/chapter8/02_when_to_tune_gogc/before/`（只有 benchmark，沒有測試）。
+另一種常見的做法是把環境變數 `GOGC` 設得很低（例如 10），讓 GC 更常執行。完整程式碼在 `examples/chapter8/02_when_to_tune_gogc/before/`（只有 benchmark，沒有測試）。
 
 ## 問題在哪
 
@@ -100,7 +100,7 @@ $ GOGC=400 GODEBUG=gctrace=1 ./ingest 2>&1 >/dev/null | grep -E ' P( \(forced\))
 gc 4 @0.127s 1%: 0.012+1.6+0.009 ms clock, 0.16+0/6.2/6.0+0.13 ms cpu, 77->79->15 MB, 82 MB goal, 0 MB stacks, 0 MB globals, 14 P
 ```
 
-`gc N` 是從程式開始累計的次數，`goal` 是這次 GC 結束時 heap 的目標。三行的存活量差不多（結尾的 `MB` 都是 14 到 15，是那份名冊），差別在 `GOGC` 越小，GC 越勤、`goal` 越貼著存活量，GC 占比越高；`GOGC` 越大，次數與占比越低，代價是 `goal`，也就是 heap 可能長到的大小，跟著變大。第 7 章〈[`pprof`：先看 CPU 還是 heap](../chapter7/03_pprof_cpu_or_heap.md)〉留下的問題「GC 怎麼調」，答案就是這張取捨：用記憶體換 CPU。
+`gc N` 是從程式開始累計的次數，`goal` 是這次 GC 結束時 heap 的目標。三行的存活量差不多（結尾的 `MB` 都是 14 到 15，是那份名冊），差別在 `GOGC` 越小，GC 越頻繁、`goal` 越貼著存活量，GC 占比越高。`GOGC` 越大，次數與占比越低，代價是 `goal`，也就是 heap 可能長到的大小，跟著變大。第 7 章〈[`pprof`：先看 CPU 還是 heap](../chapter7/03_pprof_cpu_or_heap.md)〉留下的問題「GC 怎麼調」，答案就是這張取捨：用記憶體換 CPU。
 
 ## 取捨
 
