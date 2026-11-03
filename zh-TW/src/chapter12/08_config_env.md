@@ -53,7 +53,7 @@
 {{#include ../../../examples/chapter12/08_config_env/after/config.go:config}}
 ```
 
-`Load` 在呼叫端給的 `FlagSet` 上註冊旗標，旗標的值只記原始字串；每個欄位依序看旗標、環境變數、預設值，取第一個有的，再轉換並驗證。環境變數設成空字串視為沒設（容器的 `ENV X=` 常這樣），上游這種沒有合理預設的欄位，三個來源都沒給就是錯誤：
+`Load` 在呼叫端給的 `FlagSet` 上註冊旗標，旗標的值只記原始字串；每個欄位依序看旗標、環境變數、預設值，取第一個有的，再轉換並驗證。環境變數設成空字串視為沒設（容器的 `ENV X=` 常這樣）。上游這種沒有合理預設的欄位，三個來源都沒給就是錯誤：
 
 ```go,ignore
 {{#include ../../../examples/chapter12/08_config_env/after/config.go:load}}
