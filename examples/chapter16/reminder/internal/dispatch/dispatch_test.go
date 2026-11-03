@@ -65,8 +65,6 @@ func (f *fakeSender) snapshot() []call {
 
 // ANCHOR_END: sender
 
-// ANCHOR: setup
-
 // setup 在 bubble 裡開一個記憶體資料庫，放進一場「現在就到預定時間」的活動與 n 位報名者。
 // 資料庫在 bubble 裡開，就要在 bubble 裡關。
 func setup(t *testing.T, n int) (*store.Store, *sql.DB) {
@@ -86,8 +84,6 @@ func setup(t *testing.T, n int) (*store.Store, *sql.DB) {
 	addEvent(t, db, 1, time.Now().Add(store.LeadTime), n)
 	return store.New(db), db
 }
-
-// ANCHOR_END: setup
 
 func addEvent(t *testing.T, db *sql.DB, eventID int64, startsAt time.Time, registrants int) {
 	t.Helper()
@@ -141,8 +137,6 @@ func state(t *testing.T, st *store.Store, registrantID int64) store.Delivery {
 	return d
 }
 
-// ANCHOR: once
-
 func TestScanSendsEachDueReminderOnce(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		st, _ := setup(t, 3)
@@ -177,8 +171,6 @@ func TestScanSendsEachDueReminderOnce(t *testing.T) {
 	})
 }
 
-// ANCHOR_END: once
-
 func TestScanWaitsUntilTheReminderIsDue(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		st, db := setup(t, 0)
@@ -196,8 +188,6 @@ func TestScanWaitsUntilTheReminderIsDue(t *testing.T) {
 		}
 	})
 }
-
-// ANCHOR: concurrency
 
 func TestScanLimitsConcurrency(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -220,10 +210,6 @@ func TestScanLimitsConcurrency(t *testing.T) {
 		}
 	})
 }
-
-// ANCHOR_END: concurrency
-
-// ANCHOR: ratelimit
 
 func TestScanRespectsTheRateLimit(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -251,10 +237,6 @@ func TestScanRespectsTheRateLimit(t *testing.T) {
 		}
 	})
 }
-
-// ANCHOR_END: ratelimit
-
-// ANCHOR: retry
 
 func TestRunRetriesWithBackoffThenGivesUp(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -302,8 +284,6 @@ func TestRunRetriesWithBackoffThenGivesUp(t *testing.T) {
 	})
 }
 
-// ANCHOR_END: retry
-
 func TestScanPermanentFailureIsNotRetried(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		st, _ := setup(t, 1)
@@ -339,8 +319,6 @@ func TestScanTreatsUnclassifiedErrorAsPermanent(t *testing.T) {
 	})
 }
 
-// ANCHOR: missed
-
 func TestScanRecordsMissedReminderAsFailedWithoutSending(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		st, db := setup(t, 0)
@@ -362,10 +340,6 @@ func TestScanRecordsMissedReminderAsFailedWithoutSending(t *testing.T) {
 		}
 	})
 }
-
-// ANCHOR_END: missed
-
-// ANCHOR: skipped
 
 func TestScanSkipsReminderRecordedByAnotherWriter(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -399,10 +373,6 @@ func TestScanSkipsReminderRecordedByAnotherWriter(t *testing.T) {
 		}
 	})
 }
-
-// ANCHOR_END: skipped
-
-// ANCHOR: cancel
 
 func TestRunLetsInFlightSendFinishWhenCanceled(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -446,8 +416,6 @@ func TestRunLetsInFlightSendFinishWhenCanceled(t *testing.T) {
 		}
 	})
 }
-
-// ANCHOR_END: cancel
 
 func TestNewRejectsInvalidOptions(t *testing.T) {
 	t.Parallel()

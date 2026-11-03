@@ -38,8 +38,6 @@ type Telemetry struct {
 	traces *sdktrace.TracerProvider
 }
 
-// ANCHOR: new
-
 // New 建立 Telemetry，並註冊 goroutine 數量與 heap 兩個 runtime 指標。
 //
 // exporter 是追蹤送去的地方，Shutdown 時會把緩衝裡的 span 送完；nil 代表不送出。
@@ -71,8 +69,6 @@ func New(exporter sdktrace.SpanExporter) (*Telemetry, error) {
 	return t, nil
 }
 
-// ANCHOR_END: new
-
 // runtimeGauge 註冊一個讀 runtime/metrics 的指標：每次收集時讀一次 sample。
 func runtimeGauge(m metric.Meter, name, description, unit, sample string) error {
 	_, err := m.Int64ObservableGauge(name,
@@ -91,18 +87,12 @@ func runtimeGauge(m metric.Meter, name, description, unit, sample string) error 
 	return nil
 }
 
-// ANCHOR: shutdown
-
 // Shutdown 送出最後的追蹤與指標，之後不能再用。關機時在關 HTTP 伺服器之後、關資料庫之前呼叫：
 // 進行中的送出已經結束，它們的 span 與計數才是完整的；而收集 overdue 指標的查詢還需要資料庫。
 // ctx 的期限就是送出的期限，期限到了回傳錯誤。
 func (t *Telemetry) Shutdown(ctx context.Context) error {
 	return errors.Join(t.traces.Shutdown(ctx), t.meters.Shutdown(ctx))
 }
-
-// ANCHOR_END: shutdown
-
-// ANCHOR: snapshot
 
 // Snapshot 收集一次指標，一個資料點一行（依名稱排序）寫進 w：
 //
@@ -158,5 +148,3 @@ func labels(set attribute.Set) string {
 	}
 	return "{" + strings.Join(parts, ",") + "}"
 }
-
-// ANCHOR_END: snapshot

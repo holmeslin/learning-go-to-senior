@@ -54,8 +54,6 @@ func newHandler(c api.Counter) http.Handler {
 	return api.NewHandler(c, time.Second, slog.New(slog.DiscardHandler))
 }
 
-// ANCHOR: validation
-
 // 活動編號是正整數的標準寫法；其他寫法一律 400，而且不會去查資料。
 func TestHandlerRejectsInvalidEventIDs(t *testing.T) {
 	t.Parallel()
@@ -79,10 +77,6 @@ func TestHandlerRejectsInvalidEventIDs(t *testing.T) {
 		})
 	}
 }
-
-// ANCHOR_END: validation
-
-// ANCHOR: status
 
 // 資料層的錯誤對應到狀態碼：沒有這場活動 404、查詢逾時 503、其他 500；500 的本文不帶內部的錯誤訊息。
 func TestHandlerMapsErrorsToStatusCodes(t *testing.T) {
@@ -114,10 +108,6 @@ func TestHandlerMapsErrorsToStatusCodes(t *testing.T) {
 	}
 }
 
-// ANCHOR_END: status
-
-// ANCHOR: readonly
-
 // 沒有寫入的操作：改變資料的方法一律 405，Allow 只列讀取的方法，而且不會去查資料。
 func TestHandlerOffersNoWriteOperations(t *testing.T) {
 	t.Parallel()
@@ -138,8 +128,6 @@ func TestHandlerOffersNoWriteOperations(t *testing.T) {
 		})
 	}
 }
-
-// ANCHOR_END: readonly
 
 // 查詢帶著期限：資料庫卡住時，請求不會跟著卡住。路徑以外的東西（診斷端點）不在這個 handler 上。
 func TestHandlerSetsAQueryDeadlineAndServesOnlyItsRoute(t *testing.T) {

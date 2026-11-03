@@ -32,8 +32,6 @@ func mixed(n push.Notification) error {
 	return nil
 }
 
-// ANCHOR: reader
-
 // newReader 建一個只存在這個測試的 MeterProvider 與 ManualReader，不碰全域設定。
 func newReader(t *testing.T) (*sdkmetric.ManualReader, *sdkmetric.MeterProvider) {
 	t.Helper()
@@ -62,10 +60,6 @@ func collect(t *testing.T, reader *sdkmetric.ManualReader) map[string]metricdata
 	}
 	return byName
 }
-
-// ANCHOR_END: reader
-
-// ANCHOR: cardinality
 
 // 送出結果的計數只有一個標籤 result，值是固定的七種：活動、報名者、裝置 token 都不是標籤，
 // 不管這一批有多少人、多少場活動，資料點的數量都不會變。
@@ -119,8 +113,6 @@ func TestScanMetricsHaveOnlyTheResultLabel(t *testing.T) {
 	})
 }
 
-// ANCHOR_END: cardinality
-
 // 批次時間：每掃一批記一筆，單位是秒。
 func TestScanRecordsTheBatchDuration(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -143,8 +135,6 @@ func TestScanRecordsTheBatchDuration(t *testing.T) {
 		}
 	})
 }
-
-// ANCHOR: overdue
 
 // 逾期未寄的數量在收集時才查：到期而沒有紀錄的、待重試的都算，寄出之後歸零。
 func TestOverdueGaugeCountsWhatIsPastDueAndUnsent(t *testing.T) {
@@ -188,8 +178,6 @@ func TestOverdueGaugeCountsWhatIsPastDueAndUnsent(t *testing.T) {
 	})
 }
 
-// ANCHOR_END: overdue
-
 func attrs(kvs []attribute.KeyValue) map[string]attribute.Value {
 	m := map[string]attribute.Value{}
 	for _, kv := range kvs {
@@ -197,8 +185,6 @@ func attrs(kvs []attribute.KeyValue) map[string]attribute.Value {
 	}
 	return m
 }
-
-// ANCHOR: spans
 
 // 每批一個 span，每次送出一個子 span：子 span 屬於同一條追蹤、父親是這一批的 span。
 // 送出的 span 屬性是活動編號與結果（sent、transient、permanent），失敗的狀態是 Error；沒有裝置 token。
@@ -259,8 +245,6 @@ func TestScanRecordsOneSpanPerBatchWithOneChildPerSend(t *testing.T) {
 		}
 	})
 }
-
-// ANCHOR_END: spans
 
 // 沒有東西可送的批次也有一個 span，沒有子 span。
 func TestScanWithNothingDueStillRecordsTheBatchSpan(t *testing.T) {

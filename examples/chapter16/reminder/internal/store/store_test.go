@@ -80,8 +80,6 @@ func mustGet(t *testing.T, s *store.Store, eventID, registrantID int64) store.De
 	return d
 }
 
-// ANCHOR: begin
-
 func TestBeginWritesTheRecordOnlyOnce(t *testing.T) {
 	t.Parallel()
 	s, db := newStore(t)
@@ -106,8 +104,6 @@ func TestBeginWritesTheRecordOnlyOnce(t *testing.T) {
 		t.Errorf("record after second Begin = %+v, want unchanged %+v", again, got)
 	}
 }
-
-// ANCHOR_END: begin
 
 func TestDueSelectsOnlyReminderThatAreDue(t *testing.T) {
 	t.Parallel()
@@ -174,8 +170,6 @@ func TestDueSkipsRecordedAndReturnsRetriesThatAreDue(t *testing.T) {
 	}
 }
 
-// ANCHOR: transitions
-
 func TestStateTransitions(t *testing.T) {
 	t.Parallel()
 	s, db := newStore(t)
@@ -211,8 +205,6 @@ func TestStateTransitions(t *testing.T) {
 	}
 }
 
-// ANCHOR_END: transitions
-
 func TestMarkFailedAndTransitionsFromOtherStates(t *testing.T) {
 	t.Parallel()
 	s, db := newStore(t)
@@ -238,8 +230,6 @@ func TestMarkFailedAndTransitionsFromOtherStates(t *testing.T) {
 		t.Errorf("MarkSent() after failure error = %v, want ErrStateChanged", err)
 	}
 }
-
-// ANCHOR: expire
 
 func TestFailOverdue(t *testing.T) {
 	t.Parallel()
@@ -288,8 +278,6 @@ func TestFailOverdue(t *testing.T) {
 		t.Errorf("second FailOverdue() = %d, %d, %v, want 0, 0, nil", expired, missed, err)
 	}
 }
-
-// ANCHOR_END: expire
 
 func TestFailOverdueIgnoresEventsThatAlreadyStarted(t *testing.T) {
 	t.Parallel()

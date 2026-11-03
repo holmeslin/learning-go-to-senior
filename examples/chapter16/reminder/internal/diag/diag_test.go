@@ -33,8 +33,6 @@ func request(h http.Handler, method, target string) *httptest.ResponseRecorder {
 	return rec
 }
 
-// ANCHOR: ready
-
 // readiness 的轉換：啟動完成前未就緒、啟動完成後就緒、關機開始後又回到未就緒；
 // 健康檢查（行程還活著）不受影響，pprof 在關機期間也還能用。
 func TestReadyzFollowsReadiness(t *testing.T) {
@@ -65,10 +63,6 @@ func TestReadyzFollowsReadiness(t *testing.T) {
 	}
 }
 
-// ANCHOR_END: ready
-
-// ANCHOR: routes
-
 // 診斷端點是明確註冊的一份清單，在自己的 ServeMux 上：pprof 只有具名的 profile，
 // 沒有 cmdline（命令列可能帶著秘密）；沒有業務路由；不接受 GET 以外的方法。
 func TestHandlerServesOnlyTheChosenEndpoints(t *testing.T) {
@@ -96,8 +90,6 @@ func TestHandlerServesOnlyTheChosenEndpoints(t *testing.T) {
 		}
 	}
 }
-
-// ANCHOR_END: routes
 
 func TestMetricsEndpointWritesTheSnapshot(t *testing.T) {
 	t.Parallel()

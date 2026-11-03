@@ -39,8 +39,6 @@ const (
 
 // ANCHOR_END: defaults
 
-// ANCHOR: config
-
 // Config 是提醒服務的設定。括號裡是環境變數的名稱與預設值。
 type Config struct {
 	// SendEnabled 是送出的開關（REMINDER_SEND_ENABLED，預設 false）。關閉時不掃描、不寫任何紀錄、不送出。
@@ -68,8 +66,6 @@ type Config struct {
 	// DiagAddr 是診斷端點監聽的位址（REMINDER_DIAG_ADDR，預設 127.0.0.1:6060），主機必須是 loopback。
 	DiagAddr string
 }
-
-// ANCHOR_END: config
 
 // ANCHOR: load
 

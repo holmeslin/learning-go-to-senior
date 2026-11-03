@@ -9,14 +9,10 @@ import (
 	"github.com/holmeslin/learning-go-to-senior/examples/chapter16/reminder/internal/config"
 )
 
-// ANCHOR: env
-
 // env 把 map 當成環境變數：測試不碰行程的環境，也不需要 t.Setenv。
 func env(vars map[string]string) func(string) string {
 	return func(key string) string { return vars[key] }
 }
-
-// ANCHOR_END: env
 
 func TestLoadDefaults(t *testing.T) {
 	t.Parallel()
@@ -78,8 +74,6 @@ func TestLoadOverrides(t *testing.T) {
 	}
 }
 
-// ANCHOR: invalid
-
 func TestLoadRejectsInvalidValues(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -120,10 +114,6 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		})
 	}
 }
-
-// ANCHOR_END: invalid
-
-// ANCHOR: shutdownbudget
 
 // 關機期限要涵蓋最壞的一則送出：寫紀錄的查詢、請求、記結果的查詢，加上 HTTP 伺服器收尾的一個查詢，
 // 再加 5 秒餘裕。預設的請求與查詢逾時都是 5 秒，所以下限是 5 + 3×5 + 5 = 25 秒。
@@ -169,8 +159,6 @@ func TestLoadShutdownTimeoutErrorStatesTheMinimum(t *testing.T) {
 		t.Errorf("Load() error = %v, want %q", err, want)
 	}
 }
-
-// ANCHOR_END: shutdownbudget
 
 func TestLoadRequiresProviderURL(t *testing.T) {
 	t.Parallel()
