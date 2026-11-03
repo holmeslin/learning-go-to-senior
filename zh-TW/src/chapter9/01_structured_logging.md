@@ -28,7 +28,7 @@
 {{#include ../../../examples/chapter9/01_structured_logging/before/example_test.go:example}}
 ```
 
-`u4` 只失敗一次，卻撈出兩行：`user u4` 同時是 `user u42` 的開頭。比對成 `user u4 ` 可以躲掉這一次，但使用者代號剛好排在訊息最後面時又不成立。輸出雖然是 JSON，裡面只有 `level` 與 `msg`，使用者、券號、原因全部擠在 `msg` 這一個字串裡，要查詢就得寫綁定措辭的比對或正規表達式；有人把訊息改成 `redeem failed for user ...`，所有查詢跟著壞掉。「各種失敗原因各幾次」更沒有欄位可以彙總。
+`u4` 只失敗一次，卻撈出兩行：`user u4` 同時是 `user u42` 的開頭。比對成 `user u4 ` 可以躲掉這一次，但使用者代號剛好排在訊息最後面時又不成立。輸出雖然是 JSON，裡面只有 `level` 與 `msg`，使用者、券號、原因全部擠在 `msg` 這一個字串裡。要查詢就得寫綁定措辭的比對或正規表達式。有人把訊息改成 `redeem failed for user ...`，所有查詢跟著壞掉。「各種失敗原因各幾次」更沒有欄位可以彙總。
 
 另一個問題在 `Redeem` 直接呼叫全域的 `slog.Warn`：呼叫端換不掉輸出位置。上面的 `Example` 得用 `slog.SetDefault` 改全域狀態再還原，這種測試不能和別的測試並行。
 
@@ -83,7 +83,7 @@ handler 在程式的進入點選。本機看日誌的是人，`TextHandler` 好�
 
 `go vet` 的 slog 檢查會抓這類寫法：缺最後一個值時回報 `call to slog.Info missing a final value`，鍵不是字串或 `slog.Attr` 時也會回報。所以團隊要跑 `go vet`。兩種寫法也可以混用，例如 `logger.Info("m", slog.String("a", "b"), "k", 1)`。
 
-自訂 handler 的成本比看起來高。`Handler` 有四個方法，`WithAttrs` 與 `WithGroup` 的語意（群組要套用到之後的屬性）容易寫錯，標準庫提供 `testing/slogtest` 檢查，但維護是你的責任。多數需求先用 `HandlerOptions`（層級、`ReplaceAttr`）解決；真的要寫，也只包住標準 handler，改 `Handle` 加欄位或轉送。
+自訂 handler 的成本比看起來高。`Handler` 有四個方法，`WithAttrs` 與 `WithGroup` 的語意（群組要套用到之後的屬性）容易寫錯。標準庫提供 `testing/slogtest` 檢查，但維護是你的責任。多數需求先用 `HandlerOptions`（層級、`ReplaceAttr`）解決；真的要寫，也只包住標準 handler，改 `Handle` 加欄位或轉送。
 
 日誌量是成本。每一行日誌都佔儲存與索引，JSON 的鍵名每行重複一次，欄位越多、越常記，成本越高。欄位化讓日誌查得到，不代表什麼都該記；哪些事件值得一行，本章〈日誌層級與欄位設計〉會談。記下來的欄位本身也要小心：`Voucher` 的 `LogValue` 可以決定不輸出哪些部分，但日誌裡的敏感資料怎麼處理，第 11 章〈[日誌裡的敏感資料](../chapter11/08_sensitive_data_in_logs.md)〉談過。
 
