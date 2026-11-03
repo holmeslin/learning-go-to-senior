@@ -32,7 +32,7 @@
 {{#include ../../../examples/chapter4/01_repository_layer/before/example_test.go:example}}
 ```
 
-列表說有一筆未完成的訂單，關閉帳號卻回了 `204`。「未完成」這個意圖分散在兩段 SQL 裡，各自演變，因為它沒有名字，編譯器和測試都不知道這兩處該一致。
+列表說有一筆未完成的訂單，關閉帳號卻回了 `204`。「未完成」這個意圖分散在兩段 SQL 裡，各自演變。它沒有名字，編譯器和測試都不知道這兩處該一致。
 
 查單筆訂單的 handler 還有第二個問題：
 
@@ -64,7 +64,7 @@ after/
 {{#include ../../../examples/chapter4/01_repository_layer/after/order/store.go:open}}
 ```
 
-`OpenOrdersFor` 是「未完成」唯一的定義：`defer rows.Close()`，迴圈後檢查 `rows.Err()`，沒有訂單回傳空結果，不是錯誤。已出貨與別人的訂單都不會出現：
+`OpenOrdersFor` 是「未完成」唯一的定義。它用 `defer rows.Close()` 關閉查詢結果，迴圈後檢查 `rows.Err()`，沒有訂單時回傳空結果，不當成錯誤。已出貨與別人的訂單都不會出現：
 
 ```go,ignore
 {{#include ../../../examples/chapter4/01_repository_layer/after/order/example_test.go:open}}
@@ -126,7 +126,7 @@ after/
 
 ## 重點整理
 
-- SQL 散在 handler 裡，「未完成」這類意圖會在多處各自演變，沒有名字就沒有一致性。
+- SQL 散在 handler 裡，「未完成」這類意圖會在多處各自演變，沒有名字，編譯器和測試就檢查不出它們不一致。
 - store 放在領域套件裡，是具體型別，方法依用途命名、回傳領域型別；通用 CRUD 的 `Repository[T]` 表達不出查詢的意圖。
 - 在 store 這一層把 `sql.ErrNoRows` 翻成自己的 `ErrNotFound`，HTTP 層就不必認得 `database/sql`。
 - after 的測試對真的 SQLite 跑，驗證「找不到」是領域錯誤，也驗證資料庫其他失敗不會被誤判成找不到。
