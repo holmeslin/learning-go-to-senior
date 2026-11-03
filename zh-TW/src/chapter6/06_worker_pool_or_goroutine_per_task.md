@@ -6,7 +6,7 @@
 
 ## 情境
 
-批次抓取頁面標題：給一串 id，對每個 id 呼叫 `fetch`，同一時間最多 `limit` 個（上限由下游的容量決定；下游是資料庫時，怎麼從連線上限推出每個副本的份，見第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉）。結果要和 id 同順序，第一個錯誤要取消其餘的 `fetch`。
+批次抓取頁面標題：給一串 id，對每個 id 呼叫 `fetch`，同一時間最多 `limit` 個。上限由下游的容量決定；下游是資料庫時，怎麼從連線上限推出每個副本的份，見第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉。結果要和 id 同順序，第一個錯誤要取消其餘的 `fetch`。
 
 worker pool 的機制前作教過：〈[worker pool](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/17_worker_pool.html)〉，這集不重講。`errgroup` 的 `Go`、`Wait`、`WithContext` 本章〈[`errgroup`](02_errgroup.md)〉談過，`SetLimit` 本章〈[`errgroup` 的並行上限](03_errgroup_limit.md)〉談過，這裡直接用。
 
@@ -46,7 +46,7 @@ repro.FetchAll(...)
 
 輸出省略了耗時、其餘 goroutine 與 runtime 的 stack、參數與檔案路徑，goroutine 編號以 `N` 代替。
 
-出錯時若收結果的迴圈直接 `return`，沒人再收 `results`；它沒有緩衝，worker 的送出沒有對象，送工作的 goroutine 也卡在 `jobs`，函式回傳了，這些 goroutine 卻永遠結束不了。這種洩漏怎麼在測試裡抓到，本章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談。這些都是為了「同時最多 N 個」付出的程式量：`FetchAll` 在 `before/batch.go` 有 53 行，下面的 after 是 20 行。
+出錯時若收結果的迴圈直接 `return`，就沒人再收 `results`。它沒有緩衝，所以 worker 的送出沒有對象，送工作的 goroutine 也卡在 `jobs`。函式回傳了，這些 goroutine 卻永遠結束不了。這種洩漏怎麼在測試裡抓到，本章〈goroutine 洩漏怎麼發生、怎麼在測試裡抓到〉會談。這些都是為了「同時最多 N 個」付出的程式量：`FetchAll` 在 `before/batch.go` 有 53 行，下面的 after 是 20 行。
 
 ## 較好的做法
 

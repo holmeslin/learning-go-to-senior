@@ -73,7 +73,7 @@ Goroutine N (running) created at:
 FAIL
 ```
 
-報告的讀法：第一段是這次存取（讀，在 `counter.go` 第 8 行），第二段是沒有任何同步就發生在它之前的另一次存取（寫，第 9 行），兩個都是 `Inc`，來自不同的 goroutine；最後列出各 goroutine 從哪裡建立的。位址、goroutine 編號、行內偏移、完整路徑、耗時、測試印的 log，以及 `sync` 與 `testing` 內部的 stack 都省略了，模組名稱也簡寫；報告不只一份，這裡只留第一份，其餘是 map 在 runtime 內部被同樣兩個 goroutine 存取的報告，數量每次可能不同。測試因此失敗。
+報告的讀法：第一段是這次存取（讀，在 `counter.go` 第 8 行），第二段是沒有任何同步就發生在它之前的另一次存取（寫，第 9 行），兩個都是 `Inc`，來自不同的 goroutine；最後列出各 goroutine 從哪裡建立的。位址、goroutine 編號、行內偏移、完整路徑、耗時、測試印的 log，以及 `sync` 與 `testing` 內部的 stack 都省略了，模組名稱也簡寫。報告不只一份，這裡只留第一份，其餘是 map 在 runtime 內部被同樣兩個 goroutine 存取的報告，數量每次可能不同。測試因此失敗。
 
 channel 版就是為了避免這件事，代價是：
 
