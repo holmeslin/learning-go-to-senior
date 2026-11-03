@@ -28,7 +28,7 @@ span 是什麼、`TracerProvider` 為什麼用注入的，本章〈[分散式追
 {{#include ../../../examples/chapter9/05_context_propagation/before/example_test.go:example}}
 ```
 
-四個 span 分在三條 trace。`audit` 是新的根：`Start` 把 span 放進它回傳的 `ctx`，`context.Background()` 沒有這個 span，所以背景工作的 span 無處可接。`carrier.lookup` 也是新的根：`ctx` 只活在一個行程裡，`NewRequestWithContext` 只拿它管取消與逾時，不會把 span 寫進標頭，承運商的 `Extract` 找不到 `traceparent`。
+四個 span 分在三條 trace。`audit` 是新的根：`Start` 把 span 放進它回傳的 `ctx`，`context.Background()` 沒有這個 span，所以背景工作的 span 無處可接。`carrier.lookup` 也是新的根：`ctx` 只活在一個行程裡，`NewRequestWithContext` 只拿它管取消與逾時，不會把 span 寫進標頭。承運商的 `Extract` 找不到 `traceparent`。
 
 後果是在 trace 後端看到三段短短的 trace，查不出哪個 `audit` 屬於哪一次請求，也看不到承運商那一段是誰叫的。
 
@@ -80,13 +80,13 @@ span 是什麼、`TracerProvider` 為什麼用注入的，本章〈[分散式追
 {{#include ../../../examples/chapter9/05_context_propagation/after/track_test.go:link}}
 ```
 
-請求快的、稽核算請求的一部分，延續；背景工作自成一件事，用 link。
+請求很快結束、稽核也算請求的一部分時，延續 trace。背景工作自成一件事時，用 link。
 
 `WithoutCancel` 拿掉的不只取消，還有 deadline：背景工作若卡住，沒有人會叫它停，要自己再包一層逾時，第 10 章〈[逾時預算](../chapter10/01_timeout_budget.md)〉談過。它保留所有的值，不只 span。
 
 `Inject` 與 `Extract` 要在每個邊界各寫一次。contrib 的 `otelhttp` 把它們包進 `Transport` 與 `Handler`；程式進入點也可以用 `otel.SetTextMapPropagator` 設全域的 propagator。這一集不碰全域設定，測試才能各用各的 provider 平行跑。對外部的第三方服務，注入 `traceparent` 等於把內部的 trace ID 送出去，要不要注入由邊界決定。
 
-日誌帶 trace ID 也可以自訂 `slog.Handler`，在 `Handle` 讀 `ctx` 自動加欄位。要轉發 `WithAttrs` 與 `WithGroup`，呼叫端也得用 `InfoContext`，才有 `ctx` 可讀；呼叫點不多時，上面的函式比較簡單。
+日誌帶 trace ID 也可以自訂 `slog.Handler`，在 `Handle` 讀 `ctx` 自動加欄位。這個 handler 要轉發 `WithAttrs` 與 `WithGroup`。呼叫端也得用 `InfoContext`，才有 `ctx` 可讀。呼叫點不多時，上面的函式比較簡單。
 
 Baggage 是另一個 propagator：`propagation.Baggage` 讓 key-value 跟著請求傳給每個下游。傳遞是自動的，下游全都收得到，標頭會變大；不要放個人資料與秘密。
 

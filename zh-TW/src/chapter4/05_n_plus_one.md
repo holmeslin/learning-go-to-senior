@@ -84,7 +84,7 @@
 
 - **自己組裝，程式碼變長。** 分組、接回、空清單的處理，都是 before 不用寫的。
 - **`IN` 的參數有上限。** SQLite 的預設上限，3.32.0 以後是 32766，更早是 999（見 [SQLite 的限制說明](https://www.sqlite.org/limits.html)）；別的資料庫各有各的數字。清單可能很長時，要分批（`slices.Chunk`），查詢次數變成「批數 + 1」，仍然遠少於 `1 + N`，只是不再是常數。這裡選擇不分批：`RecentOrders` 拒絕小於 1 或超過 `MaxRecentLimit`（1000，遠低於 32766）的 `limit`，「最多只查兩次」才站得住；代價是呼叫端想要更多筆時得自己分頁。
-- **也可以用 `JOIN`。** `orders LEFT JOIN order_items` 一次就取回，連第二次查詢都省了。代價是每個品項一列，訂單的欄位在每一列重複，欄位寬或品項多時傳輸量變大；沒有品項的訂單要用 `LEFT JOIN` 才不會消失，它的品項欄位是 `NULL`，要用 `sql.Null*` 或指標去掃（前作〈[`NULL` 處理](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/07_null.html)〉）；而且 `LIMIT` 限制的是 JOIN 之後的「列」，不是訂單數，要取最近 10 張訂單得改寫成子查詢。
+- **也可以用 `JOIN`。** `orders LEFT JOIN order_items` 一次就取回，連第二次查詢都省了。代價是每個品項一列，訂單的欄位在每一列重複，欄位寬或品項多時傳輸量變大。沒有品項的訂單要用 `LEFT JOIN` 才不會消失，它的品項欄位是 `NULL`，要用 `sql.Null*` 或指標去掃（前作〈[`NULL` 處理](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter15/07_null.html)〉）。而且 `LIMIT` 限制的是 JOIN 之後的「列」，不是訂單數，要取最近 10 張訂單得改寫成子查詢。
 
 N+1 在這些情況下反而是合理的：
 

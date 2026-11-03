@@ -44,7 +44,7 @@ OpenTelemetry 分成兩半。API（`go.opentelemetry.io/otel/trace` 等）只定
 
 ## 較好的做法
 
-provider 當參數，span 開在請求的入口。名稱用路由樣板 `r.Pattern`，實際的 id 放進屬性，名稱才不會每個請求都不同；屬性寫在 `Start` 的選項裡，因為取樣器只看得到建立時已經有的屬性。失敗時 `RecordError` 加上 `SetStatus(codes.Error, ...)`，兩個都要呼叫（`RecordError` 只加事件，不改 status）。找不到清單回 404，是呼叫端的錯，status 留在 `Unset`：
+provider 當參數，span 開在請求的入口。名稱用路由樣板 `r.Pattern`，實際的 id 放進屬性，名稱才不會每個請求都不同。屬性寫在 `Start` 的選項裡，因為取樣器只看得到建立時已經有的屬性。失敗時 `RecordError` 加上 `SetStatus(codes.Error, ...)`，兩個都要呼叫（`RecordError` 只加事件，不改 status）。找不到清單回 404，是呼叫端的錯，status 留在 `Unset`：
 
 ```go,ignore
 {{#include ../../../examples/chapter9/04_tracing_opentelemetry/after/playlist.go:entry}}
@@ -108,7 +108,7 @@ status 與事件：404 與成功都沒有 `Error` 的 span；封面服務掛掉�
 ## 重點整理
 
 - trace 由 span 組成，父子關係靠 `context` 傳遞；span 有屬性、事件與 status。API 只定義介面、沒設定就不記錄，SDK 負責記錄與取樣，所以程式碼只依賴 API。
-- span 開在請求、對外呼叫與資料庫查詢的邊界，名稱用樣板、id 放屬性；每個小函式各開一個，只會把真正的邊界淹沒。
+- span 開在請求、對外呼叫與資料庫查詢的邊界，名稱用樣板、id 放屬性；每個小函式各開一個，只會讓真正的邊界看不出來。
 - 失敗要 `RecordError` 加 `SetStatus(codes.Error, ...)`；呼叫端造成的 4xx 與查無資料不算服務的錯。
 - N+1 在 trace 裡是請求底下一串同名的子 span，測試用 span 數量斷言。
 - `TracerProvider` 由參數注入，測試用 `SpanRecorder` 斷言名稱、父子關係、屬性與 status；取樣是 provider 的設定，不寫在程式碼裡。
