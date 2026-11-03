@@ -42,7 +42,7 @@ after   /memory/classes/heap/objects:bytes         0.3    64.3      0.3
 after   /gc/heap/live:bytes                        0.3    64.3      0.3
 ```
 
-`released` 那一欄的資料已經沒有任何參照，`heap_alloc_bytes` 回到起點，`heap_bytes` 卻原地不動：這些記憶體留在 runtime 手上等著重用，或已經還給作業系統、但位址空間仍然算在 `Sys` 裡。看 `heap_bytes` 的告警會以為 heap 一直沒降下來，實際上 heap 只剩起點那麼多。`heap_bytes` 與 `/memory/classes/total:bytes` 讀到同樣的大小，名稱卻讓人以為是前者的意思。
+`released` 那一欄的資料已經沒有任何參照，`heap_alloc_bytes` 回到起點，`heap_bytes` 卻原地不動：這些記憶體留在 runtime 手上等著重用，或已經還給作業系統、但位址空間仍然算在 `Sys` 裡。看 `heap_bytes` 的告警會以為 heap 一直沒降下來，實際上 heap 只剩起點那麼多。`heap_bytes` 與 `/memory/classes/total:bytes` 讀到同樣的大小，名稱卻讓人以為它量的是 heap。
 
 另外兩個問題在程式裡就看得到。`heap_bytes`、`gc_runs` 是自己取的名字，換了服務、換了團隊，同樣的東西就有不同的名字，儀表板與告警規則無法共用。想多回報一項（例如 GC 用掉多少 CPU），得先在 `MemStats` 找欄位、確認它的意義、改函式再發版。
 

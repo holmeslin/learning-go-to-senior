@@ -106,7 +106,7 @@
 
 **所有查詢都用參數。** SQL 是 `const`，值走具名參數或 `?`，第 11 章〈[SQL injection 與參數化查詢](../chapter11/02_sql_injection.md)〉的判斷照用。這裡的輸入不是請求：裝置 token 是報名服務那一側的資料，`last_error` 存的是錯誤訊息，內容都不由提醒服務決定。`TestQueriesAreParameterized` 把 `x'); DROP TABLE reminder_deliveries; --` 當作兩者寫進去，讀出來是原樣的文字。
 
-兩個挑選的查詢與 `Due` 如下，`queryReminders` 用 `defer rows.Close()` 歸還連線（沒關的 `rows` 會占住連線，第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉談過）；一整批載入記憶體是 `shortcut:`，一場約 2 萬筆是數 MB，大到放不下時改成分頁：
+兩個挑選的查詢與 `Due` 如下。`queryReminders` 用 `defer rows.Close()` 歸還連線（沒關的 `rows` 會占住連線，第 4 章〈[連線池要設多大、設錯會怎樣](../chapter4/04_pool_size.md)〉談過）。一整批載入記憶體是 `shortcut:`，一場約 2 萬筆是數 MB，大到放不下時改成分頁：
 
 ```go,ignore
 {{#include ../../../examples/chapter16/reminder/internal/store/store.go:due}}
@@ -114,7 +114,7 @@
 
 ## 哪裡會衝突
 
-各章的建議湊在這條路徑上，會互相拉扯：
+各章的建議湊在這條路徑上，會互相衝突：
 
 - **交易包不住「寫紀錄、送出、記結果」。** 第 10 章〈[冪等性](../chapter10/03_idempotency.md)〉建議把冪等鍵與動作寫在同一個交易，動作若是呼叫外部，就把同一個鍵一併傳給對方；第 4 章〈[交易邊界放在哪裡](../chapter4/02_transaction_boundary.md)〉建議交易內不做網路呼叫。這裡的動作就是網路呼叫，回滾不了，也不該讓交易開著等供應商。折衷是把交易邊界縮到單一陳述式：條件式的 `INSERT` 與 `UPDATE ... WHERE state = ...`，用「寄送中」這個中間狀態橫跨網路呼叫。代價是縫隙還在：中斷的那一筆停在寄送中、不補寄。
 - **硬要包住，連線池就得跟著並行上限。** 若 `Begin` 到 `Mark*` 在同一個交易裡，連線在整個呼叫供應商的期間被占住：池子 4、並行上限 50，同時在路上的請求最多 4 個；供應商一慢，連線被占滿，連寫紀錄的查詢也得排隊等連線。單一陳述式的寫法讓這兩個數字可以各自調。
