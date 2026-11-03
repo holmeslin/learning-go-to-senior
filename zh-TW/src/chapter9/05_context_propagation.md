@@ -90,7 +90,7 @@ span 是什麼、`TracerProvider` 為什麼用注入的，本章〈[分散式追
 
 Baggage 是另一個 propagator：`propagation.Baggage` 讓 key-value 跟著請求傳給每個下游。傳遞是自動的，下游全都收得到，標頭會變大；不要放個人資料與秘密。
 
-before 在單一行程、沒有跨服務呼叫，背景工作本來就獨立時，沒有問題。指標與追蹤在整套服務裡怎麼配合，第 16 章〈可觀測性與韌性〉會談。
+before 在單一行程、沒有跨服務呼叫，背景工作本來就獨立時，沒有問題。指標與追蹤在整套服務裡怎麼配合，第 16 章〈[可觀測性與韌性](../chapter16/06_observability_resilience.md)〉談過。
 
 ## 重點整理
 
