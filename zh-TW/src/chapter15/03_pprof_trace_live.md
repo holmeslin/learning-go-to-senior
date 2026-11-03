@@ -72,7 +72,7 @@ created by before.Sender.SendAll in goroutine 1
 
 一整批 goroutine 停在同一行：`sender.go:44`，`post` 呼叫 `Client.Do` 的地方，狀態是 `select`，在等回應。`created by` 指出它們都是 `SendAll` 的 `sender.go:32` 開出來的。這兩處就是上面事故版本要改的程式。
 
-隔一陣（這裡是 12 秒），用同樣的指令再收一次 `goroutine2.*` 與 `heap2.pb.gz`。單看一次分不出「本來就有」和「正在增加」，兩份用 `-base` 比：只留第二份減第一份，`-focus` 只留經過 `Sender.post` 的呼叫鏈。`go tool pprof` 的輸出只留表格，表頭以上各行都省略了；heap 的 `-focus=dialConn` 只留 worker 的 HTTP client，因為示範的假供應商與 worker 在同一個行程，heap 裡也有伺服器那一邊的配置：
+隔一陣（這裡是 12 秒），用同樣的指令再收一次 `goroutine2.*` 與 `heap2.pb.gz`。單看一次分不出「本來就有」和「正在增加」，兩份用 `-base` 比：只留第二份減第一份，`-focus` 只留經過 `Sender.post` 的呼叫鏈。`go tool pprof` 的輸出只留表格，表頭以上各行都省略了。heap 的 `-focus=dialConn` 只留 worker 的 HTTP client，因為示範的假供應商與 worker 在同一個行程，heap 裡也有伺服器那一邊的配置：
 
 執行結果（某一次）：
 
@@ -135,10 +135,10 @@ $ go tool pprof -top -nodecount=4 -base goroutine1.pb.gz goroutine2.pb.gz
 
 ## 取捨
 
-- **收證據也有成本。** `debug=1` 與 `.pb.gz` 用的 goroutine profile 只在開始與結束時短暫停住世界，`debug=1` 的檔案大小幾乎不變；`debug=2` 隨 goroutine 數量成長，第二次的檔案約是第一次的兩倍（`wc -c`），而且 Go 1.27.0 的 `runtime.Stack(buf, true)` 在格式化全部堆疊的整段期間讓世界停住。所以先收 `debug=1`，需要 `created by` 與等待狀態時再收 `debug=2`。診斷端點事故中也只能從內部存取，不要為了方便把管理 port 對外開（第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過存取控制）；存下來的檔案有函式名稱與路徑，當成敏感資料。
-- **CPU profile 與 trace 放最後。** 它們只在收的期間有成本（第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過），trace 比 profile 貴，CPU profile 又看不到在等的 goroutine（第 7 章〈[`runtime/trace`](../chapter7/04_runtime_trace.md)〉談過）。這次 CPU 不忙，所以沒有收 CPU profile。heap 也看不到 goroutine 的堆疊：goroutine 自己占的記憶體不在 heap profile 裡，profile 是取樣的，`gc=1` 還要多做一次 GC；記憶體上升的主因，要看 goroutine 的數量。
+- **收證據也有成本。** `debug=1` 與 `.pb.gz` 用的 goroutine profile 只在開始與結束時短暫停住世界，`debug=1` 的檔案大小幾乎不變。`debug=2` 隨 goroutine 數量成長，第二次的檔案約是第一次的兩倍（`wc -c`），而且 Go 1.27.0 的 `runtime.Stack(buf, true)` 在格式化全部堆疊的整段期間讓世界停住。所以先收 `debug=1`，需要 `created by` 與等待狀態時再收 `debug=2`。診斷端點事故中也只能從內部存取，不要為了方便把管理 port 對外開（第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過存取控制）；存下來的檔案有函式名稱與路徑，當成敏感資料。
+- **CPU profile 與 trace 放最後。** 它們只在收的期間有成本（第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過），trace 比 profile 貴，CPU profile 又看不到在等的 goroutine（第 7 章〈[`runtime/trace`](../chapter7/04_runtime_trace.md)〉談過）。這次 CPU 不忙，所以沒有收 CPU profile。heap 也看不到 goroutine 的堆疊：goroutine 自己占的記憶體不在 heap profile 裡。profile 是取樣的，`gc=1` 還要多做一次 GC。記憶體上升的主因，要看 goroutine 的數量。
 - **時間盒要有人守，直接重啟有時才是對的。** 每多收一分鐘，報名 API 多失敗一分鐘；到了時間，不管收到多少都重啟。原因已經確定（同樣的症狀、已知的原因與修正），或影響大到每分鐘都等不起，就直接重啟；至少先收 `debug=1`，幾秒就好，事後才有東西可對照。
-- **修正也有代價。** 範例把上限與逾時寫死成常數，正式環境要從設定讀（第 12 章〈[設定與環境變數](../chapter12/08_config_env.md)〉）。逾時太短，慢但正常的回應也會失敗；上限太小，批次拖長（最壞是批次筆數除以上限、無條件進位，再乘以逾時，`TestSendAllLeavesNoGoroutine` 是 20 則 6 秒）；逾時不保證供應商沒有處理，所以請求帶冪等鍵（第 10 章〈[冪等性](../chapter10/03_idempotency.md)〉）。把 worker 拆成獨立部署是另一件事，本章〈行動項目與追蹤〉會談。
+- **修正也有代價。** 範例把上限與逾時寫死成常數，正式環境要從設定讀（第 12 章〈[設定與環境變數](../chapter12/08_config_env.md)〉）。逾時太短，慢但正常的回應也會失敗。上限太小，批次拖長（最壞是批次筆數除以上限、無條件進位，再乘以逾時，`TestSendAllLeavesNoGoroutine` 是 20 則 6 秒）。逾時不保證供應商沒有處理，所以請求帶冪等鍵（第 10 章〈[冪等性](../chapter10/03_idempotency.md)〉）。把 worker 拆成獨立部署是另一件事，本章〈行動項目與追蹤〉會談。
 
 ## 重點整理
 
