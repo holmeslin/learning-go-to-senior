@@ -97,7 +97,7 @@ ROUTINE ======================== .../before.normalize in .../before/logstats.go
          .       32MB     82:	return b.String()
 ```
 
-罪魁是每一行都預留 4096 位元組、卻只用幾十位元組。修正只動這一件事：緩衝區由 `Summarize` 持有，每行重複使用；`string(key)` 只用來查 map 時，編譯器不會複製，只有第一次看到新路徑才配置：
+問題出在每一行都預留 4096 位元組、卻只用幾十位元組。修正只動這一件事：緩衝區由 `Summarize` 持有，每行重複使用；`string(key)` 只用來查 map 時，編譯器不會複製，只有第一次看到新路徑才配置：
 
 ```go,ignore
 {{#include ../../../examples/chapter7/03_pprof_cpu_or_heap/after/logstats.go:summarize}}
@@ -138,7 +138,7 @@ Summarize-14   4057.00 ± 0%   65.00 ± 0%  -98.40% (p=0.000 n=10)
 ## 取捨
 
 - profile 只反映 benchmark 打到的路徑與輸入。輸入和實際流量差太多，就會看錯地方；正式環境怎麼收 profile，第 9 章〈[`/debug/pprof` 與診斷端點](../chapter9/06_debug_pprof.md)〉談過。
-- heap profile 是取樣（預設平均每配置 512 KiB 記錄一次），適合找大戶，不適合算精確的次數；精確的次數用 `AllocsPerRun`。
+- heap profile 是取樣（預設平均每配置 512 KiB 記錄一次），適合找配置最多的地方，不適合算精確的次數；精確的次數用 `AllocsPerRun`。
 - `alloc_space` 大不代表一定要改，只有症狀指向配置速率才值得動；GC 怎麼調，第 8 章〈[什麼時候該調 `GOGC`，什麼時候別動](../chapter8/02_when_to_tune_gogc.md)〉談過。修正把緩衝區交給 `Summarize` 持有，換來比較不直覺的 `appendNormalized(dst, ...)`。常見的配置寫法與修正，本章〈常見熱點：配置、拷貝、鎖競爭〉會談。
 - before 在什麼情況下是對的？`normalize` 只在啟動時呼叫幾次，或每次處理的行數很少時，多預留 4 KiB 不會有任何症狀，這時簡單的寫法就夠，不需要打開 profile。
 
