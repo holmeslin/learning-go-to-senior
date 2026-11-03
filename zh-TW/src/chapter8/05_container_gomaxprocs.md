@@ -2,7 +2,7 @@
 
 ## 本集目標
 
-Go 1.25 起，容器裡的 `GOMAXPROCS` 預設會依 cgroup 的 CPU 配額決定，也會定期更新；讀完這集，能判斷自己的服務是不是被舊時代的寫法關掉了這個機制，並把覆寫拿掉。
+Go 1.25 起，容器裡的 `GOMAXPROCS` 預設會依 cgroup 的 CPU 配額決定，也會定期更新；讀完這集，能判斷自己的服務是不是被舊版 Go 的寫法關掉了這個機制，並把覆寫拿掉。
 
 ## 情境
 
@@ -20,7 +20,7 @@ Go 1.25 起，容器裡的 `GOMAXPROCS` 預設會依 cgroup 的 CPU 配額決定
 
 ## 問題在哪
 
-`go doc runtime.GOMAXPROCS` 說得很清楚：預設值取邏輯 CPU 數、CPU 親和性遮罩與 cgroup 配額（配額除以週期，不是整數就進位）三者的最小值，並且定期更新；但設了環境變數 `GOMAXPROCS`，或呼叫 `runtime.GOMAXPROCS(n)`，自動調整與更新就都停了。另外 `go.mod` 的 `go` 版本在 1.24 以下時，`GODEBUG` 的 `containermaxprocs` 與 `updatemaxprocs` 預設是 0，同樣沒有這個機制。
+`go doc runtime.GOMAXPROCS` 寫明：預設值取邏輯 CPU 數、CPU 親和性遮罩與 cgroup 配額（配額除以週期，不是整數就進位）三者的最小值，並且定期更新。但設了環境變數 `GOMAXPROCS`，或呼叫 `runtime.GOMAXPROCS(n)`，自動調整與更新就都停了。另外 `go.mod` 的 `go` 版本在 1.24 以下時，`GODEBUG` 的 `containermaxprocs` 與 `updatemaxprocs` 預設是 0，同樣沒有這個機制。
 
 下面的輸出來自 macOS（arm64）上的 OrbStack：容器是 Linux、cgroup v2、看得到 14 顆 CPU，image 是 `golang:1.27-alpine`（Go 1.27.3）。每一行 `GOMAXPROCS` 就是 P 的數量。指令都在 repo 外的副本目錄、用 `go run` 執行，省略了 `-v "$PWD":/src -w /src` 掛載旗標，也省略了結束碼：每一條都是 0。
 
@@ -71,7 +71,7 @@ NumCPU=14 GOMAXPROCS=2
 {{#include ../../../examples/chapter8/05_container_gomaxprocs/after/check_test.go:table}}
 ```
 
-這個 module 的 `go.mod` 是 `go 1.27`，所以真正編譯出來的測試執行檔必須通過檢查，這等於把「`go` 版本不低於 1.25」鎖進 CI；程式只讀不改這件事，用哨兵值證明（改全域設定的測試用 `t.Cleanup` 還原，也不呼叫 `t.Parallel`）：
+這個 module 的 `go.mod` 是 `go 1.27`，所以真正編譯出來的測試執行檔必須通過檢查，這等於把「`go` 版本不低於 1.25」鎖進 CI。程式只讀不改這件事，用哨兵值證明（改全域設定的測試用 `t.Cleanup` 還原，也不呼叫 `t.Parallel`）：
 
 ```go,ignore
 {{#include ../../../examples/chapter8/05_container_gomaxprocs/after/check_test.go:build}}
@@ -108,7 +108,7 @@ NumCPU=14 GOMAXPROCS=2
 
   綁在 1 顆時才會得到 1：低於 2 的例外就是這一種。
 - **真的需要固定值的少數情況。** 例如依第 7 章〈[先量測，再最佳化](../chapter7/01_measure_before_optimizing.md)〉的流程量測之後，確定固定值比預設值好，或壓測時要在同一台機器上比較不同的 P 數。固定值寫在部署設定（環境變數）裡，不要寫在程式碼中，這樣改配額時改的是同一個地方；之後想回到預設，可以呼叫 `runtime.SetDefaultGOMAXPROCS`。
-- **舊版 Go 的建議。** `automaxprocs` 這類套件是為 Go 1.24 以下補的洞。升級後先確認它做了什麼：只要它還是呼叫 `runtime.GOMAXPROCS` 設定固定值，就會關掉定期更新，這時該移除。
+- **舊版 Go 的建議。** `automaxprocs` 這類套件是為了讓 Go 1.24 以下的版本也能依 cgroup 配額設定 `GOMAXPROCS`。升級後先確認它做了什麼：只要它還是呼叫 `runtime.GOMAXPROCS` 設定固定值，就會關掉定期更新，這時該移除。
 - **before 在舊版 Go 上是對的。** 如果服務還不能升級到 1.25，寫死或用套件仍是合理的暫時做法。
 - **想在執行時觀察。** `runtime/metrics` 的 `/sched/gomaxprocs:threads` 就是目前的值，本章〈`runtime/metrics`〉會談。
 
