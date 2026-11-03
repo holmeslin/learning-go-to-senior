@@ -75,7 +75,7 @@
 
 每個欄位的檢查彼此獨立，所以全部收集起來，用 `errors.Join` 合併，一次回報；理由與呼叫端怎麼展開，第 2 章〈[多個錯誤要合併回傳，還是只回第一個](../chapter2/05_join_or_first_error.md)〉談過。本文層則是第一個問題就停：本文壞了，欄位沒有意義。
 
-測試用同一份表格。before 當對照組（同一筆輸入被接受、到了 `save`），after 要回指定的狀態碼與欄位、`save` 不被呼叫、回應不含 `json:`、`struct` 之類的內部細節：
+測試用同一份表格。before 當對照組（同一筆輸入被接受、到了 `save`）。after 要回指定的狀態碼與欄位，`save` 不被呼叫，回應也不含 `json:`、`struct` 之類的內部細節：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/01_input_validation/after/booking_test.go:helpers}}
