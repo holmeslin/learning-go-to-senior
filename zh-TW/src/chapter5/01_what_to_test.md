@@ -65,7 +65,7 @@ FAIL	github.com/holmeslin/learning-go-to-senior/examples/chapter5/01_what_to_tes
 FAIL
 ```
 
-三個測試失敗，但沒有任何一個說得出使用者受到什麼影響：前兩個斷言「依插入順序存放」，這從來不是承諾，`List` 本來就排序；第三個手動塞了一份未排序的 `items`，新的內部做法恰好不接受這種狀態。沒壞的兩個，`TestListIsSorted` 透過 `List` 看結果，`TestAddStoresNormalizedTag` 則只是碰巧只有一個標籤。
+三個測試失敗，但沒有任何一個說得出使用者受到什麼影響。前兩個斷言「依插入順序存放」，這從來不是承諾，`List` 本來就排序。第三個手動塞了一份未排序的 `items`，新的內部做法恰好不接受這種狀態。沒壞的兩個，`TestListIsSorted` 透過 `List` 看結果，`TestAddStoresNormalizedTag` 則只是碰巧只有一個標籤。
 
 更糟的是，這些測試同時漏掉了真的 bug。`Add` 會正規化標籤，`Contains` 卻沒有：
 
@@ -73,7 +73,7 @@ FAIL
 {{#include ../../../examples/chapter5/01_what_to_test/before/example_test.go:example}}
 ```
 
-加進去的是 `Go`，問 `Go` 卻說沒有。所有測試都看著 `items`，沒有人從呼叫端的角度問「加了就找得到嗎」。重構時它們壞了，上線時它們不吭聲，兩頭都沒幫上忙。
+加進去的是 `Go`，問 `Go` 卻說沒有。所有測試都看著 `items`，沒有人從呼叫端的角度問「加了就找得到嗎」。重構時它們壞了，上線時它們沒抓到 bug，兩頭都沒幫上忙。
 
 ## 較好的做法
 

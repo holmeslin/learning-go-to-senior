@@ -22,13 +22,13 @@
 
 ## 問題在哪
 
-有兩個問題。第一，`firstErr` 其實是「最後一個」：每個失敗的 goroutine 都無條件覆蓋它。下面的測試讓 a 在 10 毫秒失敗、b 在 20 毫秒失敗（用 `synctest` 的假時鐘，不真的等，用法見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉），測試卻期待 `FetchAll` 回傳後失敗的 b。這是在鎖住錯誤的行為，好讓問題看得見：
+有兩個問題。第一，`firstErr` 其實是「最後一個」：每個失敗的 goroutine 都無條件覆蓋它。下面的測試讓 a 在 10 毫秒失敗、b 在 20 毫秒失敗，卻期待 `FetchAll` 回傳後失敗的 b。時間用 `synctest` 的假時鐘，不真的等，用法見第 5 章〈[測時間與並行：用 `testing/synctest`，還是自己注入時鐘](../chapter5/08_synctest_or_clock.md)〉。這是在鎖住錯誤的行為，好讓問題看得見：
 
 ```go,ignore
 {{#include ../../../examples/chapter6/02_errgroup/before/fetch_test.go:overwrite}}
 ```
 
-補一個 `if firstErr == nil` 可以修掉覆蓋，但「第一個」會變成「第一個搶到鎖的」，而且還有第二個問題：出錯之後，其他來源照樣抓到底。下面的 `Example` 用 channel 讓 b 先出錯，其他四個來源等 b 失敗後才完成：
+補一個 `if firstErr == nil` 可以修掉覆蓋，但「第一個」會變成「第一個搶到鎖的」。第二個問題是：出錯之後，其他來源照樣抓到底。下面的 `Example` 用 channel 讓 b 先出錯，其他四個來源等 b 失敗後才完成：
 
 ```go,ignore
 {{#include ../../../examples/chapter6/02_errgroup/before/example_test.go:example}}

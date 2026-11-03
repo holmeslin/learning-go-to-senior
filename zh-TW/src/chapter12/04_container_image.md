@@ -40,7 +40,7 @@ GLOSSARY.md
 LICENSE
 ```
 
-三件事一次看到：使用者是 UID 0（root），服務被攻破時攻擊者在容器裡就是 root；映像帶著完整的 Go 工具鏈，執行時用不到，卻成了額外的攻擊面與要更新的東西；原始碼整包都在 `/src`。`COPY . .` 複製的是整個建置情境（build context）：目錄裡有 `.env` 就一起進了映像，和第 11 章〈[秘密管理](../chapter11/05_secret_management.md)〉的做法正好相反：那裡的秘密在執行時才從環境變數或掛載的檔案讀。另外，任何一個檔案改動都會讓這一層與後面的 `go build` 重做；有相依的服務每次建置都會重新下載模組。
+三件事一次看到：使用者是 UID 0（root），服務被攻破時攻擊者在容器裡就是 root；映像帶著完整的 Go 工具鏈，執行時用不到，卻成了額外的攻擊面與要更新的東西；原始碼整包都在 `/src`。`COPY . .` 複製的是整個建置情境（build context）：目錄裡有 `.env` 就一起進了映像，和第 11 章〈[秘密管理](../chapter11/05_secret_management.md)〉的做法正好相反。那裡的秘密在執行時才從環境變數或掛載的檔案讀。另外，任何一個檔案改動都會讓這一層與後面的 `go build` 重做；有相依的服務每次建置都會重新下載模組。
 
 ## 較好的做法
 
@@ -125,7 +125,7 @@ INFO shutting down
 
 ## 取捨
 
-- **`scratch` 缺的東西。** 沒有 CA 憑證，對外的 HTTPS 會以 `x509: certificate signed by unknown authority` 失敗；沒有時區資料，`time.LoadLocation("Asia/Taipei")` 回 `unknown time zone`。把一支只做這兩件事的小程式放進 `scratch`，`docker run --rm probe:plain` 印出的就是這兩個錯誤；補法：`COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/`，程式 `import _ "time/tzdata"`（[文件](https://pkg.go.dev/time/tzdata)說執行檔約增加 450 KB），補完的 `probe:withtz` 兩項都回 `<nil>`。懶得逐項補，就用 [distroless 的 `static` 映像](https://github.com/GoogleContainerTools/distroless/blob/main/base/README.md)：README 列出內有 CA 憑證、`/etc/passwd`、`/tmp` 與時區資料；`nonroot` 標籤的預設使用者是 65532（`docker inspect --format '{{.Config.User}}' gcr.io/distroless/static-debian12:nonroot` 回 `65532`）。
+- **`scratch` 缺的東西。** 沒有 CA 憑證，對外的 HTTPS 會以 `x509: certificate signed by unknown authority` 失敗；沒有時區資料，`time.LoadLocation("Asia/Taipei")` 回 `unknown time zone`。把一支只做這兩件事的小程式放進 `scratch`，`docker run --rm probe:plain` 印出的就是這兩個錯誤。補法：`COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/`，程式 `import _ "time/tzdata"`（[文件](https://pkg.go.dev/time/tzdata)說執行檔約增加 450 KB），補完的 `probe:withtz` 兩項都回 `<nil>`。懶得逐項補，就用 [distroless 的 `static` 映像](https://github.com/GoogleContainerTools/distroless/blob/main/base/README.md)：README 列出內有 CA 憑證、`/etc/passwd`、`/tmp` 與時區資料；`nonroot` 標籤的預設使用者是 65532（`docker inspect --format '{{.Config.User}}' gcr.io/distroless/static-debian12:nonroot` 回 `65532`）。
 - **除錯工具。** `scratch` 沒有 shell：`docker run --rm --entrypoint sh ch12-ep04:after` 的第一行錯誤是 `exec: "sh": executable file not found in $PATH`（省略最後一行 `docker run --help` 的提示）。要進去看，得靠平台的除錯容器（例如 `kubectl debug`）、另開帶工具的映像共用行程，或在除錯時換用帶 shell 的基底。把整套工具塞進正式映像，等於回到 before。
 - **標籤與 digest。** `golang:1.27-alpine` 是會移動的標籤：Go 的小版本或 Alpine 更新後，同一份 Dockerfile 建出的內容就不同。要固定就寫成 `FROM golang:1.27-alpine@sha256:…`，代價是要有人（或 Dependabot、Renovate 這類工具）定期更新。自己的映像也一樣：部署用 commit 或版本做標籤，不用 `latest`，要完全確定時用 digest 引用。
 - **`.dockerignore`。** `after/` 旁的 `Dockerfile.dockerignore`（[Docker 文件](https://docs.docker.com/build/concepts/context/#filename-and-location)：與 Dockerfile 同目錄、名為 `<Dockerfile>.dockerignore` 的檔案，優先於根目錄的 `.dockerignore`）：

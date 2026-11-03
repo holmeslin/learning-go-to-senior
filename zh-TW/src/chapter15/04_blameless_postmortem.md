@@ -100,7 +100,7 @@ T+70      錯誤率回到正常，宣告止血。
 6. 寫「提醒 worker 記憶體或 goroutine 持續上升」的 runbook。
 ```
 
-原因逐條對得上本書談過的判斷。review 清單的第 16 項「每個對外的呼叫都有逾時」，就是這次沒被套用的那一項，見第 13 章〈[Go 程式碼的 review 檢查清單](../chapter13/02_go_review_checklist.md)〉；清單只是提醒，PR 沒套用就不會被問到，所以行動項目 1 要附會失敗的測試，不靠人記得。worker 與報名 API 共用行程，是第 14 章〈[設計文件的 review](../chapter14/05_design_review.md)〉明講過的取捨，後果也寫進 ADR-0012，第 14 章〈[設計文件與 ADR 的關係](../chapter14/06_design_doc_and_adr.md)〉談過：這是接受過的風險，不是遺漏。舊 ADR 的內文不改，所以要開新 ADR 取代它。一個下游拖垮其他功能的結構，第 10 章〈[bulkhead](../chapter10/08_bulkhead.md)〉談過，這次壞的是 worker，受害的是報名 API。
+原因逐條對得上本書談過的判斷。review 清單的第 16 項「每個對外的呼叫都有逾時」，就是這次沒被套用的那一項，見第 13 章〈[Go 程式碼的 review 檢查清單](../chapter13/02_go_review_checklist.md)〉。清單只是提醒，PR 沒套用就不會被問到，所以行動項目 1 要附會失敗的測試，不靠人記得。worker 與報名 API 共用行程，是第 14 章〈[設計文件的 review](../chapter14/05_design_review.md)〉明講過的取捨，後果也寫進 ADR-0012，第 14 章〈[設計文件與 ADR 的關係](../chapter14/06_design_doc_and_adr.md)〉談過。這是接受過的風險，不是遺漏。舊 ADR 的內文不改，所以要開新 ADR 取代它。一個下游拖垮其他功能的結構，第 10 章〈[bulkhead](../chapter10/08_bulkhead.md)〉談過，這次壞的是 worker，受害的是報名 API。
 
 「做得好」與「運氣好」要分開寫：前者下次還做得到，後者沒有人保證。運氣好的項目多半該變成行動項目，像開關沒演練過，就是行動項目 4。
 

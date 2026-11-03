@@ -43,7 +43,7 @@ func TestFastest(t *testing.T) {
 ok  	quoterepro
 ```
 
-慢的那個供應商之後回來，要把結果送進沒人再收的無緩衝 channel，永遠送不出去。每呼叫一次 `Fastest` 就多一個這樣的 goroutine，連同它參照的一切都不會被回收；普通的測試看不到，只會在正式環境慢慢變成記憶體與 goroutine 數量。
+慢的那個供應商之後回來，要把結果送進沒人再收的無緩衝 channel，永遠送不出去。每呼叫一次 `Fastest` 就多一個這樣的 goroutine，連同它參照的一切都不會被回收；普通的測試看不到，只會在正式環境看到記憶體與 goroutine 數量慢慢上升。
 
 換成 `synctest.Test` 就看得到。下面這個測試屬於 after（見下一段），這裡對 before 的實作執行；輸出省略了耗時、goroutine 編號、位址、檔案路徑與 stack 中間各行。
 
@@ -74,7 +74,7 @@ FAIL	quoterepro
 {{#include ../../../examples/chapter6/09_goroutine_leak/after/quote_test.go:leak}}
 ```
 
-兩個地方值得留意。慢的供應商睡一小時，睡的是 bubble 的假時間，所以瞬間跑完，還能斷言 `Fastest` 剛好花 1 秒。結尾的 `time.Sleep(time.Hour)` 不能省：時間只在主 goroutine 還活著時前進，主 goroutine 一結束，睡著的輸家也算卡住，連修好的版本都會 panic；睡過去，才換得輸家跑到送出那一行，有沒有洩漏才分得出來。
+兩個地方值得留意。慢的供應商睡一小時，睡的是 bubble 的假時間，所以瞬間跑完，還能斷言 `Fastest` 剛好花 1 秒。結尾的 `time.Sleep(time.Hour)` 不能省：時間只在主 goroutine 還活著時前進，主 goroutine 一結束，睡著的輸家也算卡住，連修好的版本都會 panic。主 goroutine 睡過去，輸家才有機會跑到送出那一行，有沒有洩漏才分得出來。
 
 其他常見的洩漏，長相都一樣：goroutine 等一個永遠不會發生的事。在 bubble 裡，下面每一種都會得到和上面一樣的 `deadlock` panic：
 

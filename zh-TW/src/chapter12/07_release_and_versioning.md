@@ -115,7 +115,7 @@ example.com/slugtool/v2 v2.0.1
 
 ## 不要移動已發布的 tag
 
-最後一種誘惑：把 `v1.1.0` 移到修好的 commit。清掉模組快取，模擬另一台沒下載過的機器：
+最後一種常見的錯誤：把 `v1.1.0` 移到修好的 commit。清掉模組快取，模擬另一台沒下載過的機器：
 
 ```bash
 cd ../slugtool && git tag -f v1.1.0 v1.1.1 && publish example.com/slugtool v1.1.0
@@ -134,11 +134,11 @@ verifying example.com/slugtool@v1.1.0/go.mod: checksum mismatch
 	go.sum:     h1:…
 ```
 
-擋下來的是已經用過 v1.1.0 的服務自己的 `go.sum`。公開的 [`sum.golang.org`](https://go.dev/ref/mod#checksum-database) 對所有人做同一件事：同一個版本的內容不會一天一個樣，即使作者之後改了 tag；所以 tag 只能往前加。
+擋下來的是已經用過 v1.1.0 的服務自己的 `go.sum`。公開的 [`sum.golang.org`](https://go.dev/ref/mod#checksum-database) 對所有人做同一件事：同一個版本的內容不會變，即使作者之後改了 tag；所以 tag 只能往前加。
 
 ## 取捨
 
-- **v0 還是 v1。** v0 不承諾相容，API 還在改、只有少數呼叫端時留在 v0 比較誠實；多個團隊依賴、想承諾「次版本不破壞」才發 v1。
+- **v0 還是 v1。** v0 不承諾相容，API 還在改、只有少數呼叫端時留在 v0，不必承諾還做不到的相容；多個團隊依賴、想承諾「次版本不破壞」才發 v1。
 - **v2 的成本。** 新路徑、一段時間要維護兩個版本，呼叫端要改 import 與程式碼。能新增或棄用解決就不開 v2（第 1 章〈[棄用（deprecation）與相容性](../chapter1/08_deprecation_and_compatibility.md)〉）；同名函式非改簽名不可才要，另一條路是在 v1 新增 `SlugStrict`。
 - **自動化。** 版本號靠人判斷。changelog 與 release 工具（GoReleaser、release-please）只負責紀錄與打包；`gorelease` 比對公開 API 的差異，改動算不算破壞，最後還是人決定。
 
