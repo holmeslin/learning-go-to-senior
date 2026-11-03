@@ -37,7 +37,7 @@
 
 ## 較好的做法
 
-在邊界把底層錯誤翻譯成自己的語言。呼叫端需要的判斷是「找不到」，那就公開一個 `ErrNotFound`，只有 `fs.ErrNotExist` 才翻譯成它；其他錯誤沒有人需要分辨，用 `%v` 保留訊息就好：
+在邊界把底層錯誤翻譯成自己的錯誤。呼叫端需要的判斷是「找不到」，那就公開一個 `ErrNotFound`，只有 `fs.ErrNotExist` 才翻譯成它；其他錯誤沒有人需要分辨，用 `%v` 保留訊息就好：
 
 ```go,ignore
 {{#include ../../../examples/chapter2/02_wrap_or_expose/after/profile.go:load}}
