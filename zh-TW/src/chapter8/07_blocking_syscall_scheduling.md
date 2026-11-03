@@ -22,7 +22,7 @@ goroutine 前作教過：〈[goroutine](https://holmeslin.github.io/learning-go-
 
 ## 問題在哪
 
-下面的 `main` 讓 `ReadAll` 同時讀 64 個來源，等每一條都進了 `read` 之後，用 `threadcreate` profile 的 `Count` 看執行緒的增長；`runtime/pprof` 的文件說這個 profile 記的是導致建立新 OS 執行緒的堆疊（stack traces that led to the creation of new OS threads），所以 `Count` 是建立執行緒的紀錄筆數，這裡拿它當執行緒增加的指標，不是目前執行緒的精確數量。這支程式會同時卡住 64 條讀取，只放在 `main` 套件，CI 只編譯、不執行。
+下面的 `main` 讓 `ReadAll` 同時讀 64 個來源，等每一條都進了 `read` 之後，用 `threadcreate` profile 的 `Count` 看執行緒的增長。`runtime/pprof` 的文件說這個 profile 記的是導致建立新 OS 執行緒的堆疊（stack traces that led to the creation of new OS threads），所以 `Count` 是建立執行緒的紀錄筆數。這裡拿它當執行緒增加的指標，不是目前執行緒的精確數量。這支程式會同時卡住 64 條讀取，只放在 `main` 套件，CI 只編譯、不執行。
 
 ```go,ignore
 {{#include ../../../examples/chapter8/07_blocking_syscall_scheduling/after/cmd/threads/main.go:main}}
@@ -46,7 +46,7 @@ bytes read: 64
 
 平台是 macOS（arm64）、Go 1.27，P 的數量是 14（`GOMAXPROCS=14`）。`threads created: 5 -> 66` 是來源準備好之後、全部卡住時的兩次讀數；兩次輸出是各自獨立的執行，輸出沒有省略任何行。
 
-兩種讀取同樣各有 64 個 goroutine 卡著，執行緒數卻不同：讀網路的幾乎不變（5 到 6），讀管線的從 5 增加到 66，增加的量約等於來源數，遠超過 P 的數量。差別在於卡住的是誰。網路連線是非阻塞的，沒有資料時 goroutine 停放在 netpoller（Linux 的 epoll、macOS 的 kqueue），執行緒馬上去跑別的 goroutine。阻塞式 syscall 沒有這條路：執行緒卡在核心裡，回不來。runtime 發現這個執行緒占著 P 太久，會把 P 交給別的執行緒，需要時建立新的，好讓其他 goroutine 繼續跑，每個卡住的 goroutine 因此各占一個執行緒。`GOMAXPROCS` 限制的是同時執行 Go 程式碼的執行緒數，卡在 syscall 的不算。
+兩種讀取同樣各有 64 個 goroutine 卡著，執行緒數卻不同：讀網路的幾乎不變（5 到 6），讀管線的從 5 增加到 66，增加的量約等於來源數，遠超過 P 的數量。差別在於只有 goroutine 卡住，還是連執行緒也卡住。網路連線是非阻塞的，沒有資料時 goroutine 停放在 netpoller（Linux 的 epoll、macOS 的 kqueue），執行緒馬上去跑別的 goroutine。阻塞式 syscall 沒有這條路：執行緒卡在核心裡，回不來。runtime 發現這個執行緒占著 P 太久，會把 P 交給別的執行緒，需要時建立新的，好讓其他 goroutine 繼續跑。每個卡住的 goroutine 因此各占一個執行緒。`GOMAXPROCS` 限制的是同時執行 Go 程式碼的執行緒數，卡在 syscall 的不算。
 
 一般檔案也是阻塞式：它不能註冊到 netpoller，檔案很慢時就是這個形狀。
 
