@@ -53,7 +53,7 @@
 {{#include ../../../examples/chapter16/reminder/service_test.go:once}}
 ```
 
-第二個測試斷言取消之後的結果，本章〈並行〉會談的關機期限，在服務層就用它檢查：進行中的兩則做完並記為已寄出，`Run` 約 2 秒後、在關機期限內回傳，沒開始的沒有紀錄。
+第二個測試斷言取消之後的結果。本章〈並行〉會談的關機期限，在服務層就用它檢查：進行中的兩則做完並記為已寄出，`Run` 約 2 秒後、在關機期限內回傳，沒開始的沒有紀錄。
 
 ```go,ignore
 {{#include ../../../examples/chapter16/reminder/service_test.go:shutdown}}
@@ -94,7 +94,7 @@
 {{#include ../../../examples/chapter16/reminder/internal/store/store_test.go:newstore}}
 ```
 
-- 時間：用假時間，不用 `time.Sleep` 賭機器的快慢；要等某件事就 `synctest.Wait`，或用 channel。
+- 時間：用假時間，不用 `time.Sleep`，否則結果取決於機器的快慢；要等某件事就 `synctest.Wait`，或用 channel。
 - 網路與 port：沒有 socket。唯一用真 listener 的測試，位址是 `127.0.0.1:0`，實際位址從日誌讀出來。
 - goroutine：`synctest.Test` 檢查，建置流程對本章再跑 `-race -count=3`。
 

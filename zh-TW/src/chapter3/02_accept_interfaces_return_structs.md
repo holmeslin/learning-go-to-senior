@@ -54,7 +54,7 @@ func main() {
 
 兩個錯誤是同一個毛病的兩端：
 
-- 回傳端：`New` 回傳 `Logger`，介面裡只有 `Log`。`Flush` 明明在背後的型別上，呼叫端卻碰不到，而 `bufio.Writer` 的文件要求寫完要 `Flush`，資料才會送出。唯一的出路是把 `Flush` 加進 `Logger`，但介面多一個方法，每個實作過 `Logger` 的人（例如測試裡的替身）都會編譯失敗，第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉示範過。
+- 回傳端：`New` 回傳 `Logger`，介面裡只有 `Log`。`Flush` 明明在背後的型別上，呼叫端卻碰不到，而 `bufio.Writer` 的文件要求寫完要 `Flush`，資料才會送出。唯一的出路是把 `Flush` 加進 `Logger`。但介面多一個方法，每個實作過 `Logger` 的人（例如測試裡的替身）都會編譯失敗，第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉示範過。
 - 參數端：收 `*os.File`，就只能傳檔案。緩衝區、網路連線、測試用的 writer 都傳不進去。
 
 回傳介面還有更隱蔽的問題。參數只收檔案，「不記錄」就沒有別的表達方式，只好約定 `f` 為 nil 時回傳 nil，呼叫端也照著檢查。`Example` 用 `recover` 攔下 panic，才印得出結果：
@@ -63,7 +63,7 @@ func main() {
 {{#include ../../../examples/chapter3/02_accept_interfaces_return_structs/before/example_test.go:typednil}}
 ```
 
-`l == nil` 是 `false`：`New` 把 nil 的 `*bufLogger` 轉成 `Logger` 回傳，成了不等於 nil 的介面（機制見前作〈[nil 介面陷阱](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/11_nil_interface_trap.html)〉），所以 `if l != nil` 擋不住，`Log` 在 nil 指標上讀 `l.w` 就 panic。這種寫法在建構函式裡很常見，編譯器不會提醒，`go vet` 也照樣通過。
+`l == nil` 是 `false`：`New` 把 nil 的 `*bufLogger` 轉成 `Logger` 回傳，成了不等於 nil 的介面（機制見前作〈[nil 介面陷阱](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter4/11_nil_interface_trap.html)〉）。所以 `if l != nil` 擋不住，`Log` 在 nil 指標上讀 `l.w` 就 panic。這種寫法在建構函式裡很常見，編譯器不會提醒，`go vet` 也照樣通過。
 
 ## 較好的做法
 
@@ -99,7 +99,7 @@ before 要靠 nil 表示的「不記錄」，現在是：
 
 - 匯出的型別就是 API。欄位與方法一旦匯出就要維持；`Logger` 把欄位 `w` 留成不匯出，日後換掉緩衝的做法，呼叫端不受影響。第 1 章〈[什麼時候讓零值可用，什麼時候該強制用建構函式](../chapter1/06_zero_value_or_constructor.md)〉也是這個做法：匯出型別、不匯出欄位。
 - 呼叫端想在測試裡換掉 `*audit.Logger`，得在自己的套件宣告一個小介面，只放用到的方法，`*audit.Logger` 自動符合（本章〈[在使用端定義介面](01_define_interface_at_consumer.md)〉談過；測試替身怎麼選，第 5 章〈[fake、stub、mock 的選擇](../chapter5/03_fake_stub_mock.md)〉談過）。回傳 `*Logger` 之後，原本那個只有一種實作的 `Logger` 介面也用不到了，介面何時是多餘的，本章〈介面何時是多餘的〉會談。
-- 參數收介面，也收得進有型別的 nil：呼叫端傳 `(*os.File)(nil)`，介面就不等於 nil，`New` 即使檢查 `w == nil` 也擋不住，所以 `New` 不檢查，改在文件寫明 `w` 不可為 nil。
+- 參數收介面，也收得進有型別的 nil：呼叫端傳 `(*os.File)(nil)`，介面就不等於 nil，`New` 即使檢查 `w == nil` 也擋不住。所以 `New` 不檢查，改在文件寫明 `w` 不可為 nil。
 
 回傳介面在這些情況下才是對的：
 

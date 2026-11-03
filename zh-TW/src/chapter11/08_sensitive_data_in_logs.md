@@ -42,7 +42,7 @@
 {{#include ../../../examples/chapter11/08_sensitive_data_in_logs/after/wallet.go:types}}
 ```
 
-`BindRequest` 必須自己實作 `LogValue`。`slog` 只在屬性的值上呼叫 `LogValue`，不會鑽進 struct 的欄位；`JSONHandler` 序列化 struct 時，`Secret` 照樣輸出原本的字串。把 `BindRequest.LogValue` 拿掉，測試就會失敗。它也是允許清單：新欄位不會自己進日誌。
+`BindRequest` 必須自己實作 `LogValue`。`slog` 只在屬性的值上呼叫 `LogValue`，不會對 struct 裡的欄位呼叫；`JSONHandler` 序列化 struct 時，`Secret` 照樣輸出原本的字串。把 `BindRequest.LogValue` 拿掉，測試就會失敗。它也是允許清單：新欄位不會自己進日誌。
 
 **第二道：handler 依鍵名遮蔽。** 有人隨手寫了 `slog.String("password", pw)`，型別幫不上忙，`ReplaceAttr` 在 handler 輸出之前攔下來：
 
@@ -50,7 +50,7 @@
 {{#include ../../../examples/chapter11/08_sensitive_data_in_logs/after/wallet.go:redact}}
 ```
 
-`Redact` 匯出，是因為應用程式的進入點要把它放進 `HandlerOptions`，不是為了測試。handler 這樣用，輸出（`Example` 的 `redactNoTime` 先呼叫 `Redact`，再拿掉每次都不同的 `time`）：
+`Redact` 匯出，是因為應用程式的進入點要把它放進 `HandlerOptions`，不是為了測試。handler 這樣用，輸出如下（`Example` 的 `redactNoTime` 先呼叫 `Redact`，再拿掉每次都不同的 `time`）：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/08_sensitive_data_in_logs/after/wallet.go:handler}}
@@ -68,7 +68,7 @@
 {{#include ../../../examples/chapter11/08_sensitive_data_in_logs/after/example_test.go:opaque}}
 ```
 
-所以第一道（型別）是主力，第二道只負責接住漏網的 `slog.String("password", ...)`。測試分別證明兩道：第一個測試的 logger 沒有 `ReplaceAttr`，只靠型別；`TestRedactMasksByKeyName` 則直接寫敏感的鍵名。測試解析日誌輸出，斷言三個假值都不出現、用於除錯的欄位仍在，並且拿同一個請求打 before，確認這些假值在 before 確實會漏出來，否則斷言證明不了什麼：
+所以第一道（型別）是主力，第二道只負責擋下型別沒擋到的 `slog.String("password", ...)`。測試分別證明兩道：第一個測試的 logger 沒有 `ReplaceAttr`，只靠型別；`TestRedactMasksByKeyName` 則直接寫敏感的鍵名。測試解析日誌輸出，斷言三個假值都不出現、用於除錯的欄位仍在。測試也拿同一個請求打 before，確認這些假值在 before 確實會漏出來，否則斷言證明不了什麼：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/08_sensitive_data_in_logs/after/wallet_test.go:test}}
@@ -78,7 +78,7 @@
 
 ## 取捨
 
-- **遮蔽和不記，是兩種成本。** 遮蔽留下「這個請求帶了密碼」的訊號，但每個型別、每個鍵名都要有人維護，漏一個就漏一個。不記最安全，也最可能在排查時讓你說「早知道就記下來」。判斷的依據是排查需不需要這個值：密碼不需要，永遠不記；卡號只需要辨識是哪一張，末四碼就夠。末四碼本身仍是個人資料，卡號能顯示幾碼，要看你適用的支付卡規範（例如 PCI DSS）。
+- **遮蔽和不記，是兩種成本。** 遮蔽留下「這個請求帶了密碼」的訊號，但每個型別、每個鍵名都要有人維護，漏掉的那個就會外洩。不記最安全，也最可能在排查時讓你說「早知道就記下來」。判斷的依據是排查需不需要這個值：密碼不需要，永遠不記；卡號只需要辨識是哪一張，末四碼就夠。末四碼本身仍是個人資料，卡號能顯示幾碼，要看你適用的支付卡規範（例如 PCI DSS）。
 - **雜湊後的識別碼可能被反推。** 想用 `sha256(卡號)` 當關聯用的識別碼，搜尋空間太小：卡號的前綴與檢查碼有規則，電話、Email 也一樣，攻擊者拿到日誌就能逐一試算。要用的話，改成帶金鑰的 HMAC，金鑰本身是秘密，不能進日誌，也不能和日誌放在一起。換金鑰之後，新舊日誌就對不起來。
 - **允許清單和拒絕清單。** `Headers` 用允許清單，因為沒人預料到的 `X-Api-Key` 也不會漏。代價是排查時看不到沒列的標頭值，要用再加。`Redact` 是拒絕清單：鍵名要列出來，寫成 `pwd` 或 `passwd2` 的欄位照樣漏。所以它只能是最後一道。
 - **程式這一層擋不住的。** 第三方函式庫自己寫的日誌、`fmt.Errorf("... %+v", req)` 包進錯誤訊息的整個 struct、panic 的堆疊、反向代理的 access log（token 放在網址的 query string 就會被記下來）。這些要靠審視錯誤訊息、不把秘密放進網址、檢查收集端的設定來補。
@@ -89,6 +89,6 @@
 
 - 敏感資料多半是間接漏進日誌的：記整個請求 struct 或整組標頭，沒有人寫過 `password`。
 - 第一道防線是型別：`LogValuer` 讓 `Secret` 全遮、`Card` 留末四碼，含敏感欄位的 struct 自己實作 `LogValue`，用允許清單決定輸出。
-- 第二道防線是 `ReplaceAttr` 依鍵名遮蔽，只看得到屬性的鍵名，看不進 `slog.Any` 包著的 struct，只能接住漏網的。
+- 第二道防線是 `ReplaceAttr` 依鍵名遮蔽，只看得到屬性的鍵名，看不進 `slog.Any` 包著的 struct，只能擋下型別沒擋到的。
 - 測試解析日誌輸出，斷言假的秘密不出現、除錯用的欄位還在，並用 before 當對照證明斷言真的會失敗。
 - 遮蔽、不記、雜湊各有成本；雜湊可被反推，日誌也要有保存期限與存取權限。

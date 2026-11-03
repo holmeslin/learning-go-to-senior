@@ -70,7 +70,7 @@ exit code: 0
 {{#include ../../../examples/chapter8/03_gomemlimit_container/after/memlimit/memlimit.go:limit}}
 ```
 
-取上限的 90%，留下 10%：`GOMEMLIMIT` 管的是 runtime 自己管理的記憶體（heap、堆疊、runtime 的內部結構），不含執行檔的映射、C 程式配置的記憶體、`syscall.Mmap` 與 kernel 代替行程持有的部分，容器的上限卻是整個行程加總。10% 是起點，不是定律：用了 cgo 或 mmap 的服務要留更多，看實際的 RSS 與上限差多少再調。`memory.max` 的內容是 `max` 表示沒有上限，這不是錯誤，所以用 `ErrNoLimit` 讓呼叫端區分。
+取上限的 90%，留下 10%：`GOMEMLIMIT` 管的是 runtime 自己管理的記憶體（heap、堆疊、runtime 的內部結構），不含執行檔的映射、C 程式配置的記憶體、`syscall.Mmap` 與 kernel 代替行程持有的部分，容器的上限卻是整個行程加總。10% 只是起點：用了 cgo 或 mmap 的服務要留更多，看實際的 RSS 與上限差多少再調。`memory.max` 的內容是 `max` 表示沒有上限，這不是錯誤，所以用 `ErrNoLimit` 讓呼叫端區分。
 
 `Apply` 把結果套到全域設定。行程已經有 memory limit（例如部署時設了環境變數）就不覆蓋：
 
@@ -121,7 +121,7 @@ exit code: 0
 ## 取捨
 
 - **活著的資料超過上限，`GOMEMLIMIT` 救不了。** 它是軟上限：垃圾可以收，活著的資料收不掉。活著的部分逼近上限時，GC 為了壓住總量越跑越頻繁，應用程式分到的 CPU 越來越少，這就是 death spiral。runtime 有保護：`go doc runtime/debug.SetMemoryLimit` 寫上限太低時 GC 可能「nearly continuously」執行，但程式仍然能前進；GC guide（<https://go.dev/doc/gc-guide>）說明 GC 能用的 CPU 有上限，目前大約 50%，以一段時間為窗口，短暫的尖峰可以超過。所以程式不會被 GC 完全餓死，代價是 GC 被延後，總量可能超過上限，容器還是可能被殺。GC 實際有多頻繁，本章〈讀 GC trace〉會談；該改的是活著的資料（本章〈記憶體配置與 heap 成長〉會談）或加大上限。
-- **`GOGC=off` 加 `GOMEMLIMIT`。** `go doc runtime/debug.SetGCPercent` 寫負的百分比「effectively disables garbage collection, unless the memory limit is reached」，`go doc runtime/debug.SetMemoryLimit` 也寫上限在 `GOGC=off` 時仍然有效。照文件推：GC 只在總量碰到上限時才啟動，不再依比例觸發，少跑 GC、多用記憶體（這集沒有另外在容器裡跑這個組合）。服務獨占容器、活著的資料遠小於上限而且穩定時合理。危險在活著的資料長到靠近上限：沒有比例的觸發，GC 就一直在上限邊緣打轉，前面的 death spiral 立刻出現；上限也不能設到比容器還大。
+- **`GOGC=off` 加 `GOMEMLIMIT`。** `go doc runtime/debug.SetGCPercent` 寫負的百分比「effectively disables garbage collection, unless the memory limit is reached」，`go doc runtime/debug.SetMemoryLimit` 也寫上限在 `GOGC=off` 時仍然有效。照文件推：GC 只在總量碰到上限時才啟動，不再依比例觸發，少跑 GC、多用記憶體（這集沒有另外在容器裡跑這個組合）。服務獨占容器、活著的資料遠小於上限而且穩定時合理。危險在活著的資料長到靠近上限：沒有比例的觸發，GC 就一直在上限邊緣打轉，前面的 death spiral 立刻出現。上限也不能設到比容器還大。
 - **也可以只在部署設定裡設環境變數。** 同一支 before，把 `docker run --name ep03-before --memory=256m --memory-swap=256m --cpus=2` 加上 `-e GOMEMLIMIT=230MiB`（其餘同上），也跑完了：程式印出 `memory limit: 241172480`（230 MiB）、`done, cached MiB: 160`，exit code 是 0。不用改程式。代價是數字寫死在部署檔，上限調整了要記得同步。`Apply` 讓已經存在的設定優先，兩種做法可以並存。`automemlimit` 這類第三方套件做的是同一件事，只是不用自己寫。
 - **這份計算有前提。** 只讀 cgroup v2 的 `memory.max`；cgroup v1 的檔名不同，這裡不處理。`/sys/fs/cgroup` 要是容器自己的 cgroup 根才對，容器的預設是如此，直接跑在主機上的行程不是。
 - **before 在什麼情況下是對的？** 大多數服務用預設值就好。活著的資料加上 `GOGC` 帶來的餘裕遠小於容器上限，或根本沒有上限，`GOGC` 的比例已經夠用，不需要多這一層；`GOGC` 本身什麼時候該調，本章〈[什麼時候該調 `GOGC`，什麼時候別動](02_when_to_tune_gogc.md)〉談過。
