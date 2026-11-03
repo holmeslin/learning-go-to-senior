@@ -60,7 +60,7 @@
 {{#include ../../../examples/chapter3/06_embedding_or_delegation/after/visits.go:audited}}
 ```
 
-現在 `Audited` 得自己實作 `Store` 的每個方法。它沒有嵌入 `Store`，方法集合就只有自己寫的這幾個，所以 `Store` 日後多一個方法、`Audited` 沒跟上時，下面這種「當 `Store` 用」的地方會編譯不過，漏了稽核在編譯時就會被指出來：
+現在 `Audited` 得自己實作 `Store` 的每個方法。它沒有嵌入 `Store`，方法集合就只有自己寫的這幾個。所以 `Store` 日後多一個方法、`Audited` 沒跟上時，下面這種「當 `Store` 用」的地方會編譯不過，漏了稽核在編譯時就會被指出來：
 
 ```go,ignore
 {{#include ../../../examples/chapter3/06_embedding_or_delegation/after/example_test.go:audited}}
@@ -68,7 +68,7 @@
 
 完整程式碼與測試在 `examples/chapter3/06_embedding_or_delegation/after/`。測試涵蓋三件事：`Counter` 不再是 `sync.Locker`、也沒有 `TryLock`；並行呼叫 `Incr` 不會漏算（搭配 `-race`）；`Audited` 的每個寫入方法都留下紀錄，也確實轉給底下的 `Store`。
 
-委派不會讓 nil 消失：`NewAudited` 收到 `nil` 時，欄位 `store` 是 nil 介面，第一次轉呼給它就會 panic；套件外也還是寫得出 `&visits.Audited{}`，照樣能編譯，欄位全是零值，同樣不能用（取捨見第 1 章〈[什麼時候讓零值可用，什麼時候該強制用建構函式](../chapter1/06_zero_value_or_constructor.md)〉）。建構函式只能讓漏設變得顯眼，擋不住：`NewAudited` 少傳參數會編譯不過，傳 `nil` 或直接寫 `&visits.Audited{}` 則不會，所以文件寫明 `store` 與 `log` 不可為 nil。
+委派不會讓 nil 消失：`NewAudited` 收到 `nil` 時，欄位 `store` 是 nil 介面，第一次轉呼給它就會 panic。套件外也還是寫得出 `&visits.Audited{}`，照樣能編譯，欄位全是零值，同樣不能用（取捨見第 1 章〈[什麼時候讓零值可用，什麼時候該強制用建構函式](../chapter1/06_zero_value_or_constructor.md)〉）。建構函式只能讓漏設變得顯眼，擋不住：`NewAudited` 少傳參數會編譯不過，傳 `nil` 或直接寫 `&visits.Audited{}` 則不會，所以文件寫明 `store` 與 `log` 不可為 nil。
 
 ## 取捨
 
@@ -92,6 +92,6 @@
 
 - 嵌入之後，對方匯出的每個方法都成了你的公開 API，連它以後新增的也算。只想用幾個，就用具名欄位加明確委派。
 - 匯出的型別嵌入 `sync.Mutex`，外面就能直接 `Lock`，鎖不再是實作細節；把鎖放在未匯出的欄位。
-- 嵌入介面只覆寫部分方法，沒覆寫的會默默穿過去，欄位沒設就在呼叫時 panic；明確委派讓每個方法都是一個決定，漏寫編譯器會講。
+- 嵌入介面只覆寫部分方法，沒覆寫的會默默穿過去，欄位沒設就在呼叫時 panic；明確委派讓每個方法都是一個決定，漏寫會編譯失敗。
 - 未匯出的型別、確實要保留完整方法集合的包裝，嵌入是對的。
 - 包裝 `http.ResponseWriter` 會遺失 `http.Flusher` 這類可選介面，要靠 `Unwrap` 補回來。

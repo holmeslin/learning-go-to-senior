@@ -28,7 +28,7 @@ HTTP client 與 `httptest` 前作教過：〈[HTTP client](https://holmeslin.git
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/before/example_test.go:example}}
 ```
 
-直接寫 `127.0.0.1` 被擋下，但另外兩個都讀到內部頁面。攻擊者註冊自己的網域，把 A 紀錄指向內部位址，主機名稱看起來完全正常；或者給一個公開的網址，伺服器回 302，`http.Client` 預設會跟著轉址最多 10 次，檢查只在第一個網址做過。更狡猾的 DNS rebinding 讓檢查時查到公開位址、連線時查到內部位址。
+直接寫 `127.0.0.1` 被擋下，但另外兩個都讀到內部頁面。攻擊者註冊自己的網域，把 A 紀錄指向內部位址，主機名稱看起來完全正常。另一種是給一個公開的網址，伺服器回 302，`http.Client` 預設會跟著轉址最多 10 次，檢查只在第一個網址做過。還有 DNS rebinding：攻擊者讓檢查時查到公開位址、連線時查到內部位址。
 
 `http.Get` 也沒有逾時，回應全部讀進記憶體：
 
@@ -38,13 +38,13 @@ HTTP client 與 `httptest` 前作教過：〈[HTTP client](https://holmeslin.git
 
 ## 較好的做法
 
-防線放在繞不過去的地方：連線建立之前，對實際要連的 IP。`net.Dialer` 的 `Control` 在名稱解析完、socket 建立後、真正連線前被呼叫，拿到的是已解析的 `ip:port`。檢查與使用的是同一個值，rebinding 沒有空窗；每次轉址都會新建連線，也會經過這裡。先看判斷規則：不是公開單播位址的一律拒絕，`IsGlobalUnicast` 把私有位址當成單播，所以要另外排除，再加上 `netip` 沒涵蓋的特殊範圍：
+防線放在繞不過去的地方：連線建立之前，對實際要連的 IP。`net.Dialer` 的 `Control` 在名稱解析完、socket 建立後、真正連線前被呼叫，拿到的是已解析的 `ip:port`。檢查與使用的是同一個值，rebinding 沒有空窗；每次轉址都會新建連線，也會經過這裡。先看判斷規則：不是公開單播位址的一律拒絕。`IsGlobalUnicast` 把私有位址當成單播，所以要另外排除。`netip` 沒涵蓋的特殊範圍也要排除：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/preview.go:policy}}
 ```
 
-`Fetcher` 把所有限制放在欄位上，零值就是安全的預設：只連公開位址、5 秒、不跟隨轉址、1 MiB。`Allow` 與 `Resolver` 為了測試而匯出：httptest 的伺服器在 loopback，預設規則一定擋下，測試要用 `Allow` 放行指定的假伺服器，用 `Resolver` 把名稱解析到 loopback，才能在不連外網的前提下測「允許的可以連」與「名稱指向內部」。`Allow` 只增不減：公開位址本來就能連，`Allow` 回傳 true 的位址是額外的例外，所以正式環境可以用 `Allow` 放行少數已知的內部位址，不必重寫整套規則。
+`Fetcher` 把所有限制放在欄位上，零值就是安全的預設：只連公開位址、5 秒、不跟隨轉址、1 MiB。`Allow` 與 `Resolver` 為了測試而匯出。httptest 的伺服器在 loopback，預設規則一定擋下，測試要用 `Allow` 放行指定的假伺服器，用 `Resolver` 把名稱解析到 loopback，才能在不連外網的前提下測「允許的可以連」與「名稱指向內部」。`Allow` 只增不減：公開位址本來就能連，`Allow` 回傳 true 的位址是額外的例外，所以正式環境可以用 `Allow` 放行少數已知的內部位址，不必重寫整套規則。
 
 ```go,ignore
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/preview.go:fetcher}}
@@ -56,7 +56,7 @@ HTTP client 與 `httptest` 前作教過：〈[HTTP client](https://holmeslin.git
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/preview.go:fetch}}
 ```
 
-after 的測試放在外部測試套件。`serve` 數出假伺服器收到幾個請求，`only` 是注入的允許清單，`Allowed` 由 `export_test.go` 匯出、只給測試用，讓測試直接問「這個位址能不能連」，不必連到真的公開位址。`TestAllowAddsToPublic` 鎖住 `Allow` 只增不減：放行一個內部位址之後，公開位址仍然可連，另一個內部位址仍被擋。證明「被擋下」不能只看錯誤，還要看伺服器收到 0 個請求：
+after 的測試放在外部測試套件。`serve` 數出假伺服器收到幾個請求，`only` 是注入的允許清單。`Allowed` 由 `export_test.go` 匯出、只給測試用，讓測試直接問「這個位址能不能連」，不必連到真的公開位址。`TestAllowAddsToPublic` 鎖住 `Allow` 只增不減：放行一個內部位址之後，公開位址仍然可連，另一個內部位址仍被擋。證明「被擋下」不能只看錯誤，還要看伺服器收到 0 個請求：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/fetch_test.go:helpers}}
@@ -84,7 +84,7 @@ after 的測試放在外部測試套件。`serve` 數出假伺服器收到幾個
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/dns_test.go:dns}}
 ```
 
-逾時與回應大小，以及判斷規則的各種位址。`special` 的每個範圍各有一列，拿掉任何一個範圍，測試都會失敗；範圍外一格的位址也要測，確認沒有誤擋：
+接著測逾時與回應大小，以及判斷規則的各種位址。`special` 的每個範圍各有一列，拿掉任何一個範圍，測試都會失敗；範圍外一格的位址也要測，確認沒有誤擋：
 
 ```go,ignore
 {{#include ../../../examples/chapter11/07_ssrf_outbound_requests/after/fetch_test.go:limits}}

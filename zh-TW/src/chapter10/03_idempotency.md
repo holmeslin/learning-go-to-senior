@@ -22,7 +22,7 @@ handler 解析請求、扣一次款、回 201 與扣款紀錄。帳本是記憶�
 
 ## 問題在哪
 
-重試的前提是「做兩次和做一次一樣」，`POST /charges` 不符合。下面的 client 用自訂的 `RoundTripper` 讓第一個請求照常送達、回應被丟掉，這正是逾時的樣子，然後照標準做法重試：
+重試的前提是「做兩次和做一次一樣」，`POST /charges` 不符合。下面的 client 用自訂的 `RoundTripper` 讓第一個請求照常送達、回應被丟掉，這正是逾時的樣子。接著 client 照標準做法重試：
 
 ```go,ignore
 {{#include ../../../examples/chapter10/03_idempotency/before/example_test.go:example}}
@@ -58,7 +58,7 @@ client 的每個動作都合理：逾時、重試、第二次拿到 201。結果
 {{#include ../../../examples/chapter10/03_idempotency/after/example_test.go:example}}
 ```
 
-並行的重複請求是最容易寫錯的地方。測試用 `testing/synctest`（用法見前作〈[`testing/synctest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/19_synctest.html)〉與第 6 章〈[goroutine 的生命週期歸誰管](../chapter6/01_goroutine_ownership.md)〉）：handler 真的阻塞在 channel 上，三個同鍵的請求同時送出，`synctest.Wait` 等到全部停住，才檢查「放行之前，進到 handler 的只有一個」，再放行並確認三個請求拿到同一份回應：
+並行的重複請求是最容易寫錯的地方。測試用 `testing/synctest`（用法見前作〈[`testing/synctest`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter9/19_synctest.html)〉與第 6 章〈[goroutine 的生命週期歸誰管](../chapter6/01_goroutine_ownership.md)〉）：handler 真的阻塞在 channel 上，三個同鍵的請求同時送出。`synctest.Wait` 等到全部停住，測試才檢查「放行之前，進到 handler 的只有一個」，再放行並確認三個請求拿到同一份回應：
 
 ```go,ignore
 {{#include ../../../examples/chapter10/03_idempotency/after/payment_test.go:concurrent}}
@@ -68,7 +68,7 @@ client 的每個動作都合理：逾時、重試、第二次拿到 201。結果
 
 ## 取捨
 
-**儲存位置。** 這個 `Store` 只適合示範：重啟就消失、多個副本互相看不到、`entries` 只增不減。正式環境把鍵存進資料庫，靠唯一限制（`PRIMARY KEY` 或 `UNIQUE`）搶占：`INSERT` 成功的請求是第一個，其餘的撞到限制，就改去讀第一次的結果。鍵與扣款寫在同一個交易裡（第 4 章〈[交易邊界放在哪裡](../chapter4/02_transaction_boundary.md)〉），兩者才會一起成功或一起失敗；如果扣款是呼叫外部的金流，把同一個鍵一併傳給對方，否則兩者之間還是有重複的縫隙。
+**儲存位置。** 這個 `Store` 只適合示範：重啟就消失、多個副本互相看不到、`entries` 只增不減。正式環境把鍵存進資料庫，靠唯一限制（`PRIMARY KEY` 或 `UNIQUE`）搶占：`INSERT` 成功的請求是第一個，其餘的撞到限制，就改去讀第一次的結果。鍵與扣款寫在同一個交易裡（第 4 章〈[交易邊界放在哪裡](../chapter4/02_transaction_boundary.md)〉），兩者才會一起成功或一起失敗；如果扣款是呼叫外部的金流，把同一個鍵一併傳給對方，否則兩者之間還是可能重複扣款。
 
 **保存期限。** 鍵不能永遠留著，也不能比 client 的重試窗口短：期限要涵蓋自動重試、排程重送，以及人工補送的最長間隔。過期之後同一個鍵會被當成新請求；期限由業務決定，沒有通用的數字。
 
@@ -76,7 +76,7 @@ client 的每個動作都合理：逾時、重試、第二次拿到 201。結果
 
 **執行中與失敗。** 同鍵的請求撞上還在執行的第一個，這裡選擇等它、回同一份結果；也可以直接回 409 Conflict 叫 client 稍後再試，伺服器不必佔住連線。第一次的結果不論成敗都記，連 5xx 也是，所以第一次若因暫時性錯誤失敗，重試只會拿到同一個失敗。要讓失敗可以重做，得先確定失敗沒有留下副作用，這取決於操作本身，這集不處理。
 
-**HTTP 方法的冪等語意。** 依 RFC 9110 第 9.2.2 節，`GET`、`PUT`、`DELETE` 與其他安全方法本來就是冪等的：多次相同請求對伺服器的預期效果和一次相同。`POST` 不保證，所以需要冪等鍵。冪等指的是效果，不是回應：重複的 `DELETE` 第二次可以回 404，仍然是冪等。`PUT` 若寫成「在原值上加一」就不冪等了，方法本身不能代替設計。
+**HTTP 方法的冪等語意。** 依 RFC 9110 第 9.2.2 節，`GET`、`PUT`、`DELETE` 與其他安全方法本來就是冪等的：多次相同請求對伺服器的預期效果和一次相同。`POST` 不保證，所以需要冪等鍵。冪等指的是效果，不是回應：重複的 `DELETE` 第二次可以回 404，仍然是冪等。`PUT` 若寫成「在原值上加一」就不冪等了。冪等要看操作做了什麼，不是看用了哪個方法。
 
 **before 什麼時候夠用？** 操作天生冪等（`PUT` 整份取代、`DELETE`），或重複一次沒有代價，就不需要鍵。client 不重試、人也不會重複點擊的內部批次，也可以不做；但只要有自動重試，就該補上。
 

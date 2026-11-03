@@ -72,7 +72,7 @@ $ wc -l base.txt limit.txt
       78 total
 ```
 
-沒有限制時，goal 是存活量的兩倍上下（`GOGC=100` 的預設）；設了限制，goal 被壓到接近限制，遠低於前者，同一個負載 GC 的次數（`wc -l` 數的行數，每輪一行；`total` 是 `wc` 自己加的總計）也多了好幾倍，這次是 14 行對 64 行。這是 `GOMEMLIMIT` 在運作，不一定是問題：限制本來就是為了換記憶體的上限。要看的是限制離存活量有多遠，怎麼設，本章〈[`GOMEMLIMIT` 與容器記憶體上限](03_gomemlimit_container.md)〉談過。
+沒有限制時，goal 是存活量的兩倍上下（`GOGC=100` 的預設）。設了限制，goal 被壓到接近限制，遠低於前者。同一個負載 GC 的次數（`wc -l` 數的行數，每輪一行；`total` 是 `wc` 自己加的總計）也多了好幾倍，這次是 14 行對 64 行。這是 `GOMEMLIMIT` 在運作，不一定是問題：限制本來就是為了換記憶體的上限。要看的是限制離存活量有多遠，怎麼設，本章〈[`GOMEMLIMIT` 與容器記憶體上限](03_gomemlimit_container.md)〉談過。
 
 ### GC 占用的 CPU 比例過高
 
@@ -86,7 +86,7 @@ $ sed -n '40p' busy.txt
 gc 40 @0.398s 62%: 0.017+7.4+0.001 ms clock, 0.035+13/0.12/0+0.003 ms cpu, 151->166->151 MB, 151 MB goal, 0 MB stacks, 0 MB globals, 2 P
 ```
 
-三處同時指向它：`GC 占` 過半（這次是 62%；上面兩個情況都在二成以下，但 P 的數量不同，只看量級）；開始時的 heap、存活量與 goal 幾乎相等，程式沒有空間可以配置，GC 一結束又得開始；CPU 時間裡 assist 遠大於 background，配置的 goroutine 被拉去做 GC。差別在原因：存活的資料本身接近上限，或是 `GOGC` 調得太低，兩者在 trace 上都會看到 goal 貼著存活量。前者的處理（調高限制、減少存活的資料）在本章〈[`GOMEMLIMIT` 與容器記憶體上限](03_gomemlimit_container.md)〉，那一集也談過 runtime 替 GC 能用的 CPU 設的上限；`GC 占` 是啟動以來累計的比例，和那個上限量的不是同一件事，兩個數字不能直接比。後者在本章〈[什麼時候該調 `GOGC`，什麼時候別動](02_when_to_tune_gogc.md)〉談過。
+三處同時指向它：`GC 占` 過半（這次是 62%；上面兩個情況都在二成以下，但 P 的數量不同，只看量級）；開始時的 heap、存活量與 goal 幾乎相等，程式沒有空間可以配置，GC 一結束又得開始；CPU 時間裡 assist 遠大於 background，配置的 goroutine 被拉去做 GC。差別在原因：存活的資料本身接近上限，或是 `GOGC` 調得太低，兩者在 trace 上都會看到 goal 貼著存活量。前者的處理（調高限制、減少存活的資料）在本章〈[`GOMEMLIMIT` 與容器記憶體上限](03_gomemlimit_container.md)〉，那一集也談過 runtime 替 GC 能用的 CPU 設的上限。`GC 占` 是啟動以來累計的比例，和那個上限量的不是同一件事，兩個數字不能直接比。後者在本章〈[什麼時候該調 `GOGC`，什麼時候別動](02_when_to_tune_gogc.md)〉談過。
 
 ## 取捨
 
