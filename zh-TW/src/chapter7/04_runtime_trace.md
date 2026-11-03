@@ -74,7 +74,7 @@ Showing top 4 nodes out of 18
          0     0%   100% 10068.43ms 80.52%  github.com/holmeslin/learning-go-to-senior/examples/chapter7/04_runtime_trace/before.(*Hasher).Hash
 ```
 
-阻塞時間的八成落在 `(*Hasher).Hash`，主要是等著把工作送進那條 channel（`chansend1`），其次是等結果（`chanrecv1`）。`WaitGroup.Wait` 是 benchmark 自己在等。症狀有了名字：序列化點就是那一個 goroutine。
+阻塞時間的八成落在 `(*Hasher).Hash`，主要是等著把工作送進那條 channel（`chansend1`），其次是等結果（`chanrecv1`）。`WaitGroup.Wait` 是 benchmark 自己在等。序列化點就是那一個 goroutine。
 
 ## 較好的做法
 
