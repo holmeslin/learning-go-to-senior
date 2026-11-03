@@ -87,7 +87,7 @@ $ strings bin-a | grep -c /a/main.go
 
 ## 工具鏈與時間戳記
 
-**工具鏈。** 執行檔含編譯器、連結器與 runtime，上面 `go version -m` 的 `go1.27.0` 就是它們的版本；別的 Go 版本建出來的不會相同。`go.mod` 的 `go` 行寫到小版本（`go mod init` 在 1.27 寫的就是 `go 1.27.0`），預設的 `GOTOOLCHAIN=auto` 會讓較舊的 `go` 指令切到不低於它的工具鏈，`toolchain go1.27.0` 這一行可以再指定偏好的版本；`GOTOOLCHAIN=go1.27.0` 則讓所有人用同一版，`go.mod` 要求更高的版本時直接失敗，不會悄悄換。另外 `go version -m` 也列出 `CGO_ENABLED`、`GOARM64` 這類建置設定，兩邊的環境變數要一致。PGO 的 `default.pgo` 同理是輸入，第 7 章〈[PGO](../chapter7/07_pgo.md)〉談過要 commit 進 repo。
+**工具鏈。** 執行檔含編譯器、連結器與 runtime，上面 `go version -m` 的 `go1.27.0` 就是它們的版本；別的 Go 版本建出來的不會相同。`go.mod` 的 `go` 行寫到小版本（`go mod init` 在 1.27 寫的就是 `go 1.27.0`），預設的 `GOTOOLCHAIN=auto` 會讓較舊的 `go` 指令切到不低於它的工具鏈，`toolchain go1.27.0` 這一行可以再指定偏好的版本。`GOTOOLCHAIN=go1.27.0` 則讓所有人用同一版，`go.mod` 要求更高的版本時直接失敗，不會悄悄換。另外 `go version -m` 也列出 `CGO_ENABLED`、`GOARM64` 這類建置設定，兩邊的環境變數要一致。PGO 的 `default.pgo` 同理是輸入，第 7 章〈[PGO](../chapter7/07_pgo.md)〉談過要 commit 進 repo。
 
 **時間戳記。** Go 不會自己把建置時間寫進執行檔。常見的問題是自己注入：`-X main.buildTime=$(date …)`。每個目錄與旗標都相同，間隔一秒建兩次：
 
@@ -144,6 +144,6 @@ built: 2026-10-30T05:43:26Z
 
 ## 重點整理
 
-- 路徑、Go 版本、自己注入的時間戳記是可以自己控制的輸入；兩個目錄的雜湊不同，原因是路徑被寫進執行檔，`-trimpath` 處理它，證明的方法是兩次建置的雜湊相同。
+- 路徑、Go 版本、自己注入的時間戳記是可以自己控制的輸入。兩個目錄的雜湊不同，原因是路徑被寫進執行檔，`-trimpath` 處理它，證明的方法是兩次建置的雜湊相同。
 - 用 `go.mod` 的 `go 1.27.0` 與 `GOTOOLCHAIN` 固定工具鏈；不要在建置時注入時間，需要就用 commit 的時間。
 - cgo 與 VCS 狀態超出這兩招：要驗證就 `CGO_ENABLED=0`、從乾淨的 checkout 建，`-buildvcs=false` 會丟掉可追溯性。
