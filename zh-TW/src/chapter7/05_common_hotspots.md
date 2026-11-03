@@ -39,12 +39,7 @@ BenchmarkReport/entries=100-14         	    1000	      6511 ns/op	   10197 B/op	
 BenchmarkReport/entries=1000-14        	    1000	     79293 ns/op	  675069 B/op	    1009 allocs/op
 ```
 
-筆數是 10 倍，配置次數也大約是 10 倍，每筆失敗請求約 4 次。來源有四處：
-
-- `append` 沒有預留容量，每次空間不夠就配置一塊更大的、把舊的拷過去。
-- `out +=` 每一圈都配置一個新字串，再把前面全部的內容拷一遍，總拷貝量隨筆數的平方成長。
-- `route` 先轉成 `[]byte`、`bytes.ToLower` 再拷一份、`string(b)` 又拷一份，每一次拷貝都是一份新的路徑。
-- `strconv.Itoa` 也配置一次。
+筆數是 10 倍，配置次數也大約是 10 倍，每筆失敗請求約 4 次。來源有四處。`append` 沒有預留容量，每次空間不夠就配置一塊更大的、把舊的拷過去。`out +=` 每一圈都配置一個新字串，再把前面全部的內容拷一遍，總拷貝量隨筆數的平方成長。`route` 先轉成 `[]byte`、`bytes.ToLower` 再拷一份、`string(b)` 又拷一份，每一次拷貝都是一份新的路徑。`strconv.Itoa` 也配置一次。
 
 **鎖競爭。** 沒有競爭時，鎖幾乎沒有成本；問題要在多個 goroutine 同時搶時才出現，所以 benchmark 用 `RunParallel`，讓多個 goroutine 同時呼叫（`b.Loop` 是單一 goroutine 的寫法，`RunParallel` 改用 `pb.Next()` 控制迴圈）：
 

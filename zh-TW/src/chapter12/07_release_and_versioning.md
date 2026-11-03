@@ -138,7 +138,7 @@ verifying example.com/slugtool@v1.1.0/go.mod: checksum mismatch
 
 ## 取捨
 
-- **v0 還是 v1。** v0 不承諾相容，API 還在改、只有少數呼叫端時留在 v0 比較符合實際狀況；多個團隊依賴、想承諾「次版本不破壞」才發 v1。
+- **v0 還是 v1。** v0 不承諾相容，API 還在改、只有少數呼叫端時留在 v0，不必承諾還做不到的相容；多個團隊依賴、想承諾「次版本不破壞」才發 v1。
 - **v2 的成本。** 新路徑、一段時間要維護兩個版本，呼叫端要改 import 與程式碼。能新增或棄用解決就不開 v2（第 1 章〈[棄用（deprecation）與相容性](../chapter1/08_deprecation_and_compatibility.md)〉）；同名函式非改簽名不可才要，另一條路是在 v1 新增 `SlugStrict`。
 - **自動化。** 版本號靠人判斷。changelog 與 release 工具（GoReleaser、release-please）只負責紀錄與打包；`gorelease` 比對公開 API 的差異，改動算不算破壞，最後還是人決定。
 
