@@ -84,7 +84,7 @@
 {{#include ../../../examples/chapter10/04_rate_limit/after/example_test.go:example}}
 ```
 
-`Reserve` 是第三種：先預約、拿到要等多久，自己決定怎麼等，適合「慢下來但不丟」；要在 deadline 或取消時放棄，用 `Wait` 比較省事。拒絕後呼叫 `Cancel` 歸還預約，文件只保證「盡可能」還原，並行時不見得完全還原，所以伺服器端用 `Allow`。
+`Reserve` 是第三種：先預約、拿到要等多久，自己決定怎麼等，適合「慢下來但不丟」；要在 deadline 或取消時放棄，用 `Wait` 比較省事。拒絕後呼叫 `Cancel` 歸還預約。文件只保證「盡可能」還原，並行時不見得完全還原，所以伺服器端用 `Allow`。
 
 ## 取捨
 
