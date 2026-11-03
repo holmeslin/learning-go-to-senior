@@ -8,7 +8,7 @@
 
 你維護一個內部共用的 `store` 套件，`Find(id)` 找不到使用者時回傳哨兵錯誤 `ErrNotFound`，三個服務都用 `errors.Is(err, store.ErrNotFound)` 把它對應成 404。現在要發 v1.1，想讓錯誤訊息好查一點：把 id 放進訊息裡。
 
-`errors.Is` 與 `%w` 的機制，前作〈[`errors.Is`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/06_errors_is.html)〉與〈[`fmt.Errorf` 與 `%w`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/04_errorf_wrap.html)〉已經講過。本章〈[哨兵錯誤、自訂型別、不透明錯誤的選擇](01_sentinel_custom_opaque.md)〉談過該公開哪一種錯誤，本章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](02_wrap_or_expose.md)〉談過 `%w` 會公開被包住的錯誤；這集談的是公開之後的事：它已經是契約，要像函式簽名一樣維護。
+`errors.Is` 與 `%w` 的機制，前作〈[`errors.Is`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/06_errors_is.html)〉與〈[`fmt.Errorf` 與 `%w`](https://holmeslin.github.io/learning-go-from-zero/zh-TW/chapter5/04_errorf_wrap.html)〉已經講過。本章〈[哨兵錯誤、自訂型別、不透明錯誤的選擇](01_sentinel_custom_opaque.md)〉談過該公開哪一種錯誤，本章〈[包裝錯誤：`%w` 該不該暴露給呼叫端](02_wrap_or_expose.md)〉談過 `%w` 會公開被包住的錯誤。這集談的是公開之後的事：它已經是契約，要像函式簽名一樣維護。
 
 ## 常見寫法
 
@@ -36,7 +36,7 @@ v1.1 能編譯，`go vet` 沒有意見，`ErrNotFound` 也還在，呼叫端不�
 
 同樣是找不到 id 42，`errors.Is` 從 `true` 變成 `false`。呼叫端用它判斷「找不到」的那個分支再也不會進去，原本該回 404 的請求會落到「其他錯誤」那條路。
 
-這個壞法難發現，是因為沒有任何東西出聲：套件的簽名沒變，所以編譯器不會報錯；`ErrNotFound` 還是匯出的，所以呼叫端也沒有 `undefined`。對比第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉裡的改動，呼叫端一編譯就知道；改錯誤則只有在那條錯誤路徑真的被執行到的時候才會露出來，而錯誤路徑正是測試最常漏掉的地方。
+這個壞法難發現，是因為沒有任何工具會提醒你：套件的簽名沒變，所以編譯器不會報錯；`ErrNotFound` 還是匯出的，所以呼叫端也沒有 `undefined`。對比第 1 章〈[匯出名稱與 API 穩定性](../chapter1/04_exported_api_stability.md)〉裡的改動，呼叫端一編譯就知道；改錯誤則只有在那條錯誤路徑真的被執行到的時候才會露出來，而錯誤路徑正是測試最常漏掉的地方。
 
 ## 較好的做法
 
@@ -60,7 +60,7 @@ after 的 `Find` 一樣把 id 放進訊息，但用 `%w` 包住 `ErrNotFound`，
 
 - 把 `%w` 改成 `%v`：`errors.Is(err, ErrNotFound)` 變 `false`。
 - 把包住的 `ErrNotFound` 換成新建的 `errors.New("user not found")`：同樣變 `false`，訊息看起來完全一樣。
-- 把 `*InvalidIDError` 改成值型別：`Find` 回傳 `InvalidIDError{ID: id}`，`Error` 的接收者也要一起改成值接收者，否則編譯不過：`errors.AsType[*InvalidIDError]` 變 `false`。
+- 把 `*InvalidIDError` 改成值型別：`Find` 回傳 `InvalidIDError{ID: id}`，`Error` 的接收者也要一起改成值接收者，否則編譯不過。改完之後，`errors.AsType[*InvalidIDError]` 變 `false`。
 
 `Example` 則讓文件註解的承諾可以直接讀，`go test` 會比對輸出：
 
@@ -76,7 +76,7 @@ after 的 `Find` 一樣把 id 放進訊息，但用 `%w` 包住 `ErrNotFound`，
 
 鎖得越多，以後越難改。文件註解每多列一種錯誤、測試每多鎖一個判斷，就多一份要長期維護的承諾，所以只列呼叫端確實需要區分的錯誤；其他情況用不透明的錯誤，保留改動的空間。
 
-另一半責任在呼叫端：文件註解沒承諾訊息，呼叫端就不該用 `strings.Contains(err.Error(), "not found")` 判斷。before 的 v1.1 也不是全然錯：如果 `ErrNotFound` 本來就沒打算讓呼叫端判斷，改掉它是自由的，問題出在它已經被公開、被依賴，卻沒有人寫下「可以依賴」。
+另一半責任在呼叫端：文件註解沒承諾訊息，呼叫端就不該用 `strings.Contains(err.Error(), "not found")` 判斷。before 的 v1.1 也不是全然錯：如果 `ErrNotFound` 本來就沒打算讓呼叫端判斷，改掉它是自由的，問題出在它已經公開、呼叫端已經依賴它，卻沒有人寫下「可以依賴」。
 
 ## 重點整理
 
